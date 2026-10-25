@@ -1,5 +1,6 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { resolveBuildEnv } from './config/buildEnv.ts';
+import { HOSTED_PROJECT, withHostedDefaults } from './config/hostedProject.ts';
 
 const IDENTIFIERS = {
   development: { name: 'Singalore Dev', id: 'com.singalore.app.dev' },
@@ -12,7 +13,7 @@ const LOCATION_ALWAYS = 'Allow location all the time so Singalore can tell you a
 
 export default ({ config }: ConfigContext): ExpoConfig =>
 {
-  const env = resolveBuildEnv(process.env);
+  const env = resolveBuildEnv(withHostedDefaults(process.env, HOSTED_PROJECT));
   const identity = IDENTIFIERS[env.variant];
   const plugins: ExpoConfig['plugins'] = [
     'expo-router',
