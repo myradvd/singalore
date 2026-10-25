@@ -369,7 +369,7 @@ export function HomeScreen(props: HomeScreenProps)
       </View>
 
       {showEmptyCatalog && (
-        <View style={styles.emptyCatalog}>
+        <View style={[styles.emptyCatalog, { top: headerHeight }]}>
           <EmptyState
             testID="empty-catalog"
             icon="cloud-off-outline"
