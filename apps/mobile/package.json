@@ -34,6 +34,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "expo-task-manager": "~57.0.21",
+    "expo-updates": "~57.0.25",
     "fuse.js": "7.5.0",
     "react": "19.2.3",
     "react-native": "0.86.3",
@@ -66,16 +67,22 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "check": "node ../../scripts/check-mobile.mjs"
+    "check": "node ../../scripts/check-mobile.mjs",
+    "build:dev-app": "eas build --platform android --profile development",
+    "build:demo-app": "eas build --platform android --profile preview",
+    "update:demo": "eas update --channel preview --message \"$(git log -1 --pretty=%s)\""
   },
   "private": true,
   "expo": {
     "install": {
       "exclude": [
         "expo",
+        "expo-constants",
         "expo-crypto",
         "expo-dev-client",
+        "expo-linking",
         "expo-location",
+        "expo-notifications",
         "expo-router",
         "expo-splash-screen",
         "jest-expo"
