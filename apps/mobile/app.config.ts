@@ -1,6 +1,6 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { resolveBuildEnv } from './config/buildEnv.ts';
-import { HOSTED_PROJECT, withHostedDefaults } from './config/hostedProject.ts';
+import { HOSTED_PROJECT, updatesUrl, withHostedDefaults } from './config/hostedProject.ts';
 
 const IDENTIFIERS = {
   development: { name: 'Singalore Dev', id: 'com.singalore.app.dev' },
@@ -15,6 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
 {
   const env = resolveBuildEnv(withHostedDefaults(process.env, HOSTED_PROJECT));
   const identity = IDENTIFIERS[env.variant];
+  const updatesServerUrl = updatesUrl(HOSTED_PROJECT);
   const plugins: ExpoConfig['plugins'] = [
     'expo-router',
     'expo-sqlite',
@@ -83,7 +84,14 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     },
     plugins,
     experiments: { typedRoutes: true },
+    ...(updatesServerUrl !== null
+      ? {
+        runtimeVersion: { policy: 'fingerprint' as const },
+        updates: { url: updatesServerUrl, checkAutomatically: 'ON_LOAD' as const, fallbackToCacheTimeout: 0 },
+      }
+      : {}),
     extra: {
+      ...(HOSTED_PROJECT.easProjectId !== null ? { eas: { projectId: HOSTED_PROJECT.easProjectId } } : {}),
       appVariant: env.variant,
       apiBaseUrl: env.apiBaseUrl,
       mapStyleUrl: env.mapStyleUrl,
