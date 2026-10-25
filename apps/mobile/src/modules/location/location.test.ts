@@ -2,7 +2,7 @@ import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import type { LocationFix } from '@/core/location';
 import { LocationEngine, NO_FIX_TIMEOUT_MS } from './LocationEngine';
-import type { LocationSource } from './LocationSource';
+import { MODE_SETTINGS, type LocationSource } from './LocationSource';
 import { canTrackLocation, resolvePermissionState } from './permissions';
 import { interpolatePath, SpoofLocationSource, type Scheduler } from './SpoofLocationSource';
 
@@ -239,5 +239,15 @@ describe('SpoofLocationSource path playback', () =>
     expect(finished).toHaveBeenCalledTimes(1);
     expect(spoof.isPlaying()).toBe(false);
     expect(fixes.at(-1)?.longitude).toBeCloseTo(103.8002, 6);
+  });
+});
+
+describe('MODE_SETTINGS', () =>
+{
+  it.each(['browse', 'tour'] as const)('keeps a stationary device reporting before the no-fix watchdog fires (%s)', (mode) =>
+  {
+    const settings = MODE_SETTINGS[mode];
+    expect(settings.distanceIntervalMeters).toBe(0);
+    expect(settings.timeIntervalMs).toBeLessThan(NO_FIX_TIMEOUT_MS);
   });
 });
