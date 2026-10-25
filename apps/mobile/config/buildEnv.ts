@@ -69,7 +69,7 @@ export function resolveBuildEnv(raw: Record<string, string | undefined>): BuildE
   const apiBaseUrl = parsed.EXPO_PUBLIC_API_BASE_URL;
   if (apiBaseUrl === undefined)
   {
-    throw new Error(`EXPO_PUBLIC_API_BASE_URL is required for the ${variant} build. See apps/mobile/.env.example and docs/DEPLOY.md.`);
+    throw new Error(`EXPO_PUBLIC_API_BASE_URL is required for the ${variant} build. Set apiBaseUrl in apps/mobile/config/hostedProject.ts (QUICKSTART.md) or EXPO_PUBLIC_API_BASE_URL in apps/mobile/.env.`);
   }
   let apiUrl: URL;
   try
