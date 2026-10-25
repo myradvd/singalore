@@ -2,32 +2,23 @@
 
 Location-aware heritage walking tour app for Singapore. Android app (Expo / React Native), plus a Next.js content manager and API backed by Supabase.
 
-## Run it
+## Start here
 
-Follow **[docs/SETUP.md](docs/SETUP.md)**. It covers Windows and macOS from a fresh machine.
+**[QUICKSTART.md](QUICKSTART.md)** points you to the right setup guide:
 
-You will need:
-
-| Software | Version |
+| You are... | Guide |
 | --- | --- |
-| Node.js | 24 LTS (minimum 20.19) |
-| Docker Desktop | 4.x |
-| Java JDK | **21** (17 also works, 22 or newer fails the Android build) |
-| Android Studio | latest, with Android SDK Platform 36 |
-| Git | any recent |
+| Setting up the online backend and app builds for the team, once | [One-Time Project Setup (Host)](docs/setup/host-one-time-setup.md) |
+| A developer on Windows (WSL Ubuntu) | [Developer Setup: Windows](docs/setup/windows-wsl.md) |
+| A developer on a Mac | [Developer Setup: Mac](docs/setup/mac.md) |
 
-Quick start once those are installed:
+The database and CMS run online and are shared by the team, and the app is built in Expo's cloud. After setup, every day is one command:
 
-```sh
-npm install
-npm run db:start
-npm run env:local
-npm run db:reset
-npm run seed
-npm run dev:cms                      # CMS and API on http://localhost:3000
-# new terminal, with an emulator running and apps/mobile/.env set (docs/SETUP.md section 5.1)
-cd apps/mobile && npx expo run:android
+```bash
+npm run dev
 ```
+
+Before your first change, read **[CONTRIBUTING.md](CONTRIBUTING.md)**: the team rules, and how a change gets from a branch to the app.
 
 ## Project layout
 
@@ -38,11 +29,15 @@ cd apps/mobile && npx expo run:android
 | `packages/shared` | Shared schemas, types and utilities |
 | `packages/ingest` | OpenStreetMap, Wikidata and Commons ingest |
 | `supabase/` | Database migrations and seed content |
-| `scripts/` | Seed, env and build tooling |
+| `scripts/` | Seeding, setup checks and build tooling |
+| `docs/` | Design decisions, decision log, known limits and setup guides |
 
-## More docs
+## Docs
 
-- `docs/SETUP.md`: install and run on Windows or macOS
-- `docs/ANDROID_INSTALL.md`: Android build details and standalone APK
-- `docs/DEPLOY.md`: hosting the backend
-- `docs/KNOWN_LIMITS.md`: what is not built
+| Document | What it is |
+| --- | --- |
+| [QUICKSTART.md](QUICKSTART.md) | Setup: pick your guide |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Team rules; making, shipping and undoing a change |
+| [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) | How the app is built and why |
+| [docs/DECISION_LOG.md](docs/DECISION_LOG.md) | Every later change to a design decision, with the reason |
+| [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) | What is not built yet |
