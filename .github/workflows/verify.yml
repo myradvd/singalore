@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -23,3 +23,57 @@ jobs:
           SUPABASE_ANON_KEY: ci-anon-key-not-used-at-build-time
           SUPABASE_SERVICE_ROLE_KEY: ci-service-key-not-used-at-build-time
           RATE_LIMIT_SALT: ci-salt-not-used-at-build-time
+
+  # Says on every pull request and push whether the installed apps need a new build (CONTRIBUTING.md section 5).
+  app-build-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Compare the app fingerprint with the latest builds
+        run: npm run app:check
+
+  # Runs only after verify passes on main. The CMS itself is deployed by Vercel from the same push.
+  deploy:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Apply database migrations to hosted Supabase
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_REF != ''
+        run: |
+          npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          npx supabase db push
+      - name: Publish the app update to the demo app (EAS Update, preview channel)
+        if: env.EXPO_TOKEN != ''
+        working-directory: apps/mobile
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx eas update --channel preview --environment preview --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)" --non-interactive
+      - name: Say what was skipped
+        if: env.EXPO_TOKEN == '' || env.SUPABASE_ACCESS_TOKEN == '' || env.SUPABASE_PROJECT_REF == ''
+        run: echo "Some deploy steps were skipped because their GitHub secrets are not set yet. See docs/setup/host-one-time-setup.md step 8."

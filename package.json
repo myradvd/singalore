@@ -25,6 +25,7 @@
     "dev:clear": "tsx scripts/dev-preflight.ts && npm run start -w @singalore/mobile -- --clear",
     "app:build:dev": "npm run build:dev-app -w @singalore/mobile",
     "app:build:demo": "npm run build:demo-app -w @singalore/mobile",
+    "app:check": "tsx scripts/check-app-build.ts",
     "app:update": "npm run update:demo -w @singalore/mobile -- --environment preview",
     "seed": "tsx scripts/seed.ts",
     "seed:hosted": "SEED_TARGET=hosted tsx scripts/seed.ts",
