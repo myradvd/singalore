@@ -1,0 +1,24 @@
+# Decision log
+
+Every deviation from `docs/DESIGN_DECISIONS.md`, with the reason. Newest last.
+
+| # | Date | Decision | Instead of | Reason |
+| --- | --- | --- | --- | --- |
+| D1 | 2026-10-12 | Expo SDK 57 (RN 0.86.3, React 19.2.3, TypeScript ~6.0.3) | SDK 56 | SDK 57 is the latest stable at plan time, which the decisions doc asks for |
+| D2 | 2026-10-12 | Device verifies downloads by size plus MD5 (`File.info({ md5: true })`). Server stores and publishes SHA-256 and MD5 | SHA-256 verified on device | expo-file-system only hashes MD5 natively. SHA-256 via expo-crypto needs the whole file in JS memory (up to 50 MB). Transport is HTTPS, so the check is for integrity only |
+| D3 | 2026-10-12 | Composition root at `src/composition/container.ts` | `src/app/container.ts` | Expo Router treats every file under `src/app` as a route |
+| D4 | 2026-10-12 | Ingest code in `packages/ingest`, used by the CMS import and the seed script | Ingest only inside the CMS | The seed must use the same ingest code as the CMS. It still never runs on the device |
+| D5 | 2026-10-12 | ESLint 9.39.5 | Latest ESLint 10 | eslint-config-next and eslint-config-expo are proven on 9 |
+| D6 | 2026-10-12 | Route proxy rate limit stored in Postgres (salted IP hash, fixed window) | In-memory limiter | In-memory counters do not work across serverless instances |
+| D7 | 2026-10-12 | Pausing, editing or exiting navigation never stops audio. Expanded Map only reachable with no active route | `dialog-map-cache-states.puml` `Navigation exit / stopAudioPlayback()` and `Navigation -> ExpandedMap` | `dialog-map-latest.puml` wins over the cache-states map, and SRS FR 3.5 and UC 1.3.5 keep audio playing |
+| D8 | 2026-10-12 | `activeRouteExists` guard for Start Tour is true for a draft or an in-progress route | Unspecified | Both would be discarded by starting a new tour, so both need the warning |
+| D9 | 2026-10-12 | Debug tools include an https-only API base URL override | Not in the decisions doc | Lets a preview APK use a temporary tunnel without a rebuild |
+| D10 | 2026-10-12 | Mockup open questions: right bottom bar icon opens Explore; map cluster is layers, recenter, podcast preferences; sidebar Explore equals the bottom bar Explore; sidebar Settings opens Tour Preferences; no account block in the sidebar | Undecided | Section 8.3 defaults; there are no explorer accounts |
+| D11 | 2026-10-12 | Module boundaries enforced with core ESLint `no-restricted-imports` over `@/` path aliases; own polyline6, projection and circle code in `packages/shared` | `eslint-plugin-boundaries`; `@turf/*` and `@mapbox/polyline` | Same rules with fewer moving parts. The geo functions are small, allocation light and unit tested |
+| D12 | 2026-10-12 | `heritage_parks.thumbnail_bytes`, `heritage_landmarks.image_bytes` and `podcasts.checksum_md5` columns added | Section 7.1 columns only | Pack endpoint must list every file with its byte size, and the device verifies MD5 (D2) |
+| D13 | 2026-10-12 | Seed content uses editorial category and name overrides in `scripts/seed-spec.ts`; landmarks with no source description keep an empty description and no podcast | Pure ingest output | Ingest categories fall back to "other" too often. Empty descriptions exercise UC 1.2.2.2 and UC 1.3.2.2 honestly instead of inventing text |
+| D14 | 2026-10-12 | Seed images, narration audio and `seed-content.json` are committed under `supabase/seed/` | Fetch at seed time | Seeding is reproducible offline and Overpass is often overloaded (504 seen during planning) |
+| D15 | 2026-10-12 | Next.js `cacheComponents` off; CDN caching for `/api/v1` uses `Cache-Control` headers | Next 16 template default | The CMS reads auth cookies on every page and the API reads `If-None-Match`, so both are dynamic anyway |
+| D16 | 2026-10-12 | Background geofence wake ups send a local notification; autoplay happens when the notification is opened | Try autoplay from the background task | Audio from a headless task is unreliable on Android and needs the full audio engine outside the app context |
+| D17 | 2026-10-12 | Debug mode state lives in memory only | Persisted flag | Never survives a reinstall (UC 1.6.1 notes) and resets on restart |
+| D18 | 2026-10-12 | Seven Expo packages with newer SDK 57 patch releases are listed in `expo.install.exclude` | Upgrading to the new patches | CLAUDE.md forbids upgrading versions mid build. The installed patches are the ones the plan pinned |

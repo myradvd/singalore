@@ -1,0 +1,25 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify (typecheck, lint, tests, CMS build, mobile export and prebuild)
+        run: npm run verify
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_ANON_KEY: ci-anon-key-not-used-at-build-time
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-key-not-used-at-build-time
+          RATE_LIMIT_SALT: ci-salt-not-used-at-build-time

@@ -1,0 +1,896 @@
+{
+  "fetchedAt": "2026-10-12T10:51:07.174Z",
+  "parks": [
+    {
+      "slug": "tiong-bahru",
+      "name": "Tiong Bahru",
+      "district": "Bukit Merah",
+      "description": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore. Tiong Bahru was constructed in the 1920s by the Singapore Improvement Trust, the predecessor to the Housing Development Board (HDB) and an entity of the British colonial authority providing mass public housing in Singapore and is the oldest housing estate in Singapore.",
+      "shortDescription": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore.",
+      "centerLat": 1.2861633291666668,
+      "centerLng": 103.83096187824943,
+      "boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.824144,
+              1.28737
+            ],
+            [
+              103.824216,
+              1.2871
+            ],
+            [
+              103.824414,
+              1.286902
+            ],
+            [
+              103.830567,
+              1.282948
+            ],
+            [
+              103.830837,
+              1.282876
+            ],
+            [
+              103.831107,
+              1.282948
+            ],
+            [
+              103.835346,
+              1.285583
+            ],
+            [
+              103.835543,
+              1.285781
+            ],
+            [
+              103.835616,
+              1.286051
+            ],
+            [
+              103.835543,
+              1.286321
+            ],
+            [
+              103.833701,
+              1.289538
+            ],
+            [
+              103.833504,
+              1.289735
+            ],
+            [
+              103.833234,
+              1.289807
+            ],
+            [
+              103.824684,
+              1.287909
+            ],
+            [
+              103.824414,
+              1.287837
+            ],
+            [
+              103.824216,
+              1.28764
+            ],
+            [
+              103.824144,
+              1.28737
+            ]
+          ]
+        ]
+      },
+      "attribution": "Text adapted from Wikipedia article \"Tiong Bahru\" (https://en.wikipedia.org/wiki/Tiong_Bahru), CC BY-SA 4.0. Boundary is the area around the landmarks, derived from their positions, not an official boundary.",
+      "thumbnailFile": "tiong-bahru-estate.jpg",
+      "landmarks": [
+        {
+          "slug": "tiong-bahru-estate",
+          "name": "Tiong Bahru Estate",
+          "aliases": [
+            "Tiong Bahru"
+          ],
+          "category": "residential",
+          "lat": 1.2861,
+          "lng": 103.8294,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore.",
+          "description": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore. Tiong Bahru was constructed in the 1920s by the Singapore Improvement Trust, the predecessor to the Housing Development Board (HDB) and an entity of the British colonial authority providing mass public housing in Singapore and is the oldest housing estate in Singapore.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q7808727",
+          "osmType": "node",
+          "osmId": 2511055449,
+          "image": {
+            "fileName": "19 Tiong Bahru Road - 2022-08-14.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8e/19_Tiong_Bahru_Road_-_2022-08-14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/19_Tiong_Bahru_Road_-_2022-08-14.jpg/960px-19_Tiong_Bahru_Road_-_2022-08-14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:19_Tiong_Bahru_Road_-_2022-08-14.jpg",
+            "artist": "Wzhkevin",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru\" (https://en.wikipedia.org/wiki/Tiong_Bahru), CC BY-SA 4.0. Facts from Wikidata Q7808727 (https://www.wikidata.org/wiki/Q7808727), CC0. Location from OpenStreetMap node 2511055449, (c) OpenStreetMap contributors, ODbL. Image \"19 Tiong Bahru Road - 2022-08-14.jpg\" by Wzhkevin, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:19_Tiong_Bahru_Road_-_2022-08-14.jpg).",
+          "sortOrder": 0,
+          "imageFile": "tiong-bahru-estate.jpg"
+        },
+        {
+          "slug": "tiong-bahru-market",
+          "name": "Tiong Bahru Market",
+          "aliases": [],
+          "category": "commercial",
+          "lat": 1.2847764499999998,
+          "lng": 103.83254106949653,
+          "geofenceRadiusM": 30,
+          "shortDescription": "market located at the corner of Lim Liak Street and Seng Poh Road",
+          "description": "market located at the corner of Lim Liak Street and Seng Poh Road",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q107803795",
+          "osmType": null,
+          "osmId": null,
+          "image": {
+            "fileName": "Tiong Bahru Market, exterior.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Tiong_Bahru_Market%2C_exterior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Tiong_Bahru_Market%2C_exterior.jpg/960px-Tiong_Bahru_Market%2C_exterior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Tiong_Bahru_Market,_exterior.jpg",
+            "artist": "Kbseah",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Facts from Wikidata Q107803795 (https://www.wikidata.org/wiki/Q107803795), CC0. Image \"Tiong Bahru Market, exterior.jpg\" by Kbseah, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tiong_Bahru_Market,_exterior.jpg).",
+          "sortOrder": 1,
+          "imageFile": "tiong-bahru-market.jpg"
+        },
+        {
+          "slug": "tiong-bahru-air-raid-shelter",
+          "name": "Tiong Bahru Air Raid Shelter",
+          "aliases": [],
+          "category": "military",
+          "lat": 1.2834152,
+          "lng": 103.8308367,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Tiong Bahru Air Raid Shelter is a converted air raid shelter built between 1939 and 1941 at block 78 within the Tiong Bahru neighbourhood in Singapore.",
+          "description": "Tiong Bahru Air Raid Shelter is a converted air raid shelter built between 1939 and 1941 at block 78 within the Tiong Bahru neighbourhood in Singapore. The shelter is preserved and is part of a heritage trail of the neighbourhood.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q118213332",
+          "osmType": null,
+          "osmId": null,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru Air Raid Shelter\" (https://en.wikipedia.org/wiki/Tiong_Bahru_Air_Raid_Shelter), CC BY-SA 4.0. Facts from Wikidata Q118213332 (https://www.wikidata.org/wiki/Q118213332), CC0.",
+          "sortOrder": 2,
+          "imageFile": null
+        },
+        {
+          "slug": "tiong-bahru-park",
+          "name": "Tiong Bahru Park",
+          "aliases": [],
+          "category": "other",
+          "lat": 1.2873698,
+          "lng": 103.8246836,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Tiong Bahru Park is a public park between Henderson, Bukit Merah and Lower Delta Road in Singapore. First developed around 1967, it combined with a nursery site in 1977 and in 2000, it was redeveloped.",
+          "description": "Tiong Bahru Park is a public park between Henderson, Bukit Merah and Lower Delta Road in Singapore. First developed around 1967, it combined with a nursery site in 1977 and in 2000, it was redeveloped.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q7808728",
+          "osmType": "way",
+          "osmId": 329762423,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru Park\" (https://en.wikipedia.org/wiki/Tiong_Bahru_Park), CC BY-SA 4.0. Facts from Wikidata Q7808728 (https://www.wikidata.org/wiki/Q7808728), CC0. Location from OpenStreetMap way 329762423, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 3,
+          "imageFile": null
+        },
+        {
+          "slug": "giok-hong-tian-temple",
+          "name": "Giok Hong Tian Temple",
+          "aliases": [],
+          "category": "religious",
+          "lat": 1.2892677249999998,
+          "lng": 103.83323390000001,
+          "geofenceRadiusM": 30,
+          "shortDescription": "",
+          "description": "",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": null,
+          "osmType": "way",
+          "osmId": 260459557,
+          "image": null,
+          "attribution": "Location from OpenStreetMap way 260459557, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 4,
+          "imageFile": null
+        },
+        {
+          "slug": "grave-of-tan-tock-seng",
+          "name": "Grave of Tan Tock Seng",
+          "aliases": [],
+          "category": "other",
+          "lat": 1.2860508,
+          "lng": 103.835076,
+          "geofenceRadiusM": 30,
+          "shortDescription": "",
+          "description": "",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": null,
+          "osmType": "node",
+          "osmId": 12389540382,
+          "image": null,
+          "attribution": "Location from OpenStreetMap node 12389540382, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 5,
+          "imageFile": null
+        }
+      ]
+    },
+    {
+      "slug": "civic-district",
+      "name": "Civic District",
+      "district": "Downtown Core",
+      "description": "The Civic District is a district located near the Singapore River in the Central Area of Singapore.",
+      "shortDescription": "The Civic District is a district located near the Singapore River in the Central Area of Singapore.",
+      "centerLat": 1.2917277916666665,
+      "centerLng": 103.85171315277778,
+      "boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.8481,
+              1.29672
+            ],
+            [
+              103.848173,
+              1.29645
+            ],
+            [
+              103.850921,
+              1.28723
+            ],
+            [
+              103.851119,
+              1.287033
+            ],
+            [
+              103.851389,
+              1.28696
+            ],
+            [
+              103.851659,
+              1.287033
+            ],
+            [
+              103.851856,
+              1.28723
+            ],
+            [
+              103.852467,
+              1.28798
+            ],
+            [
+              103.85495,
+              1.294619
+            ],
+            [
+              103.855023,
+              1.294889
+            ],
+            [
+              103.85495,
+              1.295159
+            ],
+            [
+              103.854753,
+              1.295356
+            ],
+            [
+              103.84891,
+              1.297187
+            ],
+            [
+              103.84864,
+              1.29726
+            ],
+            [
+              103.84837,
+              1.297187
+            ],
+            [
+              103.848173,
+              1.29699
+            ],
+            [
+              103.8481,
+              1.29672
+            ]
+          ]
+        ]
+      },
+      "attribution": "Text adapted from Wikipedia article \"Civic District\" (https://en.wikipedia.org/wiki/Civic_District), CC BY-SA 4.0. Boundary is the area around the landmarks, derived from their positions, not an official boundary.",
+      "thumbnailFile": "chijmes.jpg",
+      "landmarks": [
+        {
+          "slug": "chijmes",
+          "name": "CHIJMES",
+          "aliases": [],
+          "category": "religious",
+          "lat": 1.29514,
+          "lng": 103.852,
+          "geofenceRadiusM": 30,
+          "shortDescription": "CHIJMES is a historic building complex in Singapore, which began life as a Catholic convent known as the Convent of the Holy Infant Jesus (CHIJ).",
+          "description": "CHIJMES is a historic building complex in Singapore, which began life as a Catholic convent known as the Convent of the Holy Infant Jesus (CHIJ). The complex is located at Victoria Street in the Downtown Core, within the Central Area, Singapore's central business district.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q1072593",
+          "osmType": "way",
+          "osmId": 172999759,
+          "image": {
+            "fileName": "CHIJMES 3, Jan 06.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/ff/CHIJMES_3%2C_Jan_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/CHIJMES_3%2C_Jan_06.JPG/960px-CHIJMES_3%2C_Jan_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:CHIJMES_3,_Jan_06.JPG",
+            "artist": "Unknown author",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"CHIJMES\" (https://en.wikipedia.org/wiki/CHIJMES), CC BY-SA 4.0. Facts from Wikidata Q1072593 (https://www.wikidata.org/wiki/Q1072593), CC0. Location from OpenStreetMap way 172999759, (c) OpenStreetMap contributors, ODbL. Image \"CHIJMES 3, Jan 06.JPG\" by Unknown author, CC BY-SA 3.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:CHIJMES_3,_Jan_06.JPG).",
+          "sortOrder": 0,
+          "imageFile": "chijmes.jpg"
+        },
+        {
+          "slug": "victoria-theatre-and-concert-hall",
+          "name": "Victoria Theatre and Concert Hall",
+          "aliases": [
+            "Victoria Concert Hall",
+            "Victoria Theatre",
+            "VTVCH"
+          ],
+          "category": "civic",
+          "lat": 1.28825,
+          "lng": 103.852,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Victoria Theatre and Concert Hall is a performing arts centre in the Central Area of Singapore, situated along Empress Place.",
+          "description": "The Victoria Theatre and Concert Hall is a performing arts centre in the Central Area of Singapore, situated along Empress Place. It is a complex of two buildings and a clock tower joined together by a common corridor; the oldest part of the building was first built in 1862, and the complex was completed in 1909. The complex has undergone a number of renovations and refurbishment, mostly recently in 2010 when the complex was closed for a four-year renovation project. It reopened on 15 July 2014.",
+          "builtYear": 1909,
+          "architecturalStyle": "Neoclassical architecture",
+          "wikidataId": "Q557635",
+          "osmType": "relation",
+          "osmId": 3899820,
+          "image": {
+            "fileName": "Teatro Victoria, Marina Bay, Singapur, 2023-08-16, DD 74-76 HDR.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Teatro_Victoria%2C_Marina_Bay%2C_Singapur%2C_2023-08-16%2C_DD_74-76_HDR.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Teatro_Victoria%2C_Marina_Bay%2C_Singapur%2C_2023-08-16%2C_DD_74-76_HDR.jpg/960px-Teatro_Victoria%2C_Marina_Bay%2C_Singapur%2C_2023-08-16%2C_DD_74-76_HDR.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Teatro_Victoria,_Marina_Bay,_Singapur,_2023-08-16,_DD_74-76_HDR.jpg",
+            "artist": "Diego Delso",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Victoria Theatre and Concert Hall\" (https://en.wikipedia.org/wiki/Victoria_Theatre_and_Concert_Hall), CC BY-SA 4.0. Facts from Wikidata Q557635 (https://www.wikidata.org/wiki/Q557635), CC0. Location from OpenStreetMap relation 3899820, (c) OpenStreetMap contributors, ODbL. Image \"Teatro Victoria, Marina Bay, Singapur, 2023-08-16, DD 74-76 HDR.jpg\" by Diego Delso, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Teatro_Victoria,_Marina_Bay,_Singapur,_2023-08-16,_DD_74-76_HDR.jpg).",
+          "sortOrder": 1,
+          "imageFile": "victoria-theatre-and-concert-hall.jpg"
+        },
+        {
+          "slug": "national-museum-of-singapore",
+          "name": "National Museum of Singapore",
+          "aliases": [
+            "Raffles Library and Museum"
+          ],
+          "category": "museum",
+          "lat": 1.29672,
+          "lng": 103.84864,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The National Museum of Singapore is a public museum dedicated to Singaporean art, culture and history.",
+          "description": "The National Museum of Singapore is a public museum dedicated to Singaporean art, culture and history. Located within the country's Civic District at the Downtown Core area, it is the oldest museum in the country, with its history dating back to when it was first established in 1849, starting out as a section of a library at the Singapore Institution as the Raffles Library and Museum.",
+          "builtYear": 1849,
+          "architecturalStyle": null,
+          "wikidataId": "Q632689",
+          "osmType": "way",
+          "osmId": 32342169,
+          "image": {
+            "fileName": "National Museum of Singapore 2, Aug 06.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dc/National_Museum_of_Singapore_2%2C_Aug_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/National_Museum_of_Singapore_2%2C_Aug_06.JPG/960px-National_Museum_of_Singapore_2%2C_Aug_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:National_Museum_of_Singapore_2,_Aug_06.JPG",
+            "artist": "User:Sengkang",
+            "license": "Copyrighted free use",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"National Museum of Singapore\" (https://en.wikipedia.org/wiki/National_Museum_of_Singapore), CC BY-SA 4.0. Facts from Wikidata Q632689 (https://www.wikidata.org/wiki/Q632689), CC0. Location from OpenStreetMap way 32342169, (c) OpenStreetMap contributors, ODbL. Image \"National Museum of Singapore 2, Aug 06.JPG\" by User:Sengkang, Copyrighted free use, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:National_Museum_of_Singapore_2,_Aug_06.JPG).",
+          "sortOrder": 2,
+          "imageFile": "national-museum-of-singapore.jpg"
+        },
+        {
+          "slug": "raffles-hotel",
+          "name": "Raffles Hotel",
+          "aliases": [
+            "Raffles Singapore",
+            "Raffles Hotel Singapore",
+            "Raffles Hotel, Singapore"
+          ],
+          "category": "commercial",
+          "lat": 1.294889,
+          "lng": 103.854483,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Raffles Hotel is a historic luxury hotel at 1 Beach Road, in Singapore. It was established by Armenian hoteliers, the Sarkies Brothers, in 1887.",
+          "description": "Raffles Hotel is a historic luxury hotel at 1 Beach Road, in Singapore. It was established by Armenian hoteliers, the Sarkies Brothers, in 1887. The hotel was named after British colonial official Stamford Raffles, the founder of modern Singapore. It was gazetted as a national monument of Singapore in 1987.",
+          "builtYear": 1887,
+          "architecturalStyle": null,
+          "wikidataId": "Q1538837",
+          "osmType": "node",
+          "osmId": 11517501222,
+          "image": {
+            "fileName": "RafflesHotel-Singapore-20041025.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/23/RafflesHotel-Singapore-20041025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/RafflesHotel-Singapore-20041025.jpg/960px-RafflesHotel-Singapore-20041025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:RafflesHotel-Singapore-20041025.jpg",
+            "artist": "Velela .",
+            "license": "Public domain",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Raffles Hotel\" (https://en.wikipedia.org/wiki/Raffles_Hotel), CC BY-SA 4.0. Facts from Wikidata Q1538837 (https://www.wikidata.org/wiki/Q1538837), CC0. Location from OpenStreetMap node 11517501222, (c) OpenStreetMap contributors, ODbL. Image \"RafflesHotel-Singapore-20041025.jpg\" by Velela ., Public domain, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:RafflesHotel-Singapore-20041025.jpg).",
+          "sortOrder": 3,
+          "imageFile": "raffles-hotel.jpg"
+        },
+        {
+          "slug": "the-arts-house",
+          "name": "The Arts House",
+          "aliases": [
+            "Old Parliament House"
+          ],
+          "category": "civic",
+          "lat": 1.2886111111111112,
+          "lng": 103.85111111111111,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Arts House, is a multi-disciplinary arts venue in the Civic District of Singapore. The venue plays host to art exhibitions and concerts.",
+          "description": "The Arts House, is a multi-disciplinary arts venue in the Civic District of Singapore. The venue plays host to art exhibitions and concerts. Built in 1827, the Old Parliament House is the oldest government building and perhaps the oldest surviving building in Singapore. The building was home to the Parliament of Singapore from 1965 to 1999, when it moved to an adjacent new building.",
+          "builtYear": null,
+          "architecturalStyle": "Palladian architecture",
+          "wikidataId": "Q13360293",
+          "osmType": "way",
+          "osmId": 243427705,
+          "image": {
+            "fileName": "Old Parliament House, Singapore, Feb 06.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Old_Parliament_House%2C_Singapore%2C_Feb_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Old_Parliament_House%2C_Singapore%2C_Feb_06.JPG/960px-Old_Parliament_House%2C_Singapore%2C_Feb_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Old_Parliament_House,_Singapore,_Feb_06.JPG",
+            "artist": "User:Sengkang",
+            "license": "Copyrighted free use",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"The Arts House\" (https://en.wikipedia.org/wiki/The_Arts_House), CC BY-SA 4.0. Facts from Wikidata Q13360293 (https://www.wikidata.org/wiki/Q13360293), CC0. Location from OpenStreetMap way 243427705, (c) OpenStreetMap contributors, ODbL. Image \"Old Parliament House, Singapore, Feb 06.JPG\" by User:Sengkang, Copyrighted free use, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Old_Parliament_House,_Singapore,_Feb_06.JPG).",
+          "sortOrder": 4,
+          "imageFile": "the-arts-house.jpg"
+        },
+        {
+          "slug": "st-andrew-s-cathedral",
+          "name": "St Andrew's Cathedral",
+          "aliases": [
+            "Saint Andrew's Cathedral"
+          ],
+          "category": "religious",
+          "lat": 1.2922222222222222,
+          "lng": 103.85222222222222,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Saint Andrew's Cathedral is an Anglican cathedral in Singapore. It is located near City Hall, Downtown Core, within the Central Area in Singapore's central business district.",
+          "description": "Saint Andrew's Cathedral is an Anglican cathedral in Singapore. It is located near City Hall, Downtown Core, within the Central Area in Singapore's central business district. It is the cathedral church of the Anglican Diocese of Singapore and serves as the mother church to 27 parishes and more than 55 congregations. The church has existed on the site since 1836, although the current building was constructed in 1856, 1861. The logo of the cathedral is the St Andrew's Cross.",
+          "builtYear": 1861,
+          "architecturalStyle": "Gothic Revival",
+          "wikidataId": "Q168806",
+          "osmType": "way",
+          "osmId": 155980025,
+          "image": {
+            "fileName": "St Andrew's Cathedral, Singapore 2012.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/St_Andrew%27s_Cathedral%2C_Singapore_2012.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/St_Andrew%27s_Cathedral%2C_Singapore_2012.JPG/960px-St_Andrew%27s_Cathedral%2C_Singapore_2012.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:St_Andrew%27s_Cathedral,_Singapore_2012.JPG",
+            "artist": "Flaming Ferrari .",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"St Andrew's Cathedral, Singapore\" (https://en.wikipedia.org/wiki/St_Andrew's_Cathedral%2C_Singapore), CC BY-SA 4.0. Facts from Wikidata Q168806 (https://www.wikidata.org/wiki/Q168806), CC0. Location from OpenStreetMap way 155980025, (c) OpenStreetMap contributors, ODbL. Image \"St Andrew's Cathedral, Singapore 2012.JPG\" by Flaming Ferrari ., CC BY-SA 3.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:St_Andrew%27s_Cathedral,_Singapore_2012.JPG).",
+          "sortOrder": 5,
+          "imageFile": "st-andrew-s-cathedral.jpg"
+        },
+        {
+          "slug": "asian-civilisations-museum",
+          "name": "Asian Civilisations Museum",
+          "aliases": [
+            "ACM"
+          ],
+          "category": "museum",
+          "lat": 1.2875,
+          "lng": 103.85138888888889,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Asian Civilisations Museum (ACM) is an institution which forms a part of the four museums in Singapore, the other three being the Peranakan Museum, the National Museum of Singapore and the Singapore Art Museum.",
+          "description": "The Asian Civilisations Museum (ACM) is an institution which forms a part of the four museums in Singapore, the other three being the Peranakan Museum, the National Museum of Singapore and the Singapore Art Museum.",
+          "builtYear": 1997,
+          "architecturalStyle": null,
+          "wikidataId": "Q633033",
+          "osmType": "way",
+          "osmId": 46595390,
+          "image": {
+            "fileName": "Asian Civilisations Museum, Empress Place 2.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Asian_Civilisations_Museum%2C_Empress_Place_2.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Asian_Civilisations_Museum%2C_Empress_Place_2.JPG/960px-Asian_Civilisations_Museum%2C_Empress_Place_2.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Asian_Civilisations_Museum,_Empress_Place_2.JPG",
+            "artist": "Terence Ong",
+            "license": "CC BY 2.5",
+            "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Asian Civilisations Museum\" (https://en.wikipedia.org/wiki/Asian_Civilisations_Museum), CC BY-SA 4.0. Facts from Wikidata Q633033 (https://www.wikidata.org/wiki/Q633033), CC0. Location from OpenStreetMap way 46595390, (c) OpenStreetMap contributors, ODbL. Image \"Asian Civilisations Museum, Empress Place 2.JPG\" by Terence Ong, CC BY 2.5, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Asian_Civilisations_Museum,_Empress_Place_2.JPG).",
+          "sortOrder": 6,
+          "imageFile": "asian-civilisations-museum.jpg"
+        },
+        {
+          "slug": "national-gallery-singapore",
+          "name": "National Gallery Singapore",
+          "aliases": [
+            "National Art Gallery, Singapore (former name)",
+            "National Gallery SG"
+          ],
+          "category": "museum",
+          "lat": 1.29049,
+          "lng": 103.85186,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The National Gallery Singapore is a public art museum and national museum located in the Civic District of Singapore.",
+          "description": "The National Gallery Singapore is a public art museum and national museum located in the Civic District of Singapore. It houses a collection of Singaporean and Southeast Asian art spanning the 19th century to the present, with more than 9,000 artworks.",
+          "builtYear": 2005,
+          "architecturalStyle": null,
+          "wikidataId": "Q6970475",
+          "osmType": "node",
+          "osmId": 4759240362,
+          "image": {
+            "fileName": "Padang Atrium, National Gallery Singapore - 20151127-03.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Padang_Atrium%2C_National_Gallery_Singapore_-_20151127-03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Padang_Atrium%2C_National_Gallery_Singapore_-_20151127-03.jpg/960px-Padang_Atrium%2C_National_Gallery_Singapore_-_20151127-03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Padang_Atrium,_National_Gallery_Singapore_-_20151127-03.jpg",
+            "artist": "Jacklee",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"National Gallery Singapore\" (https://en.wikipedia.org/wiki/National_Gallery_Singapore), CC BY-SA 4.0. Facts from Wikidata Q6970475 (https://www.wikidata.org/wiki/Q6970475), CC0. Location from OpenStreetMap node 4759240362, (c) OpenStreetMap contributors, ODbL. Image \"Padang Atrium, National Gallery Singapore - 20151127-03.jpg\" by Jacklee, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Padang_Atrium,_National_Gallery_Singapore_-_20151127-03.jpg).",
+          "sortOrder": 7,
+          "imageFile": "national-gallery-singapore.jpg"
+        }
+      ]
+    },
+    {
+      "slug": "telok-ayer-tanjong-pagar",
+      "name": "Telok Ayer and Tanjong Pagar",
+      "district": "Downtown Core",
+      "description": "Telok Ayer Street is a street located in Singapore's Chinatown within the Outram planning area, linking Church Street to Cecil Street. Telok Ayer MRT station is located at the junction of Cross Street and this road.",
+      "shortDescription": "Telok Ayer Street is a street located in Singapore's Chinatown within the Outram planning area, linking Church Street to Cecil Street. Telok Ayer MRT station is located at the junction of Cross Street and this road.",
+      "centerLat": 1.2799241527777752,
+      "centerLng": 103.846041694445,
+      "boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.837516,
+              1.272778
+            ],
+            [
+              103.837588,
+              1.272508
+            ],
+            [
+              103.837786,
+              1.27231
+            ],
+            [
+              103.838056,
+              1.272238
+            ],
+            [
+              103.838325,
+              1.27231
+            ],
+            [
+              103.84727,
+              1.278003
+            ],
+            [
+              103.847467,
+              1.2782
+            ],
+            [
+              103.849217,
+              1.28265
+            ],
+            [
+              103.84929,
+              1.282919
+            ],
+            [
+              103.849217,
+              1.283189
+            ],
+            [
+              103.84902,
+              1.283387
+            ],
+            [
+              103.84875,
+              1.283459
+            ],
+            [
+              103.84848,
+              1.283387
+            ],
+            [
+              103.84773,
+              1.282937
+            ],
+            [
+              103.84373,
+              1.280467
+            ],
+            [
+              103.843533,
+              1.28027
+            ],
+            [
+              103.837588,
+              1.273048
+            ],
+            [
+              103.837516,
+              1.272778
+            ]
+          ]
+        ]
+      },
+      "attribution": "Text adapted from Wikipedia article \"Telok Ayer Street\" (https://en.wikipedia.org/wiki/Telok_Ayer_Street), CC BY-SA 4.0. Boundary is the area around the landmarks, derived from their positions, not an official boundary.",
+      "thumbnailFile": "thian-hock-keng.jpg",
+      "landmarks": [
+        {
+          "slug": "thian-hock-keng",
+          "name": "Thian Hock Keng",
+          "aliases": [
+            "Thian Hock Temple",
+            "Tian Fu Gong",
+            "Tian Fu Temple"
+          ],
+          "category": "religious",
+          "lat": 1.281056,
+          "lng": 103.847528,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Thian Hock Keng Temple, is a temple built for the worship of Mazu, a Chinese sea goddess, in Outram, Singapore.",
+          "description": "Thian Hock Keng Temple, is a temple built for the worship of Mazu, a Chinese sea goddess, in Outram, Singapore.",
+          "builtYear": 1839,
+          "architecturalStyle": null,
+          "wikidataId": "Q2158122",
+          "osmType": "way",
+          "osmId": 172272611,
+          "image": {
+            "fileName": "Thian Hock Keng Temple 3, Dec 05.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/03/Thian_Hock_Keng_Temple_3%2C_Dec_05.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Thian_Hock_Keng_Temple_3%2C_Dec_05.JPG/960px-Thian_Hock_Keng_Temple_3%2C_Dec_05.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Thian_Hock_Keng_Temple_3,_Dec_05.JPG",
+            "artist": "User:Sengkang",
+            "license": "Copyrighted free use",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Thian Hock Keng Temple\" (https://en.wikipedia.org/wiki/Thian_Hock_Keng_Temple), CC BY-SA 4.0. Facts from Wikidata Q2158122 (https://www.wikidata.org/wiki/Q2158122), CC0. Location from OpenStreetMap way 172272611, (c) OpenStreetMap contributors, ODbL. Image \"Thian Hock Keng Temple 3, Dec 05.JPG\" by User:Sengkang, Copyrighted free use, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Thian_Hock_Keng_Temple_3,_Dec_05.JPG).",
+          "sortOrder": 0,
+          "imageFile": "thian-hock-keng.jpg"
+        },
+        {
+          "slug": "masjid-al-abrar",
+          "name": "Masjid Al-Abrar",
+          "aliases": [
+            "Masjid Chulia",
+            "Al-Abrar Mosque"
+          ],
+          "category": "religious",
+          "lat": 1.28028,
+          "lng": 103.847,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Al-Abrar Mosque is a historic mosque located along Telok Ayer Street in Chinatown, Singapore. It was built in 1827 by Indian Muslim immigrants and later gazetted as a national monument of Singapore in 1974.",
+          "description": "The Al-Abrar Mosque is a historic mosque located along Telok Ayer Street in Chinatown, Singapore. It was built in 1827 by Indian Muslim immigrants and later gazetted as a national monument of Singapore in 1974. It is one of two Islamic heritage sites along Telok Ayer Street, the other being the Nagore Durgha.",
+          "builtYear": 1855,
+          "architecturalStyle": "Indo-Islamic architecture",
+          "wikidataId": "Q4022275",
+          "osmType": "way",
+          "osmId": 172904416,
+          "image": {
+            "fileName": "Al-Abrar Mosque SG (2025) - img 02.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/87/Al-Abrar_Mosque_SG_%282025%29_-_img_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Al-Abrar_Mosque_SG_%282025%29_-_img_02.jpg/960px-Al-Abrar_Mosque_SG_%282025%29_-_img_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Al-Abrar_Mosque_SG_(2025)_-_img_02.jpg",
+            "artist": "Chainwit.",
+            "license": "CC BY 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Masjid Al-Abrar\" (https://en.wikipedia.org/wiki/Masjid_Al-Abrar), CC BY-SA 4.0. Facts from Wikidata Q4022275 (https://www.wikidata.org/wiki/Q4022275), CC0. Location from OpenStreetMap way 172904416, (c) OpenStreetMap contributors, ODbL. Image \"Al-Abrar Mosque SG (2025) - img 02.jpg\" by Chainwit., CC BY 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Al-Abrar_Mosque_SG_(2025)_-_img_02.jpg).",
+          "sortOrder": 1,
+          "imageFile": "masjid-al-abrar.jpg"
+        },
+        {
+          "slug": "nagore-durgha",
+          "name": "Nagore Durgha",
+          "aliases": [
+            "Nagore Dargah",
+            "Shahul Hamid Dargah",
+            "Nagore Durgha Indian Muslim Heritage Centre",
+            "Nagore Durgha, Singapore"
+          ],
+          "category": "religious",
+          "lat": 1.28142,
+          "lng": 103.848,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Nagore Durgha is an Indian Muslim heritage centre and a national monument of Singapore, located along Telok Ayer Street in the Chinatown district.",
+          "description": "The Nagore Durgha is an Indian Muslim heritage centre and a national monument of Singapore, located along Telok Ayer Street in the Chinatown district. It originated in the 19th century as a shrine dedicated to a prominent Muslim sage, Nagore Shahul Hamid. It is one of two Islamic monuments in the area, the other being Masjid Al-Abrar.",
+          "builtYear": 1828,
+          "architecturalStyle": "Indo-Islamic architecture",
+          "wikidataId": "Q14179982",
+          "osmType": "way",
+          "osmId": 172272609,
+          "image": {
+            "fileName": "Chinatown SG - Nagore Durgha (Nagore Dargah) Sufi Shrine (2025) - img 04.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/40/Chinatown_SG_-_Nagore_Durgha_%28Nagore_Dargah%29_Sufi_Shrine_%282025%29_-_img_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Chinatown_SG_-_Nagore_Durgha_%28Nagore_Dargah%29_Sufi_Shrine_%282025%29_-_img_04.jpg/960px-Chinatown_SG_-_Nagore_Durgha_%28Nagore_Dargah%29_Sufi_Shrine_%282025%29_-_img_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Chinatown_SG_-_Nagore_Durgha_(Nagore_Dargah)_Sufi_Shrine_(2025)_-_img_04.jpg",
+            "artist": "Chainwit.",
+            "license": "CC BY 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Nagore Durgha, Singapore\" (https://en.wikipedia.org/wiki/Nagore_Durgha%2C_Singapore), CC BY-SA 4.0. Facts from Wikidata Q14179982 (https://www.wikidata.org/wiki/Q14179982), CC0. Location from OpenStreetMap way 172272609, (c) OpenStreetMap contributors, ODbL. Image \"Chinatown SG - Nagore Durgha (Nagore Dargah) Sufi Shrine (2025) - img 04.jpg\" by Chainwit., CC BY 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Chinatown_SG_-_Nagore_Durgha_(Nagore_Dargah)_Sufi_Shrine_(2025)_-_img_04.jpg).",
+          "sortOrder": 2,
+          "imageFile": "nagore-durgha.jpg"
+        },
+        {
+          "slug": "telok-ayer-chinese-methodist-church",
+          "name": "Telok Ayer Chinese Methodist Church",
+          "aliases": [],
+          "category": "religious",
+          "lat": 1.27847,
+          "lng": 103.847,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Telok Ayer Chinese Methodist Church, is located on Telok Ayer Street within the Downtown Core of Singapore's central business district. The church is approximately 450 metres from Telok Ayer MRT station.",
+          "description": "Telok Ayer Chinese Methodist Church, is located on Telok Ayer Street within the Downtown Core of Singapore's central business district. The church is approximately 450 metres from Telok Ayer MRT station.",
+          "builtYear": 1889,
+          "architecturalStyle": null,
+          "wikidataId": "Q7697793",
+          "osmType": "way",
+          "osmId": 172025317,
+          "image": {
+            "fileName": "Telok Ayer Chinese Methodist Church, Dec 05.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Telok_Ayer_Chinese_Methodist_Church%2C_Dec_05.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Telok_Ayer_Chinese_Methodist_Church%2C_Dec_05.JPG/960px-Telok_Ayer_Chinese_Methodist_Church%2C_Dec_05.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Telok_Ayer_Chinese_Methodist_Church,_Dec_05.JPG",
+            "artist": "User:Sengkang",
+            "license": "Copyrighted free use",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Telok Ayer Chinese Methodist Church\" (https://en.wikipedia.org/wiki/Telok_Ayer_Chinese_Methodist_Church), CC BY-SA 4.0. Facts from Wikidata Q7697793 (https://www.wikidata.org/wiki/Q7697793), CC0. Location from OpenStreetMap way 172025317, (c) OpenStreetMap contributors, ODbL. Image \"Telok Ayer Chinese Methodist Church, Dec 05.JPG\" by User:Sengkang, Copyrighted free use, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Telok_Ayer_Chinese_Methodist_Church,_Dec_05.JPG).",
+          "sortOrder": 3,
+          "imageFile": "telok-ayer-chinese-methodist-church.jpg"
+        },
+        {
+          "slug": "fuk-tak-chi-temple",
+          "name": "Fuk Tak Chi Temple",
+          "aliases": [
+            "Fuk Tak Chi Museum",
+            "Amoy Hotel"
+          ],
+          "category": "religious",
+          "lat": 1.2829194444444,
+          "lng": 103.84875,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Fuk Tak Chi Temple or Fook Tet Soo Khek Temple was one of the oldest former temple in Singapore built in 1820 by Cantonese and Hakka immigrants.",
+          "description": "The Fuk Tak Chi Temple or Fook Tet Soo Khek Temple was one of the oldest former temple in Singapore built in 1820 by Cantonese and Hakka immigrants. Evidence from an 1824 plaque indicates that the site was already in use as an early Tua Pek Kong shrine by that date. from Kwong Wai Siew (广惠肇三府). It is currently a museum housing more than 200 artefacts and reopened on 19 November 1998 as Fuk Tak Chi Museum, described by the National Library Board as Singapore's first street museum.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q4845494",
+          "osmType": "node",
+          "osmId": 4302905889,
+          "image": {
+            "fileName": "Fuk Tak Chi Museum 2, Jan 06.JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Fuk_Tak_Chi_Museum_2%2C_Jan_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Fuk_Tak_Chi_Museum_2%2C_Jan_06.JPG/960px-Fuk_Tak_Chi_Museum_2%2C_Jan_06.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fuk_Tak_Chi_Museum_2,_Jan_06.JPG",
+            "artist": "User:Sengkang",
+            "license": "Copyrighted free use",
+            "licenseUrl": null,
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Fuk Tak Chi Temple\" (https://en.wikipedia.org/wiki/Fuk_Tak_Chi_Temple), CC BY-SA 4.0. Facts from Wikidata Q4845494 (https://www.wikidata.org/wiki/Q4845494), CC0. Location from OpenStreetMap node 4302905889, (c) OpenStreetMap contributors, ODbL. Image \"Fuk Tak Chi Museum 2, Jan 06.JPG\" by User:Sengkang, Copyrighted free use, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Fuk_Tak_Chi_Museum_2,_Jan_06.JPG).",
+          "sortOrder": 4,
+          "imageFile": "fuk-tak-chi-temple.jpg"
+        },
+        {
+          "slug": "ying-fo-fui-kun",
+          "name": "Ying Fo Fui Kun",
+          "aliases": [],
+          "category": "civic",
+          "lat": 1.28247,
+          "lng": 103.848,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Ying Fo Fui Kun is a Hakka clan association in Singapore. Its clan house is located at Telok Ayer Street in the Outram Planning Area, within the Central Area.",
+          "description": "Ying Fo Fui Kun is a Hakka clan association in Singapore. Its clan house is located at Telok Ayer Street in the Outram Planning Area, within the Central Area.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q2609750",
+          "osmType": "way",
+          "osmId": 125836766,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Ying Fo Fui Kun\" (https://en.wikipedia.org/wiki/Ying_Fo_Fui_Kun), CC BY-SA 4.0. Facts from Wikidata Q2609750 (https://www.wikidata.org/wiki/Q2609750), CC0. Location from OpenStreetMap way 125836766, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 5,
+          "imageFile": null
+        },
+        {
+          "slug": "jinrikisha-station",
+          "name": "Jinrikisha Station",
+          "aliases": [],
+          "category": "transport",
+          "lat": 1.28,
+          "lng": 103.844,
+          "geofenceRadiusM": 30,
+          "shortDescription": "The Jinrikisha Station is a historic building in Singapore, and is located at Neil Road in Tanjong Pagar in the Chinatown district within the Singapore's central business district.",
+          "description": "The Jinrikisha Station is a historic building in Singapore, and is located at Neil Road in Tanjong Pagar in the Chinatown district within the Singapore's central business district.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q6202739",
+          "osmType": null,
+          "osmId": null,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Jinrikisha Station\" (https://en.wikipedia.org/wiki/Jinrikisha_Station), CC BY-SA 4.0. Facts from Wikidata Q6202739 (https://www.wikidata.org/wiki/Q6202739), CC0.",
+          "sortOrder": 6,
+          "imageFile": null
+        },
+        {
+          "slug": "tanjong-pagar-railway-station",
+          "name": "Tanjong Pagar railway station",
+          "aliases": [
+            "Keppel Road railway station",
+            "Former Tanjong Pagar Railway Station"
+          ],
+          "category": "transport",
+          "lat": 1.2727777777778,
+          "lng": 103.83805555556,
+          "geofenceRadiusM": 30,
+          "shortDescription": "Tanjong Pagar railway station, also known as Singapore railway station or Keppel Road railway station, is a former railway station located at 30 Keppel Road in Singapore.",
+          "description": "Tanjong Pagar railway station, also known as Singapore railway station or Keppel Road railway station, is a former railway station located at 30 Keppel Road in Singapore. The station was the southern terminus of the network operated by Keretapi Tanah Melayu (KTM), the main railway operator in Malaysia, until 30 June 2011 when the station ceased operations with relocation of the KTM station to Woodlands Train Checkpoint. The land on which the station and the KTM railway tracks stood was originally owned by KTM and over which Malaysia had partial sovereignty. This arrangement lasted until 30 June 2011, when rail service to Tanjong Pagar was ended and the land reverted to Singapore.",
+          "builtYear": 1932,
+          "architecturalStyle": null,
+          "wikidataId": "Q1096333",
+          "osmType": "way",
+          "osmId": 393439098,
+          "image": {
+            "fileName": "Tanjong Pagar Railway Station exterior view(1 retouched).jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Tanjong_Pagar_Railway_Station_exterior_view%281_retouched%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Tanjong_Pagar_Railway_Station_exterior_view%281_retouched%29.jpg/960px-Tanjong_Pagar_Railway_Station_exterior_view%281_retouched%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Tanjong_Pagar_Railway_Station_exterior_view(1_retouched).jpg",
+            "artist": "EquatorialSky2 Derivative work MagentaGreen",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Tanjong Pagar railway station\" (https://en.wikipedia.org/wiki/Tanjong_Pagar_railway_station), CC BY-SA 4.0. Facts from Wikidata Q1096333 (https://www.wikidata.org/wiki/Q1096333), CC0. Location from OpenStreetMap way 393439098, (c) OpenStreetMap contributors, ODbL. Image \"Tanjong Pagar Railway Station exterior view(1 retouched).jpg\" by EquatorialSky2 Derivative work MagentaGreen, CC BY-SA 3.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tanjong_Pagar_Railway_Station_exterior_view(1_retouched).jpg).",
+          "sortOrder": 7,
+          "imageFile": "tanjong-pagar-railway-station.jpg"
+        }
+      ]
+    }
+  ]
+}

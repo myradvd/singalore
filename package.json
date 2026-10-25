@@ -1,0 +1,46 @@
+{
+  "name": "singalore",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "scripts"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint . --max-warnings 0 && node scripts/check-no-emdash.mjs && node scripts/check-boundaries.mjs",
+    "test": "npm run test --workspaces --if-present",
+    "build:cms": "npm run build -w @singalore/cms",
+    "check:mobile": "npm run check -w @singalore/mobile",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build:cms && npm run check:mobile",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "seed": "tsx scripts/seed.ts",
+    "dev:cms": "npm run dev -w @singalore/cms",
+    "dev:mobile": "npm run start -w @singalore/mobile",
+    "e2e": "npm run e2e -w @singalore/cms",
+    "seed:fetch": "tsx scripts/fetch-seed.ts",
+    "seed:audio": "tsx scripts/demo-audio.ts",
+    "env:local": "tsx scripts/local-env.ts",
+    "smoke:route": "tsx scripts/route-smoke.ts"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "24.19.2",
+    "eas-cli": "24.12.1",
+    "eslint": "9.39.5",
+    "supabase": "2.120.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1"
+  }
+}
