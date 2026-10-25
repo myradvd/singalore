@@ -15,11 +15,18 @@ export type ServerEnv = z.infer<typeof ServerEnv>;
 
 let cached: ServerEnv | null = null;
 
+// Hosting dashboards often keep a variable with an empty value, so blank counts as not set and defaults apply.
+export function parseServerEnv(raw: Record<string, string | undefined>): ServerEnv
+{
+  const withoutBlanks = Object.fromEntries(Object.entries(raw).filter(([, value]) => value !== undefined && value.trim().length > 0));
+  return ServerEnv.parse(withoutBlanks);
+}
+
 export function serverEnv(): ServerEnv
 {
   if (cached === null)
   {
-    cached = ServerEnv.parse(process.env);
+    cached = parseServerEnv(process.env);
   }
   return cached;
 }
