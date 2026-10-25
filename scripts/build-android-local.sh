@@ -8,8 +8,19 @@ variant="${1:-debug}"
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 mobile_dir="$repo_root/apps/mobile"
 
-export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
-export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
+# Defaults are the standard install locations. Set ANDROID_HOME and JAVA_HOME yourself to override them.
+if [ "$(uname)" = "Darwin" ]
+then
+  export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+  export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
+else
+  export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+  if [ -z "${JAVA_HOME:-}" ]
+  then
+    echo "Set JAVA_HOME to a JDK 21 install. Easier on Windows and WSL: npm run app:build:dev builds in the cloud (QUICKSTART.md)." >&2
+    exit 1
+  fi
+fi
 
 if [ ! -d "$ANDROID_HOME" ]
 then

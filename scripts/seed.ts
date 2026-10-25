@@ -7,7 +7,9 @@ import { z } from 'zod';
 import type { AudioManifestEntry } from './demo-audio';
 import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type SeedContent } from './seed-types';
 
-process.loadEnvFile(path.resolve(import.meta.dirname, '..', 'apps', 'cms', '.env.local'));
+// SEED_TARGET=hosted seeds the online Supabase project from apps/cms/.env.hosted instead of the local one.
+const seedEnvFile = process.env.SEED_TARGET === 'hosted' ? '.env.hosted' : '.env.local';
+process.loadEnvFile(path.resolve(import.meta.dirname, '..', 'apps', 'cms', seedEnvFile));
 
 const Env = z.object({
   SUPABASE_URL: z.url(),
