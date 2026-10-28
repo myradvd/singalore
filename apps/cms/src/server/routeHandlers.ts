@@ -30,6 +30,18 @@ function validationError(error: z.ZodError): Response
   }
   return apiError('invalid_request', 'The request body is not a valid route request.', 400);
 }
+/**
+ * Shared handler for POST /api/v1/route and POST /api/v1/route/table.
+ * Applies the per-client rate limit, checks the body (at most 12 points, all inside Singapore),
+ * calls the routing provider, and maps failures to the API error format.
+ * Logs status and latency only, never the coordinates.
+ * @param request - Incoming HTTP request.
+ * @param kind - 'route' for a walking route, 'table' for a duration matrix.
+ * @param provider - Routing provider (OSRM).
+ * @param limiter - Rate limiter for this client.
+ * @param log - Receives kind, status and latency for each request.
+ * @returns JSON response, or an error with status 400, 422, 429, 502, 504 or 500.
+ */
 
 export async function handleRouting(
   request: Request,
