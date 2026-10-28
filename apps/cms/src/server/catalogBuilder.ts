@@ -57,6 +57,7 @@ export interface PodcastRow
 }
 /** Published database rows read by catalogRepository, before conversion to the API shape. */
 
+/** Published database rows read by catalogRepository, before conversion to the API shape. */
 export interface CatalogRows
 {
   parks: ParkRow[];
