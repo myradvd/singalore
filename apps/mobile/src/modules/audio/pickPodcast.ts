@@ -6,7 +6,13 @@ export interface PodcastPreferences
   preferredAccent: string | null;
   preferredLength: 'short' | 'standard' | 'long' | null;
 }
-
+/**
+ * Chooses which podcast variant to play for a landmark.
+ * Scores each variant: accent match 4, voice match 2, length match 1. Ties keep catalog order.
+ * @param podcasts - All published podcasts for the landmark.
+ * @param preferences - Walker's preferred voice, accent and length (null means no preference).
+ * @returns The best match, or null if there are none.
+ */
 export function pickPodcast(podcasts: readonly CatalogPodcast[], preferences: PodcastPreferences): CatalogPodcast | null
 {
   if (podcasts.length === 0)
@@ -33,7 +39,7 @@ export function pickPodcast(podcasts: readonly CatalogPodcast[], preferences: Po
   scored.sort((a, b) => b.score - a.score || a.index - b.index);
   return scored[0]?.podcast ?? null;
 }
-
+/** @returns The voices, accents and lengths that exist in the catalog, so Preferences only offers real options. */
 export function availableVariantOptions(podcasts: readonly CatalogPodcast[]): { voices: string[]; accents: string[]; lengths: string[] }
 {
   const unique = (values: (string | null)[]) => [...new Set(values.filter((value): value is string => value !== null))].sort();
