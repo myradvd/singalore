@@ -55,6 +55,12 @@ export function resetPermissionPromptForTests(): void
   permissionPromptShown = false;
 }
 
+/**
+ * Main screen (boundary class Map in the design).
+ * Hosts the heritage map with pins and park boundaries, the search bar, GPS status,
+ * site summary card, podcast prompt, mini player and route editor strip.
+ * Stays mounted while other screens open on top, so the map keeps its state.
+ */
 export function HomeScreen(props: HomeScreenProps)
 {
   const services = useAppServices();

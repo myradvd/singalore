@@ -11,6 +11,7 @@ const Row = z.object({
   completed_landmark_ids_json: z.string(),
 });
 
+/** One finished tour: stops, start and end time, completed or abandoned, and which stops were visited. No GPS trace is stored. */
 export interface TourHistoryEntry
 {
   id: string;
@@ -34,12 +35,14 @@ function ids(json: string): string[]
   }
 }
 
+/** Tour History stored on the device. */
 export class HistoryRepository
 {
   constructor(private readonly db: DbAdapter)
   {
   }
 
+    /** Saves a tour when navigation ends. */
   async record(entry: TourHistoryEntry): Promise<void>
   {
     await this.db.run(
@@ -49,6 +52,7 @@ export class HistoryRepository
     );
   }
 
+    /** @returns All past tours, most recent first. */
   async list(): Promise<TourHistoryEntry[]>
   {
     const rows = z.array(Row).parse(await this.db.all('select id, title, landmark_ids_json, started_at, ended_at, completion_status, completed_landmark_ids_json from tour_history order by ended_at desc'));
