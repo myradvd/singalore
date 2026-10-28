@@ -11,7 +11,11 @@ export type CatalogSyncOutcome =
   | { kind: 'not_modified'; snapshot: CatalogSnapshot }
   | { kind: 'failed_using_cache'; snapshot: CatalogSnapshot; reason: string }
   | { kind: 'failed_no_cache'; reason: string };
-
+/**
+ * Keeps the local catalog (parks, landmarks, podcasts) in step with the server (BackendServer in the design).
+ * Sends the saved ETag; on 304 keeps the cache, on 200 replaces it in one transaction.
+ * If offline, the cached catalog is used, so geofencing still works.
+ */
 export class CatalogSync
 {
   private inFlight: Promise<CatalogSyncOutcome> | null = null;
@@ -25,7 +29,7 @@ export class CatalogSync
   )
   {
   }
-
+/** @returns The cached catalog, or null if the app has never synced. */
   async loadCached(): Promise<CatalogSnapshot | null>
   {
     const etag = await this.repository.getMeta('catalog_etag');
@@ -42,7 +46,10 @@ export class CatalogSync
       podcasts: snapshot.podcasts.map((podcast) => ({ ...podcast, audioUrl: localize(podcast.audioUrl) })),
     };
   }
-
+/**
+ * Fetches the catalog from GET /api/v1/catalog. Concurrent calls share one request.
+ * @returns updated, not_modified, failed_using_cache or failed_no_cache.
+ */
   sync(): Promise<CatalogSyncOutcome>
   {
     if (this.inFlight === null)
