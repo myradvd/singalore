@@ -10,6 +10,10 @@ import { supabaseAdmin } from './supabaseAdmin';
 
 export const NOT_A_MANAGER_MESSAGE = 'This account is not a content manager.';
 
+/**
+ * Creates a Supabase client using the current request's login cookies.
+ * @returns A client bound to the current request's authentication session.
+ */
 export async function supabaseForRequest(): Promise<SupabaseClient>
 {
   const env = serverEnv();
@@ -44,12 +48,23 @@ export interface Manager
   content: ContentRepository;
 }
 
+/**
+ * Checks whether a user is listed in the content_managers table.
+ * @param userId - The user's Supabase Auth ID.
+ * @returns True if the user has editor or admin access; false otherwise.
+ */
 export async function isContentManager(userId: string): Promise<boolean>
 {
   const { data, error } = await supabaseAdmin().from('content_managers').select('display_name, role').eq('user_id', userId).maybeSingle();
   return error === null && ManagerRow.safeParse(data).success;
 }
 
+/**
+ * Enforces content-manager access on CMS pages and server actions.
+ * Redirects signed-out users to login and signs out users who lack
+ * content-manager access.
+ * @returns The manager's ID, display name, and ContentRepository instance.
+ */
 export async function requireManager(): Promise<Manager>
 {
   const supabase = await supabaseForRequest();

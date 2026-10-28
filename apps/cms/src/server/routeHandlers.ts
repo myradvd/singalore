@@ -42,7 +42,6 @@ function validationError(error: z.ZodError): Response
  * @param log - Receives kind, status and latency for each request.
  * @returns JSON response, or an error with status 400, 422, 429, 502, 504 or 500.
  */
-
 export async function handleRouting(
   request: Request,
   kind: 'route' | 'table',
