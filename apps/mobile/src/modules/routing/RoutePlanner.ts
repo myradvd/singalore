@@ -9,7 +9,10 @@ export const ROUTE_UNAVAILABLE_MESSAGE = 'Unable to calculate route. Please try 
 export type PlanResult =
   | { kind: 'planned'; route: PlannedRoute; autoOrdered: boolean }
   | { kind: 'failed'; message: string; fallback: PlannedRoute };
-
+/**
+ * Fallback route when the routing server fails: straight lines between stops,
+ * marked approximate, with no turn-by-turn steps. Time assumes 4.5 km/h.
+ */
 export function straightLineRoute(origin: GeoPoint, stops: readonly RouteStop[], plannedAt: number): PlannedRoute
 {
   const line = [origin, ...stops.map((stop) => stop.position)];
@@ -30,13 +33,17 @@ export function flattenSteps(response: RouteResponse, line: readonly GeoPoint[])
   });
   return steps;
 }
-
+/** Plans walking routes through the server's route endpoints (RouteOptimizer in the design). */
 export class RoutePlanner
 {
   constructor(private readonly api: ApiClient, private readonly clock: Clock)
   {
   }
-
+/**
+ * Auto-Order: fetches the walking-time matrix and returns the stops in the fastest order.
+ * @param origin - Walker's current position.
+ * @param stops - Stops in the itinerary.
+ */
   async orderStops(origin: GeoPoint, stops: readonly RouteStop[]): Promise<RouteStop[]>
   {
     if (stops.length < 2)
@@ -48,7 +55,11 @@ export class RoutePlanner
     const order = autoOrder(table.durationsS);
     return order.stopOrder.map((index) => stops[index - 1]).filter((stop): stop is RouteStop => stop !== undefined);
   }
-
+/**
+ * Plans a walking route from the walker through all stops.
+ * @param options - autoOrder reorders the stops first.
+ * @returns The planned route, or a failure message with a straight-line fallback route.
+ */
   async plan(origin: GeoPoint, stops: readonly RouteStop[], options: { autoOrder: boolean }): Promise<PlanResult>
   {
     const now = this.clock.now();
