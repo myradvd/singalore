@@ -30,18 +30,6 @@ export interface PackPodcastRow
  * @param generatedAt - Time stamped into the response.
  * @returns A validated PackResponse.
  */
-
-/**
- * Builds the offline pack for one park (GET /api/v1/parks/:id/pack).
- * Lists every audio and image file with its size, and checksums for audio,
- * so the app can verify downloads. Also includes long descriptions and transcripts.
- * @param parkId - Park being downloaded.
- * @param landmarks - Published landmarks in the park.
- * @param podcasts - Published podcasts (filtered to this park's landmarks).
- * @param mediaBase - Public media base URL.
- * @param generatedAt - Time stamped into the response.
- * @returns A validated PackResponse.
- */
 export function buildPack(parkId: string, landmarks: PackLandmarkRow[], podcasts: PackPodcastRow[], mediaBase: string, generatedAt: Date): PackResponse
 {
   const landmarkIds = new Set(landmarks.map((landmark) => landmark.id));
