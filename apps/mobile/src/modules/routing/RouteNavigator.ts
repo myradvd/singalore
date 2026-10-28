@@ -37,7 +37,11 @@ const PlannedRouteSchema = z.object({
 });
 
 export const INITIAL_ROUTE_STATE: RouteState = { status: 'idle', route: null, fallback: null, failureMessage: null, progress: null, offRoute: false, navigating: false };
-
+/**
+ * Holds the active route during navigation: tracks progress along the line,
+ * detects when the walker is off route (more than 40 m for 5 s),
+ * and saves the route to SQLite so it survives a restart.
+ */
 export class RouteNavigator
 {
   private state: RouteState = INITIAL_ROUTE_STATE;
@@ -60,7 +64,7 @@ export class RouteNavigator
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-
+/** Plans a route and makes it the current route. If a newer plan starts meanwhile, the older result is ignored. */
   async plan(origin: GeoPoint, stops: RouteStop[], autoOrder: boolean): Promise<PlanResult>
   {
     const version = ++this.planVersion;
@@ -100,7 +104,7 @@ export class RouteNavigator
     this.update({ status: 'ready', route, fallback: null, failureMessage: null, offRoute: false, progress: null });
     await this.db.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', [CACHE_KEY, JSON.stringify(route)]);
   }
-
+/** Reloads the saved route after an app restart. */
   async restore(): Promise<void>
   {
     const row = await this.db.first('select value from meta where key = ?', [CACHE_KEY]);
@@ -129,7 +133,7 @@ export class RouteNavigator
     this.update(INITIAL_ROUTE_STATE);
     await this.db.run('delete from meta where key = ?', [CACHE_KEY]);
   }
-
+/** Starts or stops following location fixes for turn-by-turn progress. */
   setNavigating(active: boolean): void
   {
     if (active && this.unsubscribe === null)
@@ -144,13 +148,13 @@ export class RouteNavigator
     this.offRoute.reset();
     this.update({ navigating: active, offRoute: false });
   }
-
+/** Walker chose "Return to path" on the off-route prompt: clears the warning. */
   returnToPath(): void
   {
     this.offRoute.reset();
     this.update({ offRoute: false });
   }
-
+/** Updates progress along the route and raises the off-route warning when needed. */
   handleFix(position: GeoPoint, at: number): void
   {
     const route = this.state.route;
