@@ -18,6 +18,10 @@ The database and CMS run online and are shared by the team, and the app is built
 npm run dev
 ```
 
+Then, scan the QR on an android phone with the ExpoGo App installed, or drag the latest APK onto a running virtual device on Android Studio (Recommended: Google Pixel 8, or any previously set-up emulator device). 
+Note: Current emulator is buggy and may need some set-up time.
+Click on the "Singalore" title 7 times fast (within 3 seconds) to enable developer mode and simulate location (if turned on) by long pressing any area on the map.
+
 Before your first change, read **[CONTRIBUTING.md](CONTRIBUTING.md)**: the team rules, and how a change gets from a branch to the app.
 
 ## Project layout
@@ -37,7 +41,8 @@ Before your first change, read **[CONTRIBUTING.md](CONTRIBUTING.md)**: the team 
 | Document | What it is |
 | --- | --- |
 | [QUICKSTART.md](QUICKSTART.md) | Setup: pick your guide |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Team rules; making, shipping and undoing a change |
-| [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) | How the app is built and why |
-| [docs/DECISION_LOG.md](docs/DECISION_LOG.md) | Every later change to a design decision, with the reason |
-| [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) | What is not built yet |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Team rules; making, shipping and undoing a change. Ensuring safe and proper development of this project |
+
+## Notes
+
+The latest available version is Version 0.1.0, and can be found under the docs/ folder.
