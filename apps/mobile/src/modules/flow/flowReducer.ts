@@ -16,7 +16,7 @@ export const INITIAL_FLOW_STATE: FlowState = {
   tourStartedAt: null,
   visitedLandmarkIds: [],
 };
-
+/** Named conditions from the dialog map, used to decide which transitions are allowed. */
 export const guards = {
   hasActiveRoute: (state: FlowState): boolean => state.base === 'inProgress',
   hasAnyRoute: (state: FlowState): boolean => state.base !== 'empty' || state.itinerary.length > 0,
@@ -77,7 +77,15 @@ function addStops(state: FlowState, landmarkIds: readonly string[]): FlowTransit
   const base = state.base === 'inProgress' ? 'inProgress' : baseForIdleItinerary(itinerary);
   return { state: { ...state, itinerary, base }, effects };
 }
-
+/**
+ * The dialog map as a pure state machine.
+ * Takes the current screen state and a user or system event, and returns the next state
+ * plus side effects (save route, start tracking, stop navigation) for flowEffects to run.
+ * Base modes: empty (no route), draft (route being edited), inProgress (tour running).
+ * @param state - Current flow state.
+ * @param event - What happened, for example openSearch, addStop, startTour, exitNavigation.
+ * @returns Next state and effects to run.
+ */
 export function flowReducer(state: FlowState, event: FlowEvent): FlowTransition
 {
   switch (event.type)
@@ -331,7 +339,10 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowTransition
       return unchanged(state);
   }
 }
-
+/**
+ * Picks the part of the flow state to save so a draft or active tour survives an app restart.
+ * @returns The cache payload: mode, itinerary, visited stops and tour start time.
+ */
 export function toFlowCache(state: FlowState): FlowCachePayload
 {
   if (state.base === 'inProgress')
@@ -344,7 +355,7 @@ export function toFlowCache(state: FlowState): FlowCachePayload
   }
   return { mode: 'empty', itinerary: [], visitedLandmarkIds: [], tourStartedAt: null };
 }
-
+/** @returns Id of the first itinerary stop not yet visited, or null when the tour is complete. */
 export function nextUnvisitedStop(state: FlowState): string | null
 {
   return state.itinerary.find((id) => !state.visitedLandmarkIds.includes(id)) ?? null;
