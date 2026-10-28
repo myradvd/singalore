@@ -25,6 +25,7 @@ function parseIds(json: string): string[]
   }
 }
 
+/** Saved Routes and Sites: bookmarked landmarks and saved itineraries, stored on the device. */
 export class SavedRepository
 {
   private counter = 0;
@@ -45,6 +46,7 @@ export class SavedRepository
     return rows.map((row) => row.reference_id);
   }
 
+    /** Bookmarks a landmark, or removes the bookmark if it exists. @returns True if now saved. */
   async toggleLandmark(landmarkId: string): Promise<boolean>
   {
     const existing = await this.db.first("select id from saved_items where item_type = 'landmark' and reference_id = ?", [landmarkId]);
@@ -57,6 +59,7 @@ export class SavedRepository
     return true;
   }
 
+    /** Saves a route ("Save and Exit"). @returns The new itinerary's id. */
   async saveItinerary(title: string, landmarkIds: string[]): Promise<string>
   {
     const id = this.newId('route');
@@ -69,6 +72,7 @@ export class SavedRepository
     return id;
   }
 
+    /** @returns Saved routes, newest first. */
   async savedItineraries(): Promise<SavedItinerary[]>
   {
     const rows = z.array(ItineraryRow).parse(await this.db.all(
@@ -77,6 +81,7 @@ export class SavedRepository
     return rows.map((row) => ({ id: row.id, title: row.title, landmarkIds: parseIds(row.landmark_ids_json), createdAt: row.created_at }));
   }
 
+    /** Deletes a saved route. */
   async deleteItinerary(id: string): Promise<void>
   {
     await this.db.transaction(async (transaction) =>

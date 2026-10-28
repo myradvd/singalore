@@ -17,6 +17,7 @@ import type { HeritageMapHandle, MapLayerSettings, UserLocationFix } from './map
 
 export const MAP_ATTRIBUTION = '© OpenStreetMap contributors, © OpenMapTiles, OpenFreeMap';
 
+/** Data and callbacks for the map: pins, park boundaries, user location, route line and tap handlers. */
 export interface HeritageMapProps
 {
   styleUrl: string;
@@ -43,6 +44,7 @@ interface CameraChange
   bearing: number;
 }
 
+/** @returns A circle around the user's position sized to the GPS accuracy, drawn under the blue dot. */
 export function accuracyCircle(fix: UserLocationFix | null): GeoJSON.FeatureCollection<GeoJSON.Polygon>
 {
   if (fix === null || fix.accuracyMeters === null || fix.accuracyMeters < 5)
@@ -70,6 +72,11 @@ function userPoint(fix: UserLocationFix | null): GeoJSON.FeatureCollection<GeoJS
 const EMPTY_LINES: GeoJSON.FeatureCollection<GeoJSON.LineString> = { type: 'FeatureCollection', features: [] };
 const EMPTY_POLYGONS: GeoJSON.FeatureCollection<GeoJSON.Polygon> = { type: 'FeatureCollection', features: [] };
 
+/**
+ * MapLibre map of Singapore with OpenFreeMap tiles.
+ * Landmarks are drawn as GeoJSON layers (not one view per pin) to keep the map smooth.
+ * Shows map attribution as the tile licence requires.
+ */
 export const HeritageMap = forwardRef<HeritageMapHandle, HeritageMapProps>(function HeritageMap(props, ref)
 {
   const cameraRef = useRef<CameraRef>(null);

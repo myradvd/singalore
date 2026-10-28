@@ -48,6 +48,11 @@ function fileName(file: { kind: 'audio' | 'image'; podcastId: string | null; lan
   return `${file.kind}-${file.podcastId ?? file.landmarkId ?? 'file'}.${extension}`;
 }
 
+/**
+ * Downloads a park's pack for offline use (OfflineManager in the design).
+ * One download at a time. Checks connection, Wi-Fi-only setting and free space first,
+ * verifies each file's size and checksum, retries failed files, and can resume after a pause.
+ */
 export class DownloadManager
 {
   private readonly listeners = new Set<(records: DownloadRecord[]) => void>();
@@ -75,6 +80,10 @@ export class DownloadManager
     return this.progressBytes.get(parkId) ?? 0;
   }
 
+  /**
+   * Downloads or resumes a park pack.
+   * @returns The outcome, or 'blocked' with a reason (offline, Wi-Fi only, another download running).
+   */
   async download(parkId: string): Promise<DownloadOutcome>
   {
     const { connectivity, wifiOnly } = this.dependencies;
@@ -103,6 +112,7 @@ export class DownloadManager
     }
   }
 
+  /** Pauses the active download. Finished files are kept so it can resume later. */
   async pause(parkId: string): Promise<void>
   {
     if (this.active !== parkId)
@@ -113,6 +123,7 @@ export class DownloadManager
     await this.dependencies.transport.cancelActive();
   }
 
+    /** Deletes a downloaded pack and its files to free space. */
   async remove(parkId: string): Promise<void>
   {
     if (this.active === parkId)
@@ -130,6 +141,7 @@ export class DownloadManager
     await this.publish();
   }
 
+    /** Marks downloaded packs as update_available when the server's pack has changed. */
   async checkForUpdates(fetchEtag: (parkId: string) => Promise<string | null>): Promise<void>
   {
     for (const record of await this.dependencies.repository.all())
@@ -147,6 +159,7 @@ export class DownloadManager
     await this.publish();
   }
 
+    /** @returns Bytes used by downloaded packs, shown in Manage Downloads. */
   async totalStoredBytes(): Promise<number>
   {
     return (await this.dependencies.repository.all()).filter((record) => record.state === 'downloaded' || record.state === 'update_available').reduce((sum, record) => sum + record.totalBytes, 0);

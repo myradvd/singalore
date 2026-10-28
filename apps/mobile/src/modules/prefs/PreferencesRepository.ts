@@ -9,12 +9,14 @@ function isPreferenceKey(key: string): key is PreferenceKey
   return Object.prototype.hasOwnProperty.call(PreferenceShapes, key);
 }
 
+/** Stores the walker's preferences in SQLite as key/value pairs, validated with zod (PreferenceManager in the design). */
 export class PreferencesRepository
 {
   constructor(private readonly db: DbAdapter)
   {
   }
 
+    /** @returns All preferences. Missing or invalid values fall back to the defaults. */
   async load(): Promise<Preferences>
   {
     const rows = z.array(Row).parse(await this.db.all('select key, value_json from preferences'));
@@ -43,6 +45,7 @@ export class PreferencesRepository
     return result as Preferences;
   }
 
+    /** Validates and saves the changed preferences in one transaction. @throws If a value is invalid. */
   async save(changes: Partial<Preferences>): Promise<void>
   {
     const entries: [PreferenceKey, unknown][] = [];
@@ -67,6 +70,7 @@ export class PreferencesRepository
     });
   }
 
+    /** Reset to defaults: deletes all saved preferences. */
   async reset(): Promise<void>
   {
     await this.db.run('delete from preferences');
