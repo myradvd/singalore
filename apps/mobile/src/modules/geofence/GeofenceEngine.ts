@@ -44,7 +44,12 @@ export interface GeofenceEngineDependencies
   playback: PlaybackStatusProvider;
   osGeofencer: OsGeofencer;
 }
-
+/**
+ * Control class for geofencing (GeofenceMonitor in the design).
+ * Feeds each location fix to GeofenceEvaluator, applies the prompt rules
+ * (settings, already played, dismissed in the last 10 minutes, audio already playing),
+ * and keeps the OS geofence window registered for background wake-ups.
+ */
 export class GeofenceEngine
 {
   private readonly evaluator = new GeofenceEvaluator();
@@ -59,7 +64,7 @@ export class GeofenceEngine
   constructor(private readonly dependencies: GeofenceEngineDependencies)
   {
   }
-
+/** Starts listening to location fixes and playback events. */
   start(): void
   {
     const { events } = this.dependencies;
@@ -89,7 +94,10 @@ export class GeofenceEngine
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-
+/**
+ * Processes one location fix: emits geofence/enter and geofence/exit events,
+ * updates the prompt state, and refreshes the OS geofence window.
+ */
   handleFix(fix: LocationFix): void
   {
     const targets = this.dependencies.targets();
@@ -110,7 +118,7 @@ export class GeofenceEngine
     this.update({ insideLandmarkIds: this.evaluator.insideLandmarkIds() });
     void this.refreshOsWindow(fix, targets);
   }
-
+/** Debug tool: shows the podcast prompt for a landmark without checking distance. */
   forcePrompt(landmarkId: string): void
   {
     this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: true } });
@@ -131,7 +139,7 @@ export class GeofenceEngine
   {
     this.update({ prompt: null, nextUpLandmarkId: null });
   }
-
+/** Walker tapped Play on the prompt: closes it and requests playback of that landmark's podcast. */
   acceptPrompt(): void
   {
     const prompt = this.state.prompt;
@@ -142,7 +150,7 @@ export class GeofenceEngine
     this.update({ prompt: null });
     this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: prompt.landmarkId, reason: 'prompt_accepted' });
   }
-
+/** Walker dismissed the prompt: that landmark will not prompt again for 10 minutes unless they leave and re-enter. */
   dismissPrompt(): void
   {
     const prompt = this.state.prompt;
@@ -158,13 +166,13 @@ export class GeofenceEngine
   {
     this.update({ outOfRange: null });
   }
-
+/** Clears the list of landmarks already played, at the start of a new tour. */
   resetTour(): void
   {
     this.playedInTour.clear();
     this.update({ nextUpLandmarkId: null });
   }
-
+/** Turns geofencing off (Geofence triggers setting): clears prompts and unregisters all OS regions. */
   async disable(): Promise<void>
   {
     this.windowCenter = null;
