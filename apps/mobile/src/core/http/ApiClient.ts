@@ -5,7 +5,7 @@ import type { Clock } from '../clock';
 import { localizeLoopbackUrl, localizeLoopbackUrls, loopbackReplacementHost } from './loopbackUrls';
 
 export type ApiErrorKind = 'network' | 'timeout' | 'http' | 'invalid_response' | 'privacy_violation';
-
+/** API failure with a kind: network, timeout, http, invalid_response or privacy_violation. */
 export class ApiRequestError extends Error
 {
   constructor(
@@ -34,7 +34,7 @@ export interface ApiClientOptions
 }
 
 const COORDINATE_KEYS = new Set(['lat', 'lng', 'lon', 'latitude', 'longitude', 'coordinates']);
-
+/** @returns True if a request body contains location fields (lat, lng, coordinates and similar). */
 export function containsCoordinates(value: unknown, depth = 0): boolean
 {
   if (depth > 8 || value === null || typeof value !== 'object')
@@ -47,7 +47,10 @@ export function containsCoordinates(value: unknown, depth = 0): boolean
   }
   return Object.entries(value).some(([key, nested]) => COORDINATE_KEYS.has(key.toLowerCase()) || containsCoordinates(nested, depth + 1));
 }
-
+/**
+ * The app's only connection to the server (/api/v1). The app never talks to the database directly.
+ * Validates every response with a zod schema and logs each call for the debug network log.
+ */
 export class ApiClient
 {
   private nextRequestId = 1;
@@ -61,7 +64,13 @@ export class ApiClient
     const replacementHost = loopbackReplacementHost(this.options.baseUrl());
     return replacementHost === null ? url : localizeLoopbackUrl(url, replacementHost);
   }
-
+/**
+ * Sends a GET request.
+ * @param path - API path, for example /api/v1/catalog.
+ * @param schema - Zod schema the response must match.
+ * @param init - ifNoneMatch sends a saved ETag; timeoutMs sets a time limit.
+ * @returns not_modified for HTTP 304, otherwise ok with the parsed data and new ETag.
+ */
   async get<Schema extends z.ZodType>(path: string, schema: Schema, init: { ifNoneMatch?: string | null; timeoutMs?: number } = {}): Promise<GetResult<z.infer<Schema>>>
   {
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -77,7 +86,12 @@ export class ApiClient
     const data = await this.parse(response, schema, 'GET', path);
     return { status: 'ok', data, etag: response.headers.get('etag') };
   }
-
+/**
+ * Sends a POST request.
+ * Privacy rule: refuses to send coordinates to any endpoint except the two route endpoints.
+ * @returns The parsed response.
+ * @throws ApiRequestError on failure, including privacy_violation.
+ */
   async post<Schema extends z.ZodType>(path: string, body: unknown, schema: Schema, init: { timeoutMs?: number } = {}): Promise<z.infer<Schema>>
   {
     if (containsCoordinates(body) && !COORDINATE_BEARING_PATHS.includes(path))
