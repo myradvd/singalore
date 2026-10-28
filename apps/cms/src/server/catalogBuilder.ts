@@ -56,8 +56,6 @@ export interface PodcastRow
   has_transcript: boolean;
 }
 /** Published database rows read by catalogRepository, before conversion to the API shape. */
-
-/** Published database rows read by catalogRepository, before conversion to the API shape. */
 export interface CatalogRows
 {
   parks: ParkRow[];
@@ -70,7 +68,6 @@ export interface CatalogRows
  * @param objectPath - Path inside the media bucket, or null.
  * @returns Full URL with each path segment encoded, or null if there is no file.
  */
-
 export function mediaUrl(base: string, objectPath: string | null): string | null
 {
   if (objectPath === null || objectPath.length === 0)
@@ -84,7 +81,6 @@ export function mediaUrl(base: string, objectPath: string | null): string | null
  * @param content - Response content without timestamps.
  * @returns Quoted first 32 hex characters of the SHA-256 of the JSON.
  */
-
 export function computeEtag(content: unknown): string
 {
   return `"${createHash('sha256').update(JSON.stringify(content)).digest('hex').slice(0, 32)}"`;
@@ -98,7 +94,6 @@ export function computeEtag(content: unknown): string
  * @param generatedAt - Time stamped into the response.
  * @returns A validated CatalogResponse.
  */
-
 export function buildCatalog(rows: CatalogRows, mediaBase: string, generatedAt: Date): CatalogResponse
 {
   const parkIds = new Set(rows.parks.map((park) => park.id));

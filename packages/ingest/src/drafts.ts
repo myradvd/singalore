@@ -6,6 +6,7 @@ import { cleanExtract, firstSentences, slugify } from './text';
 import type { WikidataEntitySummary } from './wikidata';
 import type { WikipediaSummary } from './wikipedia';
 
+/** Holds a landmark assembled from open data, ready for review before publication. */
 export interface LandmarkDraft
 {
   slug: string;
@@ -36,6 +37,12 @@ export interface DraftSources
   nameOverride?: string;
 }
 
+/**
+ * Creates source credits required by the relevant licences.
+ * Covers Wikipedia (CC BY-SA), Wikidata (CC0), OpenStreetMap (ODbL), and Commons image licences.
+ * @param sources - The sources used to prepare the landmark.
+ * @returns A single string containing a credit sentence for each source.
+ */
 export function buildAttribution(sources: DraftSources): string
 {
   const parts: string[] = [];
@@ -58,6 +65,14 @@ export function buildAttribution(sources: DraftSources): string
   return parts.join(' ');
 }
 
+/**
+ * Assembles a landmark draft from Wikidata, Wikipedia, OpenStreetMap, and Commons.
+ * Wikidata takes priority over OpenStreetMap for the name and position.
+ * The description uses Wikipedia's summary when available, otherwise Wikidata's description.
+ * The geofence radius starts at 30 metres.
+ * @param sources - Data gathered for the location.
+ * @returns The draft, or null if the name, latitude, or longitude could not be found.
+ */
 export function buildLandmarkDraft(sources: DraftSources): LandmarkDraft | null
 {
   const latitude = sources.wikidata?.latitude ?? sources.osm?.latitude ?? null;
