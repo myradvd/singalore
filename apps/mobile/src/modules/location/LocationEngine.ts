@@ -4,7 +4,7 @@ import type { DiagnosticsRecorder } from '@/core/diagnostics';
 import type { LocationFix, LocationMode, LocationPermissionState, LocationSignalStatus } from '@/core/location';
 import type { LocationSource, LocationSourceHandle } from './LocationSource';
 import { canTrackLocation } from './permissions';
-
+/** With no fix for this long, the app shows "Waiting for GPS signal" and logs it. */
 export const NO_FIX_TIMEOUT_MS = 10000;
 
 export interface LocationEngineState
@@ -27,7 +27,12 @@ export interface LocationEngineDependencies
   setTimer: (callback: () => void, milliseconds: number) => unknown;
   clearTimer: (handle: unknown) => void;
 }
-
+/**
+ * Single source of location fixes for the whole app.
+ * Uses the device GPS or the debug spoof source; both reach the rest of the app the same way.
+ * Mode 'browse' updates every 5 s, mode 'tour' every 1 s.
+ * Emits each fix as a location/fix event.
+ */
 export class LocationEngine
 {
   private handle: LocationSourceHandle | null = null;
@@ -57,7 +62,7 @@ export class LocationEngine
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-
+/** Updates the location permission state and restarts tracking if it changed. */
   async setPermission(permission: LocationPermissionState): Promise<void>
   {
     const changed = permission !== this.state.permission;
@@ -72,7 +77,7 @@ export class LocationEngine
     }
     await this.restart();
   }
-
+/** Switches between browse and tour accuracy, restarting the source. */
   async setMode(mode: LocationMode): Promise<void>
   {
     if (mode === this.state.mode)
@@ -82,7 +87,7 @@ export class LocationEngine
     this.update({ mode });
     await this.restart();
   }
-
+/** Debug mode: switches between the real GPS and the spoofed location. */
   async useSpoof(enabled: boolean): Promise<void>
   {
     const sourceKind = enabled ? 'spoof' : 'device';
@@ -121,7 +126,7 @@ export class LocationEngine
       void this.dependencies.diagnostics.record('error', 'location_source_error', code);
     });
   }
-
+/** Accepts a fix from the active source, resets the no-signal timer and broadcasts the fix. */
   acceptFix(fix: LocationFix): void
   {
     const expectedSource = this.state.sourceKind;
@@ -140,7 +145,7 @@ export class LocationEngine
     this.armWatchdog();
     this.dependencies.events.emit('location/fix', fix);
   }
-
+/** @returns Average fixes per second over the last 10 fixes, for the debug overlay. */
   refreshRateHz(): number | null
   {
     const intervals = this.state.fixIntervalsMs;
