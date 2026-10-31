@@ -33,3 +33,14 @@ export interface SeedContent
   fetchedAt: string;
   parks: SeedPark[];
 }
+
+export interface AudioManifestEntry
+{
+  landmarkSlug: string;
+  fileName: string;
+  title?: string;
+  transcript: string;
+  voice: string;
+  accent: string;
+  sourceHash?: string;
+}

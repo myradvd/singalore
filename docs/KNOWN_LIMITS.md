@@ -8,6 +8,7 @@ Things that are not built, or cannot work as the SRS wishes. Each one is either 
 - **Background arrivals notify, they do not autoplay.** When the app is woken in the background, Singalore sends an arrival notification. Tapping it opens the app and either autoplays (Autoplay Mode) or shows the prompt. Starting audio from a headless background task is not attempted (DECISION_LOG D16).
 - **No offline basemap.** Offline, the map shows cached tiles if any, otherwise a plain background with pins, boundaries, route and user dot.
 - **The public routing server has no SLA.** See DEPLOY.md for self hosting OSRM.
+- **Most seed podcasts are still short demo clips.** Only landmarks with a script in `supabase/seed/scripts/` have a full episode (DECISION_LOG D27). Scripted episodes are machine voiced, and each script's `verify` list must be checked by a person before the episode is treated as final content.
 - **Podcast uploads on Vercel are limited to about 4.5 MB** by the platform's request body limit. The CMS accepts up to 50 MB when self hosted or run locally.
 - **Local Android builds need JDK 21.** Android Studio's bundled JDK 25 fails the React Native CMake steps (see ANDROID_INSTALL.md).
 
