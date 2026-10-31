@@ -29,6 +29,7 @@
     "app:update": "npm run update:demo -w @singalore/mobile -- --environment preview",
     "seed": "tsx scripts/seed.ts",
     "seed:hosted": "SEED_TARGET=hosted tsx scripts/seed.ts",
+    "seed:check": "tsx scripts/seed-check.ts",
     "dev:cms": "npm run dev -w @singalore/cms",
     "dev:mobile": "npm run start -w @singalore/mobile",
     "e2e": "npm run e2e -w @singalore/cms",

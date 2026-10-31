@@ -168,26 +168,6 @@
           "imageFile": null
         },
         {
-          "slug": "tiong-bahru-park",
-          "name": "Tiong Bahru Park",
-          "aliases": [],
-          "category": "other",
-          "lat": 1.2873698,
-          "lng": 103.8246836,
-          "geofenceRadiusM": 30,
-          "shortDescription": "Tiong Bahru Park is a public park between Henderson, Bukit Merah and Lower Delta Road in Singapore. First developed around 1967, it combined with a nursery site in 1977 and in 2000, it was redeveloped.",
-          "description": "Tiong Bahru Park is a public park between Henderson, Bukit Merah and Lower Delta Road in Singapore. First developed around 1967, it combined with a nursery site in 1977 and in 2000, it was redeveloped.",
-          "builtYear": null,
-          "architecturalStyle": null,
-          "wikidataId": "Q7808728",
-          "osmType": "way",
-          "osmId": 329762423,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru Park\" (https://en.wikipedia.org/wiki/Tiong_Bahru_Park), CC BY-SA 4.0. Facts from Wikidata Q7808728 (https://www.wikidata.org/wiki/Q7808728), CC0. Location from OpenStreetMap way 329762423, (c) OpenStreetMap contributors, ODbL.",
-          "sortOrder": 3,
-          "imageFile": null
-        },
-        {
           "slug": "giok-hong-tian-temple",
           "name": "Giok Hong Tian Temple",
           "aliases": [],
@@ -204,7 +184,7 @@
           "osmId": 260459557,
           "image": null,
           "attribution": "Location from OpenStreetMap way 260459557, (c) OpenStreetMap contributors, ODbL.",
-          "sortOrder": 4,
+          "sortOrder": 3,
           "imageFile": null
         },
         {
@@ -224,7 +204,7 @@
           "osmId": 12389540382,
           "image": null,
           "attribution": "Location from OpenStreetMap node 12389540382, (c) OpenStreetMap contributors, ODbL.",
-          "sortOrder": 5,
+          "sortOrder": 4,
           "imageFile": null
         }
       ]
