@@ -33,7 +33,7 @@
     "dev:mobile": "npm run start -w @singalore/mobile",
     "e2e": "npm run e2e -w @singalore/cms",
     "seed:fetch": "tsx scripts/fetch-seed.ts",
-    "seed:audio": "tsx scripts/demo-audio.ts",
+    "seed:audio": "tsx scripts/podcast-audio.ts",
     "env:local": "tsx scripts/local-env.ts",
     "smoke:route": "tsx scripts/route-smoke.ts"
   },

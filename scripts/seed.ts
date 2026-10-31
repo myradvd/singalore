@@ -4,8 +4,8 @@ import path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { parseBuffer } from 'music-metadata';
 import { z } from 'zod';
-import type { AudioManifestEntry } from './demo-audio';
-import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type SeedContent } from './seed-types';
+import { durationProblem } from './podcast-lib';
+import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 // SEED_TARGET=hosted seeds the online Supabase project from apps/cms/.env.hosted instead of the local one.
 const seedEnvFile = process.env.SEED_TARGET === 'hosted' ? '.env.hosted' : '.env.local';
@@ -74,12 +74,27 @@ async function ensureAdmin(client: SupabaseClient): Promise<void>
   }
 }
 
+async function checkEpisodes(manifest: AudioManifestEntry[]): Promise<void>
+{
+  for (const entry of manifest.filter((candidate) => candidate.title !== undefined))
+  {
+    const bytes = await readFile(path.join(SEED_AUDIO_DIRECTORY, entry.fileName));
+    const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
+    const problem = durationProblem(metadata.format.duration ?? 0);
+    if (problem !== null)
+    {
+      throw new Error(`${entry.fileName}: ${problem}`);
+    }
+  }
+}
+
 async function main(): Promise<void>
 {
   const client = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const content = JSON.parse(await readFile(SEED_CONTENT_PATH, 'utf8')) as SeedContent;
   const manifest = JSON.parse(await readFile(path.join(SEED_AUDIO_DIRECTORY, 'manifest.json'), 'utf8')) as AudioManifestEntry[];
 
+  await checkEpisodes(manifest);
   await ensureAdmin(client);
 
   for (const park of content.parks)
@@ -164,7 +179,7 @@ async function main(): Promise<void>
         await upload(client, audioPath, bytes, 'audio/mp4');
         const { error: podcastError } = await client.from('podcasts').insert({
           landmark_id: landmarkRow.id,
-          title: `${landmark.name}: a short history`,
+          title: entry.title ?? `${landmark.name}: a short history`,
           audio_path: audioPath,
           duration_seconds: durationSeconds,
           file_size_bytes: bytes.byteLength,

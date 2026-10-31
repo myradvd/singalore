@@ -328,7 +328,7 @@ There is no table that stores user coordinates. Migrations are versioned with `P
 
 Singapore, four parks of 5 to 8 landmarks each. The mockups show Tiong Bahru Estate, Tiong Bahru Market, Thian Hock Keng Temple, Tanjong Pagar Railway Station, Chijmes, Victoria Theatre, National Museum of Singapore and Raffles Hotel. Group landmarks by their true neighbourhood, for example Tiong Bahru, Civic District, Telok Ayer with Tanjong Pagar, and the Nanyang Technological University campus. Do not copy the mockup grouping, it mixes areas.
 Fetch real coordinates and descriptions from Wikidata and OSM through the same ingest code the CMS uses. Store attribution. Treat all text and audio as demo content.
-Demo narration: generate short audio with a local text to speech tool if one exists (`say` and `afconvert` on macOS, `espeak-ng` and `ffmpeg` elsewhere), otherwise a tone fallback. Real narration is a content task done through the CMS, not a code task.
+Demo narration: generate short audio with a local text to speech tool if one exists (`say` and `afconvert` on macOS, `espeak-ng` and `ffmpeg` elsewhere), otherwise a tone fallback. Real narration is a content task done through the CMS, not a code task. Superseded by DECISION_LOG D27: scripted episodes voiced by Kokoro, see `scripts/tts/README.md`.
 Also include a generator that creates 150 synthetic landmarks for NFR 5.2 tests and the geofence window tests.
 
 ## 8. UI
