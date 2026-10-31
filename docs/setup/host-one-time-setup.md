@@ -10,7 +10,7 @@ This puts Singalore online for the whole team: the database, the CMS and API, an
 | [0](#step-0-before-you-start) | Accounts and your own dev setup | `npm ci` finished in the project folder |
 | [1](#step-1-create-the-database) | Create the database | Supabase project shows **Healthy** |
 | [2](#step-2-create-the-tables) | Create the tables | `npm run db:push` finished |
-| [3](#step-3-load-the-demo-content) | Load the demo content | `Seeded ... landmarks` printed 3 times |
+| [3](#step-3-load-the-demo-content) | Load the demo content | `Seeded ... landmarks` printed 4 times |
 | [4](#step-4-put-the-cms-and-api-online) | Put the CMS and API online | `/api/v1/health` shows `"status":"ok"` in a private window |
 | [5](#step-5-save-the-api-address) | Save the API address | `npx expo config` runs without errors |
 | [6](#step-6-link-the-app-to-expo) | Link the app to Expo | `npx eas project:info` shows your project |
@@ -120,12 +120,13 @@ Fill in the four lines. No spaces around `=`, no quotes:
 npm run seed:hosted
 ```
 
-- Uploads 4 parks, 27 landmarks, photos and demo podcasts, and creates your CMS login. Nanyang Technological University landmarks have no podcasts yet.
+- Uploads 4 parks, 26 landmarks, photos and podcasts, and creates your CMS login. It also deletes landmarks that were retired from the seed (DECISION_LOG D30).
 
 **Expect:**
 
 ```
-Seeded Tiong Bahru: 6 landmarks
+Removed 1 retired landmarks
+Seeded Tiong Bahru: 5 landmarks
 Seeded Civic District: 8 landmarks
 Seeded Telok Ayer and Tanjong Pagar: 8 landmarks
 Seeded Nanyang Technological University: 5 landmarks

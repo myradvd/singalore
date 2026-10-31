@@ -1,10 +1,10 @@
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { parseBuffer } from 'music-metadata';
 import { z } from 'zod';
-import { durationProblem } from './podcast-lib';
+import { durationProblem, podcastRow } from './podcast-lib';
+import { REMOVED_LANDMARK_SLUGS } from './seed-spec';
 import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 // SEED_TARGET=hosted seeds the online Supabase project from apps/cms/.env.hosted instead of the local one.
@@ -97,6 +97,13 @@ async function main(): Promise<void>
   await checkEpisodes(manifest);
   await ensureAdmin(client);
 
+  const { data: removed, error: removeError } = await client.from('heritage_landmarks').delete().in('slug', REMOVED_LANDMARK_SLUGS).select('slug');
+  if (removeError !== null)
+  {
+    throw removeError;
+  }
+  console.log(`Removed ${removed.length} retired landmarks`);
+
   for (const park of content.parks)
   {
     let parkThumbnailPath: string | null = null;
@@ -174,23 +181,9 @@ async function main(): Promise<void>
       {
         const bytes = await readFile(path.join(SEED_AUDIO_DIRECTORY, entry.fileName));
         const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
-        const durationSeconds = Math.max(1, Math.round(metadata.format.duration ?? 0));
-        const audioPath = `audio/${entry.fileName}`;
-        await upload(client, audioPath, bytes, 'audio/mp4');
-        const { error: podcastError } = await client.from('podcasts').insert({
-          landmark_id: landmarkRow.id,
-          title: entry.title ?? `${landmark.name}: a short history`,
-          audio_path: audioPath,
-          duration_seconds: durationSeconds,
-          file_size_bytes: bytes.byteLength,
-          checksum_sha256: createHash('sha256').update(bytes).digest('hex'),
-          checksum_md5: createHash('md5').update(bytes).digest('hex'),
-          transcript: entry.transcript,
-          voice: entry.voice,
-          accent: entry.accent,
-          length_class: durationSeconds < 60 ? 'short' : durationSeconds < 300 ? 'standard' : 'long',
-          status: 'published',
-        });
+        const row = podcastRow(entry, landmark.name, bytes, metadata.format.duration ?? 0);
+        await upload(client, row.audio_path, bytes, 'audio/mp4');
+        const { error: podcastError } = await client.from('podcasts').insert({ landmark_id: landmarkRow.id, ...row });
         if (podcastError !== null)
         {
           throw podcastError;

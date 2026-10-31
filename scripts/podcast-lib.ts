@@ -322,6 +322,70 @@ export function sizeProblem(bytes: number): string | null
   return bytes > EPISODE_MAX_BYTES ? `size ${bytes} bytes is over the ${EPISODE_MAX_BYTES} byte upload limit` : null;
 }
 
+export interface PodcastRow
+{
+  title: string;
+  audio_path: string;
+  duration_seconds: number;
+  file_size_bytes: number;
+  checksum_sha256: string;
+  checksum_md5: string;
+  transcript: string;
+  voice: string;
+  accent: string;
+  length_class: 'short' | 'standard' | 'long';
+  status: 'published';
+}
+
+export function podcastRow(entry: AudioManifestEntry, landmarkName: string, bytes: Buffer, rawDurationSeconds: number): PodcastRow
+{
+  const durationSeconds = Math.max(1, Math.round(rawDurationSeconds));
+  return {
+    title: entry.title ?? `${landmarkName}: a short history`,
+    audio_path: `audio/${entry.fileName}`,
+    duration_seconds: durationSeconds,
+    file_size_bytes: bytes.byteLength,
+    checksum_sha256: createHash('sha256').update(bytes).digest('hex'),
+    checksum_md5: createHash('md5').update(bytes).digest('hex'),
+    transcript: entry.transcript,
+    voice: entry.voice,
+    accent: entry.accent,
+    length_class: durationSeconds < 60 ? 'short' : durationSeconds < 300 ? 'standard' : 'long',
+    status: 'published',
+  };
+}
+
+// Mirrors the podcasts checks in supabase/migrations.
+export function podcastRowProblems(row: PodcastRow): string[]
+{
+  const problems: string[] = [];
+  if (row.title.length === 0)
+  {
+    problems.push('title is empty');
+  }
+  if (row.audio_path.length === 0)
+  {
+    problems.push('audio path is empty');
+  }
+  if (!Number.isInteger(row.duration_seconds) || row.duration_seconds <= 0)
+  {
+    problems.push(`duration ${row.duration_seconds} is not a positive whole number of seconds`);
+  }
+  if (!Number.isInteger(row.file_size_bytes) || row.file_size_bytes <= 0)
+  {
+    problems.push(`size ${row.file_size_bytes} is not a positive number of bytes`);
+  }
+  if (!/^[0-9a-f]{64}$/.test(row.checksum_sha256))
+  {
+    problems.push('sha256 is not 64 lowercase hex characters');
+  }
+  if (!/^[0-9a-f]{32}$/.test(row.checksum_md5))
+  {
+    problems.push('md5 is not 32 lowercase hex characters');
+  }
+  return problems;
+}
+
 export interface SilenceGap
 {
   start: number;

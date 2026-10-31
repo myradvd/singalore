@@ -18,6 +18,8 @@ export interface SeedParkSpec
   landmarks: SeedLandmarkSource[];
 }
 
+export const REMOVED_LANDMARK_SLUGS: string[] = ['tiong-bahru-park'];
+
 export const SEED_PARKS: SeedParkSpec[] = [
   {
     slug: 'tiong-bahru',
@@ -28,7 +30,6 @@ export const SEED_PARKS: SeedParkSpec[] = [
       { wikidataId: 'Q7808727', nameOverride: 'Tiong Bahru Estate', categoryOverride: 'residential' },
       { wikidataId: 'Q107803795', categoryOverride: 'commercial' },
       { wikidataId: 'Q118213332', categoryOverride: 'military' },
-      { wikidataId: 'Q7808728' },
       { osm: { type: 'way', id: 260459557 } },
       { osm: { type: 'node', id: 12389540382 } },
     ],

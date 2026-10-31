@@ -12,6 +12,7 @@ import {
   parseMaxVolume,
   parseScript,
   parseSilences,
+  podcastRow,
   PRIMARY_VARIANT,
   SECONDARY_VARIANT,
   sizeProblem,
@@ -241,5 +242,14 @@ describe('checks', () =>
     const output = 'Input #0\n[Parsed_loudnorm_0 @ 0x1]\n{\n\t"input_i" : "-23.10",\n\t"input_tp" : "-4.20",\n\t"input_lra" : "5.10",\n\t"input_thresh" : "-33.40",\n\t"target_offset" : "0.30"\n}\n';
     expect(parseLoudnorm(output)).toEqual({ input_i: '-23.10', input_tp: '-4.20', input_lra: '5.10', input_thresh: '-33.40', target_offset: '0.30' });
     expect(() => parseLoudnorm('no json')).toThrow();
+  });
+
+  it('builds a published podcast row from a manifest entry', () =>
+  {
+    const entry: AudioManifestEntry = { landmarkSlug: 'raffles-hotel', fileName: 'raffles-hotel-gb-12345678.m4a', transcript: 'Hello.', voice: 'Male', accent: 'British' };
+    const row = podcastRow(entry, 'Raffles Hotel', Buffer.from('audio'), 412.6);
+    expect(row).toMatchObject({ title: 'Raffles Hotel: a short history', audio_path: 'audio/raffles-hotel-gb-12345678.m4a', duration_seconds: 413, file_size_bytes: 5, length_class: 'long', status: 'published' });
+    expect(row.checksum_sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(row.checksum_md5).toMatch(/^[0-9a-f]{32}$/);
   });
 });
