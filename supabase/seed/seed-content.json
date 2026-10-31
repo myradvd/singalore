@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-12T10:51:07.174Z",
+  "fetchedAt": "2026-10-31T12:29:39.697Z",
   "parks": [
     {
       "slug": "tiong-bahru",
@@ -889,6 +889,205 @@
           "attribution": "Text adapted from Wikipedia article \"Tanjong Pagar railway station\" (https://en.wikipedia.org/wiki/Tanjong_Pagar_railway_station), CC BY-SA 4.0. Facts from Wikidata Q1096333 (https://www.wikidata.org/wiki/Q1096333), CC0. Location from OpenStreetMap way 393439098, (c) OpenStreetMap contributors, ODbL. Image \"Tanjong Pagar Railway Station exterior view(1 retouched).jpg\" by EquatorialSky2 Derivative work MagentaGreen, CC BY-SA 3.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tanjong_Pagar_Railway_Station_exterior_view(1_retouched).jpg).",
           "sortOrder": 7,
           "imageFile": "tanjong-pagar-railway-station.jpg"
+        }
+      ]
+    },
+    {
+      "slug": "nanyang-technological-university",
+      "name": "Nanyang Technological University",
+      "district": "Western Water Catchment",
+      "description": "Nanyang Technological University (NTU) is a national public research university in Singapore. Founded in 1981, it is also the second oldest autonomous university in the country.",
+      "shortDescription": "Nanyang Technological University (NTU) is a national public research university in Singapore. Founded in 1981, it is also the second oldest autonomous university in the country.",
+      "centerLat": 1.3433777541025642,
+      "centerLng": 103.68424457333336,
+      "boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.682046,
+              1.343212
+            ],
+            [
+              103.682119,
+              1.342942
+            ],
+            [
+              103.682316,
+              1.342745
+            ],
+            [
+              103.68479,
+              1.342042
+            ],
+            [
+              103.68506,
+              1.34197
+            ],
+            [
+              103.68533,
+              1.342042
+            ],
+            [
+              103.685527,
+              1.34224
+            ],
+            [
+              103.6856,
+              1.34251
+            ],
+            [
+              103.685565,
+              1.344305
+            ],
+            [
+              103.685492,
+              1.344574
+            ],
+            [
+              103.685295,
+              1.344772
+            ],
+            [
+              103.685025,
+              1.344844
+            ],
+            [
+              103.684755,
+              1.344772
+            ],
+            [
+              103.682316,
+              1.343679
+            ],
+            [
+              103.682119,
+              1.343482
+            ],
+            [
+              103.682046,
+              1.343212
+            ]
+          ]
+        ]
+      },
+      "attribution": "Text adapted from Wikipedia article \"Nanyang Technological University\" (https://en.wikipedia.org/wiki/Nanyang_Technological_University), CC BY-SA 4.0. Boundary is the area around the landmarks, derived from their positions, not an official boundary.",
+      "thumbnailFile": "uob-innovation-hub.jpg",
+      "landmarks": [
+        {
+          "slug": "uob-innovation-hub",
+          "name": "UOB Innovation Hub",
+          "aliases": [
+            "Learning Hub South",
+            "The Hive",
+            "The Hive, Singapore"
+          ],
+          "category": "civic",
+          "lat": 1.343212,
+          "lng": 103.682586,
+          "geofenceRadiusM": 50,
+          "shortDescription": "UOB Innovation Hub, formerly The Hive, also known as Learning Hub South, is a building located in Nanyang Technological University (NTU), Singapore.",
+          "description": "UOB Innovation Hub, formerly The Hive, also known as Learning Hub South, is a building located in Nanyang Technological University (NTU), Singapore. The S$45 million building was designed by Thomas Heatherwick and completed in 2015. Colloquially, the building is known as the \"dim sum basket building\" due to its likeness to the steamer baskets used to contain dim sum.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q54321647",
+          "osmType": "way",
+          "osmId": 389084380,
+          "image": {
+            "fileName": "The Hive (view from Koufu).JPG",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/00/The_Hive_%28view_from_Koufu%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/The_Hive_%28view_from_Koufu%29.JPG/960px-The_Hive_%28view_from_Koufu%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:The_Hive_(view_from_Koufu).JPG",
+            "artist": "Lyslee555",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"UOB Innovation Hub\" (https://en.wikipedia.org/wiki/UOB_Innovation_Hub), CC BY-SA 4.0. Facts from Wikidata Q54321647 (https://www.wikidata.org/wiki/Q54321647), CC0. Location from OpenStreetMap way 389084380, (c) OpenStreetMap contributors, ODbL. Image \"The Hive (view from Koufu).JPG\" by Lyslee555, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:The_Hive_(view_from_Koufu).JPG).",
+          "sortOrder": 0,
+          "imageFile": "uob-innovation-hub.jpg"
+        },
+        {
+          "slug": "chinese-heritage-centre",
+          "name": "Chinese Heritage Centre",
+          "aliases": [],
+          "category": "museum",
+          "lat": 1.343733,
+          "lng": 103.683989,
+          "geofenceRadiusM": 50,
+          "shortDescription": "The Chinese Heritage Centre is an institute for the study of overseas Chinese under the Nanyang Technological University (NTU) in Singapore.",
+          "description": "The Chinese Heritage Centre is an institute for the study of overseas Chinese under the Nanyang Technological University (NTU) in Singapore. As the first and only university institute for the study of overseas Chinese, it serves as a research centre, a library and a museum.",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": "Q131416839",
+          "osmType": "way",
+          "osmId": 49968763,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Chinese Heritage Centre\" (https://en.wikipedia.org/wiki/Chinese_Heritage_Centre), CC BY-SA 4.0. Facts from Wikidata Q131416839 (https://www.wikidata.org/wiki/Q131416839), CC0. Location from OpenStreetMap way 49968763, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 1,
+          "imageFile": null
+        },
+        {
+          "slug": "nanyang-university-memorial",
+          "name": "Nanyang University Memorial",
+          "aliases": [
+            "Former Nanyang University Memorial"
+          ],
+          "category": "civic",
+          "lat": 1.3431293,
+          "lng": 103.6845631,
+          "geofenceRadiusM": 25,
+          "shortDescription": "The Nanyang University Memorial is a memorial donated by Koh Tiang Thai and revealed by Sir William Goode and Tan Lark Sye, on 30 March 1958. It is located at the center of Yunnan Garden in Nanyang University.",
+          "description": "The Nanyang University Memorial is a memorial donated by Koh Tiang Thai and revealed by Sir William Goode and Tan Lark Sye, on 30 March 1958. It is located at the center of Yunnan Garden in Nanyang University.",
+          "builtYear": 1958,
+          "architecturalStyle": null,
+          "wikidataId": "Q107803902",
+          "osmType": "node",
+          "osmId": 8573320299,
+          "image": null,
+          "attribution": "Text adapted from Wikipedia article \"Nanyang University Memorial\" (https://en.wikipedia.org/wiki/Nanyang_University_Memorial), CC BY-SA 4.0. Facts from Wikidata Q107803902 (https://www.wikidata.org/wiki/Q107803902), CC0. Location from OpenStreetMap node 8573320299, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 2,
+          "imageFile": null
+        },
+        {
+          "slug": "nantah-arch",
+          "name": "Nantah Arch",
+          "aliases": [],
+          "category": "civic",
+          "lat": 1.3425098,
+          "lng": 103.68506,
+          "geofenceRadiusM": 25,
+          "shortDescription": "",
+          "description": "",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": null,
+          "osmType": "node",
+          "osmId": 8573367917,
+          "image": null,
+          "attribution": "Location from OpenStreetMap node 8573367917, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 3,
+          "imageFile": null
+        },
+        {
+          "slug": "yunnan-garden",
+          "name": "Yunnan Garden",
+          "aliases": [],
+          "category": "other",
+          "lat": 1.34430467051282,
+          "lng": 103.68502476666669,
+          "geofenceRadiusM": 60,
+          "shortDescription": "",
+          "description": "",
+          "builtYear": null,
+          "architecturalStyle": null,
+          "wikidataId": null,
+          "osmType": "way",
+          "osmId": 49967616,
+          "image": null,
+          "attribution": "Location from OpenStreetMap way 49967616, (c) OpenStreetMap contributors, ODbL.",
+          "sortOrder": 4,
+          "imageFile": null
         }
       ]
     }
