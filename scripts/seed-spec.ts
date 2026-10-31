@@ -6,6 +6,7 @@ export interface SeedLandmarkSource
   osm?: { type: 'node' | 'way' | 'relation'; id: number };
   nameOverride?: string;
   categoryOverride?: LandmarkCategory;
+  geofenceRadiusM?: number;
 }
 
 export interface SeedParkSpec
@@ -62,6 +63,19 @@ export const SEED_PARKS: SeedParkSpec[] = [
       { wikidataId: 'Q2609750', categoryOverride: 'civic' },
       { wikidataId: 'Q6202739', categoryOverride: 'transport' },
       { wikidataId: 'Q1096333' },
+    ],
+  },
+  {
+    slug: 'nanyang-technological-university',
+    name: 'Nanyang Technological University',
+    district: 'Western Water Catchment',
+    wikipediaTitle: 'Nanyang Technological University',
+    landmarks: [
+      { wikidataId: 'Q54321647', osm: { type: 'way', id: 389084380 }, nameOverride: 'UOB Innovation Hub', categoryOverride: 'civic', geofenceRadiusM: 50 },
+      { wikidataId: 'Q131416839', osm: { type: 'way', id: 49968763 }, categoryOverride: 'museum', geofenceRadiusM: 50 },
+      { wikidataId: 'Q107803902', osm: { type: 'node', id: 8573320299 }, nameOverride: 'Nanyang University Memorial', categoryOverride: 'civic', geofenceRadiusM: 25 },
+      { osm: { type: 'node', id: 8573367917 }, categoryOverride: 'civic', geofenceRadiusM: 25 },
+      { osm: { type: 'way', id: 49967616 }, categoryOverride: 'other', geofenceRadiusM: 60 },
     ],
   },
 ];

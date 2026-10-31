@@ -120,7 +120,7 @@ Fill in the four lines. No spaces around `=`, no quotes:
 npm run seed:hosted
 ```
 
-- Uploads 3 parks, 22 landmarks, photos and demo podcasts, and creates your CMS login.
+- Uploads 4 parks, 27 landmarks, photos and demo podcasts, and creates your CMS login. Nanyang Technological University landmarks have no podcasts yet.
 
 **Expect:**
 
@@ -128,6 +128,7 @@ npm run seed:hosted
 Seeded Tiong Bahru: 6 landmarks
 Seeded Civic District: 8 landmarks
 Seeded Telok Ayer and Tanjong Pagar: 8 landmarks
+Seeded Nanyang Technological University: 5 landmarks
 ```
 
 <details>
