@@ -42,7 +42,7 @@ export class HistoryRepository
   {
   }
 
-    /** Saves a tour when navigation ends. */
+  /** Saves a tour when navigation ends. */
   async record(entry: TourHistoryEntry): Promise<void>
   {
     await this.db.run(
@@ -52,7 +52,7 @@ export class HistoryRepository
     );
   }
 
-    /** @returns All past tours, most recent first. */
+  /** @returns All past tours, most recent first. */
   async list(): Promise<TourHistoryEntry[]>
   {
     const rows = z.array(Row).parse(await this.db.all('select id, title, landmark_ids_json, started_at, ended_at, completion_status, completed_landmark_ids_json from tour_history order by ended_at desc'));

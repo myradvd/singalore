@@ -39,7 +39,7 @@ export class RoutePlanner
   constructor(private readonly api: ApiClient, private readonly clock: Clock)
   {
   }
-/**
+  /**
  * Auto-Order: fetches the walking-time matrix and returns the stops in the fastest order.
  * @param origin - Walker's current position.
  * @param stops - Stops in the itinerary.
@@ -55,7 +55,7 @@ export class RoutePlanner
     const order = autoOrder(table.durationsS);
     return order.stopOrder.map((index) => stops[index - 1]).filter((stop): stop is RouteStop => stop !== undefined);
   }
-/**
+  /**
  * Plans a walking route from the walker through all stops.
  * @param options - autoOrder reorders the stops first.
  * @returns The planned route, or a failure message with a straight-line fallback route.

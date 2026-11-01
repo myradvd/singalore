@@ -37,12 +37,12 @@ export function exitRadiusMeters(radiusMeters: number): number
 export class GeofenceEvaluator
 {
   private readonly inside = new Map<string, InsideRecord>();
-/** @returns Ids of landmarks the walker is currently inside. */
+  /** @returns Ids of landmarks the walker is currently inside. */
   insideLandmarkIds(): string[]
   {
     return [...this.inside.keys()];
   }
-/** Forgets all inside states, for example when tracking restarts. */
+  /** Forgets all inside states, for example when tracking restarts. */
   reset(): void
   {
     this.inside.clear();
@@ -52,7 +52,7 @@ export class GeofenceEvaluator
   {
     this.inside.delete(landmarkId);
   }
-/**
+  /**
  * Checks one location fix against every landmark.
  * @param fix - Latest location fix (real or spoofed).
  * @param targets - Landmarks to watch, with position and radius.

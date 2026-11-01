@@ -62,7 +62,7 @@ export class LocationEngine
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-/** Updates the location permission state and restarts tracking if it changed. */
+  /** Updates the location permission state and restarts tracking if it changed. */
   async setPermission(permission: LocationPermissionState): Promise<void>
   {
     const changed = permission !== this.state.permission;
@@ -77,7 +77,7 @@ export class LocationEngine
     }
     await this.restart();
   }
-/** Switches between browse and tour accuracy, restarting the source. */
+  /** Switches between browse and tour accuracy, restarting the source. */
   async setMode(mode: LocationMode): Promise<void>
   {
     if (mode === this.state.mode)
@@ -87,7 +87,7 @@ export class LocationEngine
     this.update({ mode });
     await this.restart();
   }
-/** Debug mode: switches between the real GPS and the spoofed location. */
+  /** Debug mode: switches between the real GPS and the spoofed location. */
   async useSpoof(enabled: boolean): Promise<void>
   {
     const sourceKind = enabled ? 'spoof' : 'device';
@@ -126,7 +126,7 @@ export class LocationEngine
       void this.dependencies.diagnostics.record('error', 'location_source_error', code);
     });
   }
-/** Accepts a fix from the active source, resets the no-signal timer and broadcasts the fix. */
+  /** Accepts a fix from the active source, resets the no-signal timer and broadcasts the fix. */
   acceptFix(fix: LocationFix): void
   {
     const expectedSource = this.state.sourceKind;
@@ -145,7 +145,7 @@ export class LocationEngine
     this.armWatchdog();
     this.dependencies.events.emit('location/fix', fix);
   }
-/** @returns Average fixes per second over the last 10 fixes, for the debug overlay. */
+  /** @returns Average fixes per second over the last 10 fixes, for the debug overlay. */
   refreshRateHz(): number | null
   {
     const intervals = this.state.fixIntervalsMs;

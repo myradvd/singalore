@@ -64,7 +64,7 @@ export class GeofenceEngine
   constructor(private readonly dependencies: GeofenceEngineDependencies)
   {
   }
-/** Starts listening to location fixes and playback events. */
+  /** Starts listening to location fixes and playback events. */
   start(): void
   {
     const { events } = this.dependencies;
@@ -94,7 +94,7 @@ export class GeofenceEngine
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-/**
+  /**
  * Processes one location fix: emits geofence/enter and geofence/exit events,
  * updates the prompt state, and refreshes the OS geofence window.
  */
@@ -118,7 +118,7 @@ export class GeofenceEngine
     this.update({ insideLandmarkIds: this.evaluator.insideLandmarkIds() });
     void this.refreshOsWindow(fix, targets);
   }
-/** Debug tool: shows the podcast prompt for a landmark without checking distance. */
+  /** Debug tool: shows the podcast prompt for a landmark without checking distance. */
   forcePrompt(landmarkId: string): void
   {
     this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: true } });
@@ -139,7 +139,7 @@ export class GeofenceEngine
   {
     this.update({ prompt: null, nextUpLandmarkId: null });
   }
-/** Walker tapped Play on the prompt: closes it and requests playback of that landmark's podcast. */
+  /** Walker tapped Play on the prompt: closes it and requests playback of that landmark's podcast. */
   acceptPrompt(): void
   {
     const prompt = this.state.prompt;
@@ -150,7 +150,7 @@ export class GeofenceEngine
     this.update({ prompt: null });
     this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: prompt.landmarkId, reason: 'prompt_accepted' });
   }
-/** Walker dismissed the prompt: that landmark will not prompt again for 10 minutes unless they leave and re-enter. */
+  /** Walker dismissed the prompt: that landmark will not prompt again for 10 minutes unless they leave and re-enter. */
   dismissPrompt(): void
   {
     const prompt = this.state.prompt;
@@ -166,13 +166,13 @@ export class GeofenceEngine
   {
     this.update({ outOfRange: null });
   }
-/** Clears the list of landmarks already played, at the start of a new tour. */
+  /** Clears the list of landmarks already played, at the start of a new tour. */
   resetTour(): void
   {
     this.playedInTour.clear();
     this.update({ nextUpLandmarkId: null });
   }
-/** Turns geofencing off (Geofence triggers setting): clears prompts and unregisters all OS regions. */
+  /** Turns geofencing off (Geofence triggers setting): clears prompts and unregisters all OS regions. */
   async disable(): Promise<void>
   {
     this.windowCenter = null;
