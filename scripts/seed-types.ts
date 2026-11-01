@@ -40,9 +40,13 @@ export interface AudioManifestEntry
 {
   landmarkSlug: string;
   fileName: string;
-  title?: string;
+  title: string;
   transcript: string;
   voice: string;
   accent: string;
-  sourceHash?: string;
+  sourceHash: string;
+  durationSeconds: number;
+  fileSizeBytes: number;
+  sha256: string;
+  md5: string;
 }

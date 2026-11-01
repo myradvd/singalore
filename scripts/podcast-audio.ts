@@ -139,22 +139,21 @@ async function main(): Promise<void>
       {
         const sourceHash = cacheKey(spoken, variant, pronunciations, SETTINGS);
         const cached = existing.find((entry) => entry.landmarkSlug === landmark.slug && entry.sourceHash === sourceHash && entry.voice === variant.voiceLabel);
-        let fileName: string;
-        if (!values.force && cached !== undefined && existsSync(path.join(SEED_AUDIO_DIRECTORY, cached.fileName)))
+        // A cached episode needs no local file: the manifest already holds its facts and the audio is in storage.
+        if (!values.force && cached !== undefined)
         {
-          fileName = cached.fileName;
-          console.log(`  cached ${fileName}`);
+          console.log(`  cached ${cached.fileName}`);
+          entries.push({ ...cached, title: script.title, transcript: script.paragraphs.join('\n\n') });
+          continue;
         }
-        else
-        {
-          console.log(`  synthesising ${landmark.slug} (${variant.kokoroVoice})`);
-          const work = path.join(os.tmpdir(), `singalore-${landmark.slug}-${variant.suffix}.m4a`);
-          await synthesize(spoken, variant, work);
-          const digest = createHash('sha256').update(await readFile(work)).digest('hex');
-          fileName = episodeFileName(landmark.slug, variant.suffix, digest);
-          await copyFile(work, path.join(SEED_AUDIO_DIRECTORY, fileName));
-          await rm(work, { force: true });
-        }
+        console.log(`  synthesising ${landmark.slug} (${variant.kokoroVoice})`);
+        const work = path.join(os.tmpdir(), `singalore-${landmark.slug}-${variant.suffix}.m4a`);
+        await synthesize(spoken, variant, work);
+        const bytes = await readFile(work);
+        const sha256 = createHash('sha256').update(bytes).digest('hex');
+        const fileName = episodeFileName(landmark.slug, variant.suffix, sha256);
+        await copyFile(work, path.join(SEED_AUDIO_DIRECTORY, fileName));
+        await rm(work, { force: true });
         const report = await inspect(path.join(SEED_AUDIO_DIRECTORY, fileName));
         console.log(`    ${report.durationSeconds.toFixed(1)} s, ${(report.bytes / 1_000_000).toFixed(2)} MB, ${Math.round(report.bitrate / 1000)} kbps, ${report.loudness} LUFS`);
         for (const warning of report.warnings)
@@ -168,7 +167,7 @@ async function main(): Promise<void>
             episodeFailures.push(`${fileName}: ${problem}`);
           }
         }
-        entries.push({ landmarkSlug: landmark.slug, fileName, title: script.title, transcript: script.paragraphs.join('\n\n'), voice: variant.voiceLabel, accent: variant.accentLabel, sourceHash });
+        entries.push({ landmarkSlug: landmark.slug, fileName, title: script.title, transcript: script.paragraphs.join('\n\n'), voice: variant.voiceLabel, accent: variant.accentLabel, sourceHash, durationSeconds: report.durationSeconds, fileSizeBytes: bytes.byteLength, sha256, md5: createHash('md5').update(bytes).digest('hex') });
       }
       if (episodeFailures.length > 0)
       {

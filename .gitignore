@@ -41,3 +41,6 @@ apps/cms/CLAUDE.md
 # Kokoro text to speech (scripts/tts)
 scripts/tts/.venv/
 __pycache__/
+
+# Generated podcast audio lives in Supabase Storage, the manifest stays in git (DECISION_LOG D32)
+supabase/seed/audio/*.m4a

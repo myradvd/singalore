@@ -1,6 +1,6 @@
 # Podcast narration (Kokoro)
 
-`npm run seed:audio` turns the scripts in `supabase/seed/scripts/<landmark slug>.md` into podcast episodes in `supabase/seed/audio/`. Speech comes from [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), run locally. It works on macOS and on Linux, including WSL. This folder is plain Python and is not part of the npm workspaces.
+`npm run seed:audio` turns the scripts in `supabase/seed/scripts/<landmark slug>.md` into podcast episodes in `supabase/seed/audio/`. The scripts and `manifest.json` are the source and live in git. The `.m4a` files are generated, so git ignores them and `npm run seed:hosted` uploads them to Supabase Storage. Speech comes from [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), run locally. It works on macOS and on Linux, including WSL. This folder is plain Python and is not part of the npm workspaces.
 
 ## One time setup
 
@@ -30,7 +30,8 @@ npm run seed:audio -- --force
 ```
 
 - An episode is only synthesised again when its script text, voice or `pronunciations.json` changed. `--force` ignores that cache.
-- Files are named `<slug>-<suffix>-<first 8 characters of the file sha256>.m4a`, because the seed uploads them with a one year cache. The generator never deletes old files, and `npm run seed:check` fails on audio the manifest does not use, so delete replaced files yourself.
+- Files are named `<slug>-<suffix>-<first 8 characters of the file sha256>.m4a`, because the seed uploads them with a one year cache. Old local files are ignored by git and safe to delete.
+- After generating, run `npm run seed:hosted` and commit `manifest.json`, in that order, so nobody gets a manifest that points at audio not yet uploaded.
 - Landmarks with no script keep their existing manifest entries.
 - The manifest is saved after each landmark, so a crash keeps the finished episodes in the cache.
 - The run fails if a script breaks the rules below or an episode is shorter than 300 s, longer than 600 s or over 4.5 MB (the Vercel upload limit). That landmark keeps its old manifest entries, and the others still update. Silences over 3 s and clipping are reported as warnings.

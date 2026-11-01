@@ -20,6 +20,9 @@ export interface SeedParkSpec
 
 export const REMOVED_LANDMARK_SLUGS: string[] = ['tiong-bahru-park'];
 
+// Episodes are not in git. The seed falls back to this public copy when a file is not on this computer.
+export const SEED_AUDIO_SOURCE_URL = 'https://plaxhykpkshlyoanywtd.supabase.co/storage/v1/object/public/media/audio';
+
 export const SEED_PARKS: SeedParkSpec[] = [
   {
     slug: 'tiong-bahru',
