@@ -354,16 +354,22 @@ export interface PodcastRow
   status: 'published';
 }
 
-export function podcastRow(entry: AudioManifestEntry, landmarkName: string, bytes: Buffer, rawDurationSeconds: number): PodcastRow
+export function audioChecksumProblem(bytes: Buffer, entry: AudioManifestEntry): string | null
 {
-  const durationSeconds = Math.max(1, Math.round(rawDurationSeconds));
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  return sha256 === entry.sha256 ? null : `sha256 ${sha256} does not match the manifest`;
+}
+
+export function podcastRow(entry: AudioManifestEntry): PodcastRow
+{
+  const durationSeconds = Math.max(1, Math.round(entry.durationSeconds));
   return {
-    title: entry.title ?? `${landmarkName}: a short history`,
+    title: entry.title,
     audio_path: `audio/${entry.fileName}`,
     duration_seconds: durationSeconds,
-    file_size_bytes: bytes.byteLength,
-    checksum_sha256: createHash('sha256').update(bytes).digest('hex'),
-    checksum_md5: createHash('md5').update(bytes).digest('hex'),
+    file_size_bytes: entry.fileSizeBytes,
+    checksum_sha256: entry.sha256,
+    checksum_md5: entry.md5,
     transcript: entry.transcript,
     voice: entry.voice,
     accent: entry.accent,

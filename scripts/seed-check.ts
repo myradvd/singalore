@@ -1,7 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseBuffer } from 'music-metadata';
-import { durationProblem, parseScript, podcastRow, podcastRowProblems, scriptFreshnessProblems, sizeProblem, variantsFor } from './podcast-lib';
+import { audioChecksumProblem, durationProblem, parseScript, podcastRow, podcastRowProblems, scriptFreshnessProblems, sizeProblem, variantsFor } from './podcast-lib';
 import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_SCRIPTS_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 async function readAudio(fileName: string): Promise<Buffer | null>
@@ -27,13 +26,11 @@ async function main(): Promise<void>
   const pronunciations = JSON.parse(await readFile(SEED_PRONUNCIATIONS_PATH, 'utf8')) as Record<string, string>;
   const problems: string[] = [];
 
-  const landmarkNames = new Map<string, string>();
   const parkSlugs = new Map<string, string>();
   for (const park of content.parks)
   {
     for (const landmark of park.landmarks)
     {
-      landmarkNames.set(landmark.slug, landmark.name);
       parkSlugs.set(landmark.slug, park.slug);
     }
   }
@@ -48,33 +45,25 @@ async function main(): Promise<void>
       continue;
     }
     seenFiles.add(entry.fileName);
-    const landmarkName = landmarkNames.get(entry.landmarkSlug);
-    if (landmarkName === undefined)
+    if (!parkSlugs.has(entry.landmarkSlug))
     {
       problems.push(`${where}: landmark slug ${entry.landmarkSlug} is not in seed-content.json`);
       continue;
     }
-    const bytes = await readAudio(entry.fileName);
-    if (bytes === null)
+    if (!entry.fileName.endsWith(`-${entry.sha256.slice(0, 8)}.m4a`))
     {
-      problems.push(`${where}: file is missing from ${SEED_AUDIO_DIRECTORY}`);
-      continue;
+      problems.push(`${where}: file name does not contain the start of its sha256`);
     }
-    const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
-    const durationSeconds = metadata.format.duration ?? 0;
-    const row = podcastRow(entry, landmarkName, bytes, durationSeconds);
-    for (const problem of [sizeProblem(bytes.byteLength), durationProblem(durationSeconds), ...podcastRowProblems(row)])
+    // Audio is not in git, so this only runs for episodes that are on this computer.
+    const bytes = await readAudio(entry.fileName);
+    const checksumProblem = bytes === null ? null : audioChecksumProblem(bytes, entry);
+    for (const problem of [checksumProblem, sizeProblem(entry.fileSizeBytes), durationProblem(entry.durationSeconds), ...podcastRowProblems(podcastRow(entry))])
     {
       if (problem !== null)
       {
         problems.push(`${where}: ${problem}`);
       }
     }
-  }
-
-  for (const audioFile of (await readdir(SEED_AUDIO_DIRECTORY)).filter((name) => name.endsWith('.m4a') && !seenFiles.has(name)))
-  {
-    problems.push(`audio file ${audioFile}: not in the manifest, delete it`);
   }
 
   for (const scriptFile of (await readdir(SEED_SCRIPTS_DIRECTORY)).filter((name) => name.endsWith('.md')))

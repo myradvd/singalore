@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   applyPronunciations,
+  audioChecksumProblem,
   cacheKey,
   durationProblem,
   episodeFileName,
@@ -40,6 +42,24 @@ runs over two lines.
 
 Second paragraph.
 `;
+
+function manifestEntry(overrides: Partial<AudioManifestEntry>): AudioManifestEntry
+{
+  return {
+    landmarkSlug: 'raffles-hotel',
+    fileName: 'raffles-hotel-gb-12345678.m4a',
+    title: 'T',
+    transcript: '',
+    voice: 'Male',
+    accent: 'British',
+    sourceHash: 'source',
+    durationSeconds: 412.6,
+    fileSizeBytes: 5,
+    sha256: 'a'.repeat(64),
+    md5: 'b'.repeat(32),
+    ...overrides,
+  };
+}
 
 function words(count: number): string
 {
@@ -191,15 +211,13 @@ describe('scriptFreshnessProblems', () =>
 {
   const script = parseScript(SCRIPT);
   const map = { Raffles: 'Raffuls' };
-  const current: AudioManifestEntry = {
-    landmarkSlug: 'raffles-hotel',
-    fileName: 'raffles-hotel-gb-12345678.m4a',
+  const current = manifestEntry({
     title: script.title,
     transcript: script.paragraphs.join('\n\n'),
     voice: PRIMARY_VARIANT.voiceLabel,
     accent: PRIMARY_VARIANT.accentLabel,
     sourceHash: cacheKey(spokenParagraphs(script, map), PRIMARY_VARIANT, map, NARRATION_SETTINGS),
-  };
+  });
 
   it('accepts an entry that matches the script', () =>
   {
@@ -225,7 +243,7 @@ describe('planPodcastSync', () =>
 {
   function row(voice: string, accent: string): PodcastRow
   {
-    return podcastRow({ landmarkSlug: 'chijmes', fileName: `chijmes-${voice}.m4a`, title: 'T', transcript: '', voice, accent }, 'Chijmes', Buffer.from('audio'), 400);
+    return podcastRow(manifestEntry({ landmarkSlug: 'chijmes', fileName: `chijmes-${voice}.m4a`, voice, accent }));
   }
 
   it('reuses the seeded row with the same voice and accent, and inserts the rest', () =>
@@ -264,7 +282,7 @@ describe('mergeManifest', () =>
 {
   function entry(landmarkSlug: string, fileName: string): AudioManifestEntry
   {
-    return { landmarkSlug, fileName, transcript: '', voice: 'Male', accent: 'British' };
+    return manifestEntry({ landmarkSlug, fileName });
   }
 
   it('replaces scripted landmarks and keeps demo entries for the rest', () =>
@@ -324,10 +342,15 @@ describe('checks', () =>
 
   it('builds a published podcast row from a manifest entry', () =>
   {
-    const entry: AudioManifestEntry = { landmarkSlug: 'raffles-hotel', fileName: 'raffles-hotel-gb-12345678.m4a', transcript: 'Hello.', voice: 'Male', accent: 'British' };
-    const row = podcastRow(entry, 'Raffles Hotel', Buffer.from('audio'), 412.6);
-    expect(row).toMatchObject({ title: 'Raffles Hotel: a short history', audio_path: 'audio/raffles-hotel-gb-12345678.m4a', duration_seconds: 413, file_size_bytes: 5, length_class: 'long', status: 'published' });
-    expect(row.checksum_sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(row.checksum_md5).toMatch(/^[0-9a-f]{32}$/);
+    const row = podcastRow(manifestEntry({ title: 'Raffles Hotel' }));
+    expect(row).toMatchObject({ title: 'Raffles Hotel', audio_path: 'audio/raffles-hotel-gb-12345678.m4a', duration_seconds: 413, file_size_bytes: 5, checksum_sha256: 'a'.repeat(64), checksum_md5: 'b'.repeat(32), length_class: 'long', status: 'published' });
+  });
+
+  it('rejects audio whose bytes do not match the manifest', () =>
+  {
+    const bytes = Buffer.from('audio');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    expect(audioChecksumProblem(bytes, manifestEntry({ sha256 }))).toBeNull();
+    expect(audioChecksumProblem(Buffer.from('other'), manifestEntry({ sha256 }))).toMatch(/does not match/);
   });
 });

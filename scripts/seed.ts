@@ -1,12 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { parseBuffer } from 'music-metadata';
 import { z } from 'zod';
-import { durationProblem, planPodcastSync, podcastRow, type PodcastRow } from './podcast-lib';
-import { REMOVED_LANDMARK_SLUGS } from './seed-spec';
+import { audioChecksumProblem, durationProblem, planPodcastSync, podcastRow, type PodcastRow } from './podcast-lib';
+import { REMOVED_LANDMARK_SLUGS, SEED_AUDIO_SOURCE_URL } from './seed-spec';
 import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 // SEED_TARGET=hosted seeds the online Supabase project from apps/cms/.env.hosted instead of the local one.
@@ -69,18 +68,64 @@ async function ensureAdmin(client: SupabaseClient): Promise<void>
   }
 }
 
-async function checkEpisodes(manifest: AudioManifestEntry[]): Promise<void>
+function checkEpisodes(manifest: AudioManifestEntry[]): void
 {
-  for (const entry of manifest.filter((candidate) => candidate.title !== undefined))
+  for (const entry of manifest)
   {
-    const bytes = await readFile(path.join(SEED_AUDIO_DIRECTORY, entry.fileName));
-    const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
-    const problem = durationProblem(metadata.format.duration ?? 0);
+    const problem = durationProblem(entry.durationSeconds);
     if (problem !== null)
     {
       throw new Error(`${entry.fileName}: ${problem}`);
     }
   }
+}
+
+// File names contain the content hash, so an object with the same name already holds the same audio.
+async function uploadedAudioFiles(client: SupabaseClient): Promise<Set<string>>
+{
+  const names = new Set<string>();
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize)
+  {
+    const { data, error } = await client.storage.from(MEDIA_BUCKET).list('audio', { limit: pageSize, offset });
+    if (error !== null)
+    {
+      throw new Error(`Could not list uploaded audio: ${error.message}`);
+    }
+    for (const file of data)
+    {
+      names.add(file.name);
+    }
+    if (data.length < pageSize)
+    {
+      return names;
+    }
+  }
+}
+
+async function episodeBytes(entry: AudioManifestEntry): Promise<Buffer>
+{
+  const localPath = path.join(SEED_AUDIO_DIRECTORY, entry.fileName);
+  let bytes: Buffer;
+  if (existsSync(localPath))
+  {
+    bytes = await readFile(localPath);
+  }
+  else
+  {
+    const response = await fetch(`${SEED_AUDIO_SOURCE_URL}/${encodeURIComponent(entry.fileName)}`);
+    if (!response.ok)
+    {
+      throw new Error(`${entry.fileName} is not on this computer or in the audio source (${response.status}). Run npm run seed:audio to generate it.`);
+    }
+    bytes = Buffer.from(await response.arrayBuffer());
+  }
+  const problem = audioChecksumProblem(bytes, entry);
+  if (problem !== null)
+  {
+    throw new Error(`${entry.fileName}: ${problem}`);
+  }
+  return bytes;
 }
 
 async function main(): Promise<void>
@@ -89,9 +134,10 @@ async function main(): Promise<void>
   const content = JSON.parse(await readFile(SEED_CONTENT_PATH, 'utf8')) as SeedContent;
   const manifest = JSON.parse(await readFile(path.join(SEED_AUDIO_DIRECTORY, 'manifest.json'), 'utf8')) as AudioManifestEntry[];
 
-  await checkEpisodes(manifest);
+  checkEpisodes(manifest);
   console.log(`Seeding ${env.SUPABASE_URL} from apps/cms/${seedEnvFile}`);
   await ensureAdmin(client);
+  const uploaded = await uploadedAudioFiles(client);
 
   const { data: removed, error: removeError } = await client.from('heritage_landmarks').delete().in('slug', REMOVED_LANDMARK_SLUGS).select('slug');
   if (removeError !== null)
@@ -171,10 +217,11 @@ async function main(): Promise<void>
       const rows: PodcastRow[] = [];
       for (const entry of manifest.filter((candidate) => candidate.landmarkSlug === landmark.slug))
       {
-        const bytes = await readFile(path.join(SEED_AUDIO_DIRECTORY, entry.fileName));
-        const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
-        const row = podcastRow(entry, landmark.name, bytes, metadata.format.duration ?? 0);
-        await upload(client, row.audio_path, bytes, 'audio/mp4');
+        const row = podcastRow(entry);
+        if (!uploaded.has(entry.fileName))
+        {
+          await upload(client, row.audio_path, await episodeBytes(entry), 'audio/mp4');
+        }
         rows.push(row);
       }
 

@@ -71,9 +71,7 @@ describe('audio analysis', () =>
 {
   it('computes duration, size, SHA-256, MD5 and length class on the server', async () =>
   {
-    const audioDirectory = path.resolve(import.meta.dirname, '../../../supabase/seed/audio');
-    const [episode] = JSON.parse(await readFile(path.join(audioDirectory, 'manifest.json'), 'utf8')) as { fileName: string }[];
-    const bytes = new Uint8Array(await readFile(path.join(audioDirectory, episode?.fileName ?? '')));
+    const bytes = new Uint8Array(await readFile(path.resolve(import.meta.dirname, 'fixtures/sample.m4a')));
     const analysis = await analyseAudio(bytes, 'audio/mp4');
     expect(analysis.durationSeconds).toBeGreaterThan(0);
     expect(analysis.fileSizeBytes).toBe(bytes.byteLength);
