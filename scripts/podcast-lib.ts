@@ -8,6 +8,7 @@ export const SCRIPT_MIN_WORDS = 750;
 export const SCRIPT_MAX_WORDS = 1500;
 export const SILENCE_WARN_SECONDS = 3;
 export const CLIP_WARN_DB = -0.1;
+export const NARRATION_SETTINGS = { sampleRate: 24000, bitrate: '48k', pauseSeconds: 0.7, loudness: -16, truePeak: -1.5, range: 11, speed: 1 };
 
 export interface NarrationVariant
 {
@@ -287,6 +288,22 @@ export function cacheKey(spoken: string[], variant: NarrationVariant, pronunciat
   return createHash('sha256').update(payload).digest('hex');
 }
 
+export function scriptFreshnessProblems(script: EpisodeScript, variants: NarrationVariant[], entries: AudioManifestEntry[], pronunciations: Record<string, string>): string[]
+{
+  const spoken = spokenParagraphs(script, pronunciations);
+  const transcript = script.paragraphs.join('\n\n');
+  return variants.flatMap((variant) =>
+  {
+    const entry = entries.find((candidate) => candidate.voice === variant.voiceLabel && candidate.accent === variant.accentLabel);
+    if (entry === undefined)
+    {
+      return [`no manifest entry for the ${variant.suffix} voice`];
+    }
+    const isCurrent = entry.sourceHash === cacheKey(spoken, variant, pronunciations, NARRATION_SETTINGS) && entry.title === script.title && entry.transcript === transcript;
+    return isCurrent ? [] : [`${variant.suffix} episode is out of date, run npm run seed:audio`];
+  });
+}
+
 export function episodeFileName(landmarkSlug: string, suffix: string, fileSha256: string): string
 {
   return `${landmarkSlug}-${suffix}-${fileSha256.slice(0, 8)}.m4a`;
@@ -353,6 +370,34 @@ export function podcastRow(entry: AudioManifestEntry, landmarkName: string, byte
     length_class: durationSeconds < 60 ? 'short' : durationSeconds < 300 ? 'standard' : 'long',
     status: 'published',
   };
+}
+
+export interface ExistingPodcast
+{
+  id: string;
+  audio_path: string | null;
+  voice: string | null;
+  accent: string | null;
+}
+
+export interface PodcastSyncPlan
+{
+  writes: { id: string | null; row: PodcastRow }[];
+  deleteIds: string[];
+}
+
+// Keeps podcast ids stable, because the app finds downloaded audio by id. Seed files are named after the
+// landmark slug and CMS uploads after the podcast id, so podcasts added through the CMS are left alone.
+export function planPodcastSync(landmarkSlug: string, existing: ExistingPodcast[], rows: PodcastRow[]): PodcastSyncPlan
+{
+  const seeded = existing.filter((podcast) => podcast.audio_path?.startsWith(`audio/${landmarkSlug}-`));
+  const writes = rows.map((row) =>
+  {
+    const index = seeded.findIndex((podcast) => podcast.voice === row.voice && podcast.accent === row.accent);
+    const [match] = index === -1 ? [] : seeded.splice(index, 1);
+    return { id: match?.id ?? null, row };
+  });
+  return { writes, deleteIds: seeded.map((podcast) => podcast.id) };
 }
 
 // Mirrors the podcasts checks in supabase/migrations.

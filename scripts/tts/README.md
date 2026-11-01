@@ -30,9 +30,11 @@ npm run seed:audio -- --force
 ```
 
 - An episode is only synthesised again when its script text, voice or `pronunciations.json` changed. `--force` ignores that cache.
-- Files are named `<slug>-<suffix>-<first 8 characters of the file sha256>.m4a`, because the seed uploads them with a one year cache. Old files are never deleted.
+- Files are named `<slug>-<suffix>-<first 8 characters of the file sha256>.m4a`, because the seed uploads them with a one year cache. The generator never deletes old files, and `npm run seed:check` fails on audio the manifest does not use, so delete replaced files yourself.
 - Landmarks with no script keep their existing manifest entries.
-- The run fails, and does not write the manifest, if a script breaks the rules below or an episode is shorter than 300 s, longer than 600 s or over 4.5 MB (the Vercel upload limit). Silences over 3 s and clipping are reported as warnings.
+- The manifest is saved after each landmark, so a crash keeps the finished episodes in the cache.
+- The run fails if a script breaks the rules below or an episode is shorter than 300 s, longer than 600 s or over 4.5 MB (the Vercel upload limit). That landmark keeps its old manifest entries, and the others still update. Silences over 3 s and clipping are reported as warnings.
+- `npm run seed:check` also fails when a script changed but its episode was not generated again.
 
 ## Writing a script
 
