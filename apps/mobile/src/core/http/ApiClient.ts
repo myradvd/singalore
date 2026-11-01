@@ -64,7 +64,7 @@ export class ApiClient
     const replacementHost = loopbackReplacementHost(this.options.baseUrl());
     return replacementHost === null ? url : localizeLoopbackUrl(url, replacementHost);
   }
-/**
+  /**
  * Sends a GET request.
  * @param path - API path, for example /api/v1/catalog.
  * @param schema - Zod schema the response must match.
@@ -86,7 +86,7 @@ export class ApiClient
     const data = await this.parse(response, schema, 'GET', path);
     return { status: 'ok', data, etag: response.headers.get('etag') };
   }
-/**
+  /**
  * Sends a POST request.
  * Privacy rule: refuses to send coordinates to any endpoint except the two route endpoints.
  * @returns The parsed response.
