@@ -1,15 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { parseEnv } from 'node:util';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { parseBuffer } from 'music-metadata';
 import { z } from 'zod';
-import { durationProblem, podcastRow } from './podcast-lib';
+import { durationProblem, planPodcastSync, podcastRow, type PodcastRow } from './podcast-lib';
 import { REMOVED_LANDMARK_SLUGS } from './seed-spec';
 import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_IMAGES_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 // SEED_TARGET=hosted seeds the online Supabase project from apps/cms/.env.hosted instead of the local one.
 const seedEnvFile = process.env.SEED_TARGET === 'hosted' ? '.env.hosted' : '.env.local';
-process.loadEnvFile(path.resolve(import.meta.dirname, '..', 'apps', 'cms', seedEnvFile));
+// The file wins over the shell, so an exported SUPABASE_URL cannot send the seed to the wrong project.
+const seedEnv = parseEnv(readFileSync(path.resolve(import.meta.dirname, '..', 'apps', 'cms', seedEnvFile), 'utf8'));
 
 const Env = z.object({
   SUPABASE_URL: z.url(),
@@ -17,7 +20,7 @@ const Env = z.object({
   SEED_ADMIN_EMAIL: z.email(),
   SEED_ADMIN_PASSWORD: z.string().min(12),
 });
-const env = Env.parse(process.env);
+const env = Env.parse(seedEnv);
 const MEDIA_BUCKET = 'media';
 
 function contentTypeFor(fileName: string): string
@@ -59,15 +62,7 @@ async function ensureAdmin(client: SupabaseClient): Promise<void>
     }
     user = data.user;
   }
-  else
-  {
-    const { error } = await client.auth.admin.updateUserById(user.id, { password: env.SEED_ADMIN_PASSWORD });
-    if (error !== null)
-    {
-      throw error;
-    }
-  }
-  const { error } = await client.from('content_managers').upsert({ user_id: user.id, display_name: 'Local admin', role: 'admin' });
+  const { error } = await client.from('content_managers').upsert({ user_id: user.id, display_name: 'Local admin', role: 'admin' }, { ignoreDuplicates: true });
   if (error !== null)
   {
     throw error;
@@ -95,6 +90,7 @@ async function main(): Promise<void>
   const manifest = JSON.parse(await readFile(path.join(SEED_AUDIO_DIRECTORY, 'manifest.json'), 'utf8')) as AudioManifestEntry[];
 
   await checkEpisodes(manifest);
+  console.log(`Seeding ${env.SUPABASE_URL} from apps/cms/${seedEnvFile}`);
   await ensureAdmin(client);
 
   const { data: removed, error: removeError } = await client.from('heritage_landmarks').delete().in('slug', REMOVED_LANDMARK_SLUGS).select('slug');
@@ -172,21 +168,38 @@ async function main(): Promise<void>
         throw landmarkError;
       }
 
-      const { error: deleteError } = await client.from('podcasts').delete().eq('landmark_id', landmarkRow.id);
-      if (deleteError !== null)
-      {
-        throw deleteError;
-      }
+      const rows: PodcastRow[] = [];
       for (const entry of manifest.filter((candidate) => candidate.landmarkSlug === landmark.slug))
       {
         const bytes = await readFile(path.join(SEED_AUDIO_DIRECTORY, entry.fileName));
         const metadata = await parseBuffer(bytes, { mimeType: 'audio/mp4' }, { duration: true });
         const row = podcastRow(entry, landmark.name, bytes, metadata.format.duration ?? 0);
         await upload(client, row.audio_path, bytes, 'audio/mp4');
-        const { error: podcastError } = await client.from('podcasts').insert({ landmark_id: landmarkRow.id, ...row });
+        rows.push(row);
+      }
+
+      const { data: existing, error: existingError } = await client.from('podcasts').select('id, audio_path, voice, accent').eq('landmark_id', landmarkRow.id);
+      if (existingError !== null)
+      {
+        throw existingError;
+      }
+      const plan = planPodcastSync(landmark.slug, existing, rows);
+      for (const { id, row } of plan.writes)
+      {
+        const { error: podcastError } = id === null
+          ? await client.from('podcasts').insert({ landmark_id: landmarkRow.id, ...row })
+          : await client.from('podcasts').update(row).eq('id', id);
         if (podcastError !== null)
         {
           throw podcastError;
+        }
+      }
+      if (plan.deleteIds.length > 0)
+      {
+        const { error: deleteError } = await client.from('podcasts').delete().in('id', plan.deleteIds);
+        if (deleteError !== null)
+        {
+          throw deleteError;
         }
       }
     }

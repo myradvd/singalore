@@ -114,7 +114,7 @@ Fill in the four lines. No spaces around `=`, no quotes:
 | `SUPABASE_URL` | Your project URL from step 1, like `https://abcdefghijklmnopqrst.supabase.co`. Replace the **whole** placeholder, `<` and `>` included |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Project Settings > API Keys**: the `service_role` key (Legacy tab, starts `eyJ`) or the **Secret key** (starts `sb_secret_`). Not the `anon` or publishable key |
 | `SEED_ADMIN_EMAIL` | Your email. It becomes the CMS login, not your Supabase login |
-| `SEED_ADMIN_PASSWORD` | A **new** password, 12 or more characters. Save it: it is how you sign in to the CMS |
+| `SEED_ADMIN_PASSWORD` | A **new** password, 12 or more characters. Save it: it is how you sign in to the CMS. It is only used when the seed creates the account, so running the seed again does not change it |
 
 ```bash
 npm run seed:hosted
@@ -125,6 +125,7 @@ npm run seed:hosted
 **Expect:**
 
 ```
+Seeding https://<project-ref>.supabase.co from apps/cms/.env.hosted
 Removed 1 retired landmarks
 Seeded Tiong Bahru: 5 landmarks
 Seeded Civic District: 8 landmarks
@@ -144,6 +145,15 @@ Seeded Nanyang Technological University: 5 landmarks
 | `new row violates row-level security` | You used the `anon` key. Use the `service_role` / secret key |
 
 To check the file without showing your key: `grep -v SERVICE_ROLE apps/cms/.env.hosted` (`grep -v` prints every line except those containing the given text).
+
+</details>
+
+<details>
+<summary>Running the seed again</summary>
+
+Merging to `main` does not update the content. When the seed content changes, run `npm run seed:hosted` again. You can stop and rerun it at any time.
+
+**The seed overwrites the CMS for everything it manages.** Edits made in the CMS to seeded parks, landmarks and podcasts are replaced, and anything you unpublished is published again. It leaves alone your CMS login, and podcasts added through the CMS, including a seeded podcast whose audio you replaced there.
 
 </details>
 

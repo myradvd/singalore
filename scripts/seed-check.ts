@@ -1,10 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseBuffer } from 'music-metadata';
-import { durationProblem, podcastRow, podcastRowProblems, sizeProblem } from './podcast-lib';
-import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
-
-const SCRIPTS_DIRECTORY = path.join(SEED_DIRECTORY, 'scripts');
+import { durationProblem, parseScript, podcastRow, podcastRowProblems, scriptFreshnessProblems, sizeProblem, variantsFor } from './podcast-lib';
+import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_SCRIPTS_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 async function readAudio(fileName: string): Promise<Buffer | null>
 {
@@ -26,14 +24,17 @@ async function main(): Promise<void>
 {
   const content = JSON.parse(await readFile(SEED_CONTENT_PATH, 'utf8')) as SeedContent;
   const manifest = JSON.parse(await readFile(path.join(SEED_AUDIO_DIRECTORY, 'manifest.json'), 'utf8')) as AudioManifestEntry[];
+  const pronunciations = JSON.parse(await readFile(SEED_PRONUNCIATIONS_PATH, 'utf8')) as Record<string, string>;
   const problems: string[] = [];
 
   const landmarkNames = new Map<string, string>();
+  const parkSlugs = new Map<string, string>();
   for (const park of content.parks)
   {
     for (const landmark of park.landmarks)
     {
       landmarkNames.set(landmark.slug, landmark.name);
+      parkSlugs.set(landmark.slug, park.slug);
     }
   }
 
@@ -71,12 +72,25 @@ async function main(): Promise<void>
     }
   }
 
-  const manifestSlugs = new Set(manifest.map((entry) => entry.landmarkSlug));
-  for (const scriptFile of (await readdir(SCRIPTS_DIRECTORY)).filter((name) => name.endsWith('.md')))
+  for (const audioFile of (await readdir(SEED_AUDIO_DIRECTORY)).filter((name) => name.endsWith('.m4a') && !seenFiles.has(name)))
   {
-    if (!manifestSlugs.has(path.basename(scriptFile, '.md')))
+    problems.push(`audio file ${audioFile}: not in the manifest, delete it`);
+  }
+
+  for (const scriptFile of (await readdir(SEED_SCRIPTS_DIRECTORY)).filter((name) => name.endsWith('.md')))
+  {
+    const slug = path.basename(scriptFile, '.md');
+    const parkSlug = parkSlugs.get(slug);
+    if (parkSlug === undefined)
     {
-      problems.push(`script ${scriptFile}: no manifest entry`);
+      problems.push(`script ${scriptFile}: landmark is not in seed-content.json`);
+      continue;
+    }
+    const script = parseScript(await readFile(path.join(SEED_SCRIPTS_DIRECTORY, scriptFile), 'utf8'));
+    const entries = manifest.filter((entry) => entry.landmarkSlug === slug);
+    for (const problem of scriptFreshnessProblems(script, variantsFor(parkSlug), entries, pronunciations))
+    {
+      problems.push(`script ${scriptFile}: ${problem}`);
     }
   }
 
