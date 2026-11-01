@@ -1,6 +1,6 @@
 # Podcast narration (Kokoro)
 
-`npm run seed:audio` turns the scripts in `supabase/seed/scripts/<landmark slug>.md` into podcast episodes in `supabase/seed/audio/`. The scripts and `manifest.json` are the source and live in git. The `.m4a` files are generated, so git ignores them and `npm run seed:hosted` uploads them to Supabase Storage. Speech comes from [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), run locally. It works on macOS and on Linux, including WSL. This folder is plain Python and is not part of the npm workspaces.
+`npm run seed:audio` turns the scripts in `supabase/seed/narration/<landmark slug>.md` into podcast episodes in `supabase/seed/audio/`. The scripts and `manifest.json` are the source and live in git. The `.m4a` files are generated, so git ignores them and `npm run seed:hosted` uploads them to Supabase Storage. Speech comes from [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), run locally. It works on macOS and on Linux, including WSL. This folder is plain Python and is not part of the npm workspaces.
 
 ## One time setup
 
