@@ -123,7 +123,7 @@ export class DownloadManager
     await this.dependencies.transport.cancelActive();
   }
 
-    /** Deletes a downloaded pack and its files to free space. */
+  /** Deletes a downloaded pack and its files to free space. */
   async remove(parkId: string): Promise<void>
   {
     if (this.active === parkId)
@@ -141,7 +141,7 @@ export class DownloadManager
     await this.publish();
   }
 
-    /** Marks downloaded packs as update_available when the server's pack has changed. */
+  /** Marks downloaded packs as update_available when the server's pack has changed. */
   async checkForUpdates(fetchEtag: (parkId: string) => Promise<string | null>): Promise<void>
   {
     for (const record of await this.dependencies.repository.all())
@@ -159,7 +159,7 @@ export class DownloadManager
     await this.publish();
   }
 
-    /** @returns Bytes used by downloaded packs, shown in Manage Downloads. */
+  /** @returns Bytes used by downloaded packs, shown in Manage Downloads. */
   async totalStoredBytes(): Promise<number>
   {
     return (await this.dependencies.repository.all()).filter((record) => record.state === 'downloaded' || record.state === 'update_available').reduce((sum, record) => sum + record.totalBytes, 0);

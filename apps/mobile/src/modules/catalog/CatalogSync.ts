@@ -29,7 +29,7 @@ export class CatalogSync
   )
   {
   }
-/** @returns The cached catalog, or null if the app has never synced. */
+  /** @returns The cached catalog, or null if the app has never synced. */
   async loadCached(): Promise<CatalogSnapshot | null>
   {
     const etag = await this.repository.getMeta('catalog_etag');
@@ -46,7 +46,7 @@ export class CatalogSync
       podcasts: snapshot.podcasts.map((podcast) => ({ ...podcast, audioUrl: localize(podcast.audioUrl) })),
     };
   }
-/**
+  /**
  * Fetches the catalog from GET /api/v1/catalog. Concurrent calls share one request.
  * @returns updated, not_modified, failed_using_cache or failed_no_cache.
  */
