@@ -42,6 +42,7 @@ Before your first change, read **[CONTRIBUTING.md](CONTRIBUTING.md)**: the team 
 | --- | --- |
 | [QUICKSTART.md](QUICKSTART.md) | Setup: pick your guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Team rules; making, shipping and undoing a change. Ensuring safe and proper development of this project |
+| [docs/AI_AGENTS.md](docs/AI_AGENTS.md) | The Claude Code subagents and safety hook, and how to use them |
 
 ## Notes
 
