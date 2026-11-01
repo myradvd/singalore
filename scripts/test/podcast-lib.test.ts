@@ -12,11 +12,16 @@ import {
   parseMaxVolume,
   parseScript,
   parseSilences,
+  planPodcastSync,
   podcastRow,
+  type PodcastRow,
   PRIMARY_VARIANT,
+  scriptFreshnessProblems,
   SECONDARY_VARIANT,
   sizeProblem,
+  spokenParagraphs,
   variantsFor,
+  NARRATION_SETTINGS,
   yearToWords,
 } from '../podcast-lib';
 import type { AudioManifestEntry } from '../seed-types';
@@ -179,6 +184,79 @@ describe('variants, cache keys and file names', () =>
   it('puts the first 8 hash characters in the file name', () =>
   {
     expect(episodeFileName('raffles-hotel', 'gb', 'abcdef0123456789')).toBe('raffles-hotel-gb-abcdef01.m4a');
+  });
+});
+
+describe('scriptFreshnessProblems', () =>
+{
+  const script = parseScript(SCRIPT);
+  const map = { Raffles: 'Raffuls' };
+  const current: AudioManifestEntry = {
+    landmarkSlug: 'raffles-hotel',
+    fileName: 'raffles-hotel-gb-12345678.m4a',
+    title: script.title,
+    transcript: script.paragraphs.join('\n\n'),
+    voice: PRIMARY_VARIANT.voiceLabel,
+    accent: PRIMARY_VARIANT.accentLabel,
+    sourceHash: cacheKey(spokenParagraphs(script, map), PRIMARY_VARIANT, map, NARRATION_SETTINGS),
+  };
+
+  it('accepts an entry that matches the script', () =>
+  {
+    expect(scriptFreshnessProblems(script, [PRIMARY_VARIANT], [current], map)).toEqual([]);
+  });
+
+  it('flags changed narration, pronunciations, title and transcript', () =>
+  {
+    const edited = { ...script, paragraphs: ['Rewritten paragraph.'] };
+    expect(scriptFreshnessProblems(edited, [PRIMARY_VARIANT], [current], map)).toEqual(['gb episode is out of date, run npm run seed:audio']);
+    expect(scriptFreshnessProblems(script, [PRIMARY_VARIANT], [current], { Raffles: 'Raffles' })).toHaveLength(1);
+    expect(scriptFreshnessProblems({ ...script, title: 'New title' }, [PRIMARY_VARIANT], [current], map)).toHaveLength(1);
+    expect(scriptFreshnessProblems(script, [PRIMARY_VARIANT], [{ ...current, transcript: 'Old.' }], map)).toHaveLength(1);
+  });
+
+  it('flags a voice with no entry', () =>
+  {
+    expect(scriptFreshnessProblems(script, [PRIMARY_VARIANT, SECONDARY_VARIANT], [current], map)).toEqual(['no manifest entry for the us voice']);
+  });
+});
+
+describe('planPodcastSync', () =>
+{
+  function row(voice: string, accent: string): PodcastRow
+  {
+    return podcastRow({ landmarkSlug: 'chijmes', fileName: `chijmes-${voice}.m4a`, title: 'T', transcript: '', voice, accent }, 'Chijmes', Buffer.from('audio'), 400);
+  }
+
+  it('reuses the seeded row with the same voice and accent, and inserts the rest', () =>
+  {
+    const existing = [{ id: 'old-gb', audio_path: 'audio/chijmes-gb.m4a', voice: 'Male', accent: 'British' }];
+    const plan = planPodcastSync('chijmes', existing, [row('Male', 'British'), row('Female', 'American')]);
+    expect(plan.writes.map((write) => write.id)).toEqual(['old-gb', null]);
+    expect(plan.deleteIds).toEqual([]);
+  });
+
+  it('deletes seeded rows no longer in the manifest, including duplicates', () =>
+  {
+    const existing = [
+      { id: 'first', audio_path: 'audio/chijmes-gb.m4a', voice: 'Male', accent: 'British' },
+      { id: 'second', audio_path: 'audio/chijmes-gb-1.m4a', voice: 'Male', accent: 'British' },
+      { id: 'retired', audio_path: 'audio/chijmes-us.m4a', voice: 'Female', accent: 'American' },
+    ];
+    const plan = planPodcastSync('chijmes', existing, [row('Male', 'British')]);
+    expect(plan.writes.map((write) => write.id)).toEqual(['first']);
+    expect(plan.deleteIds).toEqual(['second', 'retired']);
+  });
+
+  it('never touches podcasts added through the CMS', () =>
+  {
+    const existing = [
+      { id: 'cms', audio_path: 'audio/cms-id-abc123.m4a', voice: 'Male', accent: 'British' },
+      { id: 'draft', audio_path: null, voice: null, accent: null },
+    ];
+    const plan = planPodcastSync('chijmes', existing, [row('Male', 'British')]);
+    expect(plan.writes.map((write) => write.id)).toEqual([null]);
+    expect(plan.deleteIds).toEqual([]);
   });
 });
 

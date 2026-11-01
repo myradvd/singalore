@@ -16,7 +16,7 @@
     "test": "npm run test --workspaces --if-present",
     "build:cms": "npm run build -w @singalore/cms",
     "check:mobile": "npm run check -w @singalore/mobile",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build:cms && npm run check:mobile",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run seed:check && npm run build:cms && npm run check:mobile",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

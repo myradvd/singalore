@@ -12,6 +12,7 @@ import {
   episodeFileName,
   lintScript,
   mergeManifest,
+  NARRATION_SETTINGS,
   parseLoudnorm,
   parseMaxVolume,
   parseScript,
@@ -21,14 +22,12 @@ import {
   spokenParagraphs,
   variantsFor,
 } from './podcast-lib';
-import { type AudioManifestEntry, SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_DIRECTORY, type SeedContent } from './seed-types';
+import { type AudioManifestEntry, SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_SCRIPTS_DIRECTORY, type SeedContent } from './seed-types';
 
-const SCRIPTS_DIRECTORY = path.join(SEED_DIRECTORY, 'scripts');
 const MANIFEST_PATH = path.join(SEED_AUDIO_DIRECTORY, 'manifest.json');
 const TTS_DIRECTORY = path.resolve(import.meta.dirname, 'tts');
-const PRONUNCIATIONS_PATH = path.join(TTS_DIRECTORY, 'pronunciations.json');
 const PYTHON = process.env.KOKORO_PYTHON ?? path.join(TTS_DIRECTORY, '.venv', 'bin', 'python');
-const SETTINGS = { sampleRate: 24000, bitrate: '48k', pauseSeconds: 0.7, loudness: -16, truePeak: -1.5, range: 11, speed: 1 };
+const SETTINGS = NARRATION_SETTINGS;
 const LOUDNORM = `loudnorm=I=${SETTINGS.loudness}:TP=${SETTINGS.truePeak}:LRA=${SETTINGS.range}`;
 
 function ffmpeg(args: string[]): string
@@ -111,8 +110,9 @@ async function main(): Promise<void>
   requireTools();
   const content = JSON.parse(await readFile(SEED_CONTENT_PATH, 'utf8')) as SeedContent;
   const existing = existsSync(MANIFEST_PATH) ? JSON.parse(await readFile(MANIFEST_PATH, 'utf8')) as AudioManifestEntry[] : [];
-  const pronunciations = JSON.parse(await readFile(PRONUNCIATIONS_PATH, 'utf8')) as Record<string, string>;
+  const pronunciations = JSON.parse(await readFile(SEED_PRONUNCIATIONS_PATH, 'utf8')) as Record<string, string>;
   await mkdir(SEED_AUDIO_DIRECTORY, { recursive: true });
+  const order = content.parks.flatMap((park) => park.landmarks.map((landmark) => landmark.slug));
   const generated = new Map<string, AudioManifestEntry[]>();
   const failures: string[] = [];
 
@@ -120,7 +120,7 @@ async function main(): Promise<void>
   {
     for (const landmark of park.landmarks)
     {
-      const scriptPath = path.join(SCRIPTS_DIRECTORY, `${landmark.slug}.md`);
+      const scriptPath = path.join(SEED_SCRIPTS_DIRECTORY, `${landmark.slug}.md`);
       if (!existsSync(scriptPath) || (only !== null && !only.has(landmark.slug)))
       {
         continue;
@@ -134,6 +134,7 @@ async function main(): Promise<void>
       }
       const spoken = spokenParagraphs(script, pronunciations);
       const entries: AudioManifestEntry[] = [];
+      const episodeFailures: string[] = [];
       for (const variant of variantsFor(park.slug))
       {
         const sourceHash = cacheKey(spoken, variant, pronunciations, SETTINGS);
@@ -164,22 +165,27 @@ async function main(): Promise<void>
         {
           if (problem !== null)
           {
-            failures.push(`${fileName}: ${problem}`);
+            episodeFailures.push(`${fileName}: ${problem}`);
           }
         }
         entries.push({ landmarkSlug: landmark.slug, fileName, title: script.title, transcript: script.paragraphs.join('\n\n'), voice: variant.voiceLabel, accent: variant.accentLabel, sourceHash });
       }
+      if (episodeFailures.length > 0)
+      {
+        failures.push(...episodeFailures);
+        continue;
+      }
       generated.set(landmark.slug, entries);
+      // Saved per landmark so a crash later in the run keeps the finished episodes in the cache.
+      await writeFile(MANIFEST_PATH, `${JSON.stringify(mergeManifest(existing, generated, order), null, 2)}\n`);
     }
   }
 
+  console.log(`Updated the manifest for ${generated.size} scripted landmarks`);
   if (failures.length > 0)
   {
-    throw new Error(`Podcast checks failed, manifest not written:\n  ${failures.join('\n  ')}`);
+    throw new Error(`Podcast checks failed, these landmarks keep their old manifest entries:\n  ${failures.join('\n  ')}`);
   }
-  const order = content.parks.flatMap((park) => park.landmarks.map((landmark) => landmark.slug));
-  await writeFile(MANIFEST_PATH, `${JSON.stringify(mergeManifest(existing, generated, order), null, 2)}\n`);
-  console.log(`Wrote manifest with ${generated.size} scripted landmarks`);
 }
 
 await main();
