@@ -107,7 +107,7 @@ export class AudioController
   {
     return this.state.track?.landmarkId ?? null;
   }
-/** Loads a landmark's podcast without playing it, so playback starts fast if the walker taps Play. */
+  /** Loads a landmark's podcast without playing it, so playback starts fast if the walker taps Play. */
   async prepare(landmarkId: string): Promise<void>
   {
     if (this.isPlaying() || this.state.track?.landmarkId === landmarkId)
@@ -120,7 +120,7 @@ export class AudioController
       await this.loadPodcast(podcast, 0, false);
     }
   }
-/**
+  /**
  * Plays the best podcast for a landmark according to the walker's voice, accent and length preferences.
  * @returns False if the landmark has no podcast or it could not be loaded.
  */
@@ -140,7 +140,7 @@ export class AudioController
     }
     return this.loadPodcast(podcast, 0, true);
   }
-/**
+  /**
  * Plays a specific podcast.
  * @param startAtSeconds - Position to start from, used when resuming.
  * @returns False if the podcast is not in the catalog or could not be loaded.
@@ -150,7 +150,7 @@ export class AudioController
     const podcast = this.dependencies.catalog.podcastById(podcastId);
     return podcast === null ? false : this.loadPodcast(podcast, startAtSeconds, true);
   }
-/** Pauses if playing, otherwise resumes. */
+  /** Pauses if playing, otherwise resumes. */
   togglePlay(): void
   {
     if (this.state.track === null)
@@ -170,7 +170,7 @@ export class AudioController
       this.dependencies.engine.play();
     }
   }
-/** Skips 10 seconds forward (1) or back (-1). */
+  /** Skips 10 seconds forward (1) or back (-1). */
   async skip(direction: 1 | -1): Promise<void>
   {
     const status = this.dependencies.engine.status();
@@ -196,7 +196,7 @@ export class AudioController
     this.clearSaveTimer();
     await this.dependencies.sessions.clear();
   }
-/** On launch, reads the saved session and shows a resume card instead of playing. */
+  /** On launch, reads the saved session and shows a resume card instead of playing. */
   async restoreSession(): Promise<void>
   {
     const record = await this.dependencies.sessions.load();
@@ -235,7 +235,7 @@ export class AudioController
   {
     this.update({ lastError: null });
   }
-/** Saves the current podcast and position to SQLite immediately, for example when the app goes to the background. */
+  /** Saves the current podcast and position to SQLite immediately, for example when the app goes to the background. */
   async persistNow(): Promise<void>
   {
     const track = this.state.track;
