@@ -10,7 +10,7 @@ This puts Singalore online for the whole team: the database, the CMS and API, an
 | [0](#step-0-before-you-start) | Accounts and your own dev setup | `npm ci` finished in the project folder |
 | [1](#step-1-create-the-database) | Create the database | Supabase project shows **Healthy** |
 | [2](#step-2-create-the-tables) | Create the tables | `npm run db:push` finished |
-| [3](#step-3-load-the-demo-content) | Load the demo content | `Seeded ... landmarks` printed 3 times |
+| [3](#step-3-load-the-demo-content) | Load the demo content | `Seeded ... landmarks` printed 4 times |
 | [4](#step-4-put-the-cms-and-api-online) | Put the CMS and API online | `/api/v1/health` shows `"status":"ok"` in a private window |
 | [5](#step-5-save-the-api-address) | Save the API address | `npx expo config` runs without errors |
 | [6](#step-6-link-the-app-to-expo) | Link the app to Expo | `npx eas project:info` shows your project |
@@ -114,20 +114,23 @@ Fill in the four lines. No spaces around `=`, no quotes:
 | `SUPABASE_URL` | Your project URL from step 1, like `https://abcdefghijklmnopqrst.supabase.co`. Replace the **whole** placeholder, `<` and `>` included |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Project Settings > API Keys**: the `service_role` key (Legacy tab, starts `eyJ`) or the **Secret key** (starts `sb_secret_`). Not the `anon` or publishable key |
 | `SEED_ADMIN_EMAIL` | Your email. It becomes the CMS login, not your Supabase login |
-| `SEED_ADMIN_PASSWORD` | A **new** password, 12 or more characters. Save it: it is how you sign in to the CMS |
+| `SEED_ADMIN_PASSWORD` | A **new** password, 12 or more characters. Save it: it is how you sign in to the CMS. It is only used when the seed creates the account, so running the seed again does not change it |
 
 ```bash
 npm run seed:hosted
 ```
 
-- Uploads 3 parks, 22 landmarks, photos and demo podcasts, and creates your CMS login.
+- Uploads 4 parks, 26 landmarks, photos and podcasts, and creates your CMS login. It also deletes landmarks that were retired from the seed (DECISION_LOG D30). Podcast audio is not in git (DECISION_LOG D32): episodes already in storage are skipped, and missing ones come from `supabase/seed/audio/` on your computer or the public copy in `scripts/seed-spec.ts`.
 
 **Expect:**
 
 ```
-Seeded Tiong Bahru: 6 landmarks
+Seeding https://<project-ref>.supabase.co from apps/cms/.env.hosted
+Removed 1 retired landmarks
+Seeded Tiong Bahru: 5 landmarks
 Seeded Civic District: 8 landmarks
 Seeded Telok Ayer and Tanjong Pagar: 8 landmarks
+Seeded Nanyang Technological University: 5 landmarks
 ```
 
 <details>
@@ -142,6 +145,15 @@ Seeded Telok Ayer and Tanjong Pagar: 8 landmarks
 | `new row violates row-level security` | You used the `anon` key. Use the `service_role` / secret key |
 
 To check the file without showing your key: `grep -v SERVICE_ROLE apps/cms/.env.hosted` (`grep -v` prints every line except those containing the given text).
+
+</details>
+
+<details>
+<summary>Running the seed again</summary>
+
+Merging to `main` does not update the content. When the seed content changes, run `npm run seed:hosted` again. You can stop and rerun it at any time.
+
+**The seed overwrites the CMS for everything it manages.** Edits made in the CMS to seeded parks, landmarks and podcasts are replaced, and anything you unpublished is published again. It leaves alone your CMS login, and podcasts added through the CMS, including a seeded podcast whose audio you replaced there.
 
 </details>
 
