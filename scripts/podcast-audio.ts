@@ -22,7 +22,7 @@ import {
   spokenParagraphs,
   variantsFor,
 } from './podcast-lib';
-import { type AudioManifestEntry, SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_SCRIPTS_DIRECTORY, type SeedContent } from './seed-types';
+import { type AudioManifestEntry, SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_NARRATION_DIRECTORY, type SeedContent } from './seed-types';
 
 const MANIFEST_PATH = path.join(SEED_AUDIO_DIRECTORY, 'manifest.json');
 const TTS_DIRECTORY = path.resolve(import.meta.dirname, 'tts');
@@ -120,7 +120,7 @@ async function main(): Promise<void>
   {
     for (const landmark of park.landmarks)
     {
-      const scriptPath = path.join(SEED_SCRIPTS_DIRECTORY, `${landmark.slug}.md`);
+      const scriptPath = path.join(SEED_NARRATION_DIRECTORY, `${landmark.slug}.md`);
       if (!existsSync(scriptPath) || (only !== null && !only.has(landmark.slug)))
       {
         continue;

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { audioChecksumProblem, durationProblem, parseScript, podcastRow, podcastRowProblems, scriptFreshnessProblems, sizeProblem, variantsFor } from './podcast-lib';
-import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_SCRIPTS_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
+import { SEED_AUDIO_DIRECTORY, SEED_CONTENT_PATH, SEED_PRONUNCIATIONS_PATH, SEED_NARRATION_DIRECTORY, type AudioManifestEntry, type SeedContent } from './seed-types';
 
 async function readAudio(fileName: string): Promise<Buffer | null>
 {
@@ -66,7 +66,7 @@ async function main(): Promise<void>
     }
   }
 
-  for (const scriptFile of (await readdir(SEED_SCRIPTS_DIRECTORY)).filter((name) => name.endsWith('.md')))
+  for (const scriptFile of (await readdir(SEED_NARRATION_DIRECTORY)).filter((name) => name.endsWith('.md')))
   {
     const slug = path.basename(scriptFile, '.md');
     const parkSlug = parkSlugs.get(slug);
@@ -75,7 +75,7 @@ async function main(): Promise<void>
       problems.push(`script ${scriptFile}: landmark is not in seed-content.json`);
       continue;
     }
-    const script = parseScript(await readFile(path.join(SEED_SCRIPTS_DIRECTORY, scriptFile), 'utf8'));
+    const script = parseScript(await readFile(path.join(SEED_NARRATION_DIRECTORY, scriptFile), 'utf8'));
     const entries = manifest.filter((entry) => entry.landmarkSlug === slug);
     for (const problem of scriptFreshnessProblems(script, variantsFor(parkSlug), entries, pronunciations))
     {
