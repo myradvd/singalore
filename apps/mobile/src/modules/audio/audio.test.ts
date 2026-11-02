@@ -32,6 +32,11 @@ describe('pickPodcast', () =>
     expect(pickPodcast(chijmes, { preferredVoice: 'Female', preferredAccent: 'British', preferredLength: null })?.id).toBe(PODCAST_CHIJMES_GB);
   });
 
+  it('picks the same podcast as no preference when the saved length is not offered', () =>
+  {
+    expect(pickPodcast(chijmes, { ...noPreference, preferredLength: 'long' })?.id).toBe(pickPodcast(chijmes, noPreference)?.id);
+  });
+
   it('lists only the variants the catalog offers', () =>
   {
     expect(availableVariantOptions(catalog.podcasts)).toEqual({ voices: ['Female', 'Male'], accents: ['American', 'British'], lengths: ['short', 'standard'] });

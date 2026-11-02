@@ -1,4 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import type { CatalogPodcast } from '@singalore/shared';
 import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
@@ -134,6 +135,83 @@ describe('Tour Preferences (A3)', () =>
     await renderWithServices(services, <PreferencesSectionScreen section={section('audio')} />);
     expect(chipLabels('preferredVoice')).toEqual(['Any', 'Female', 'Male']);
     expect(chipLabels('preferredAccent')).toEqual(['Any', 'American', 'British']);
+  });
+
+  describe('preferred length chips (T2-3, design 6.3)', () =>
+  {
+    // Applies a catalog whose podcasts cycle through the given length classes, or a catalog with no podcasts.
+    function applyCatalogWithLengths(lengths: CatalogPodcast['lengthClass'][])
+    {
+      const fixture = catalogFixture();
+      const podcasts = lengths.length === 0 ? [] : fixture.podcasts.map((podcast, index) => ({ ...podcast, lengthClass: lengths[index % lengths.length] ?? null }));
+      applyCatalogSnapshot({ ...fixture, podcasts });
+    }
+
+    // Renders the audio preferences section with fresh test services.
+    async function renderAudioSection()
+    {
+      const services = await createTestServices();
+      await renderWithServices(services, <PreferencesSectionScreen section={section('audio')} />);
+      return services;
+    }
+
+    it('shows Any, Short and Standard when the catalog offers short and standard', async () =>
+    {
+      applyCatalogWithLengths(['short', 'standard']);
+      await renderAudioSection();
+      expect(chipLabels('preferredLength')).toEqual(['Any', 'Short', 'Standard']);
+    });
+
+    it('shows Any and Long when every podcast is long', async () =>
+    {
+      applyCatalogWithLengths(['long']);
+      await renderAudioSection();
+      expect(chipLabels('preferredLength')).toEqual(['Any', 'Long']);
+    });
+
+    it('shows all three lengths shortest first when the catalog offers them all', async () =>
+    {
+      applyCatalogWithLengths(['long', 'short', 'standard']);
+      await renderAudioSection();
+      expect(chipLabels('preferredLength')).toEqual(['Any', 'Short', 'Standard', 'Long']);
+    });
+
+    it('shows only Any for an empty catalog', async () =>
+    {
+      applyCatalogWithLengths([]);
+      await renderAudioSection();
+      expect(chipLabels('preferredLength')).toEqual(['Any']);
+    });
+
+    it('shows only Any when every podcast has a null length', async () =>
+    {
+      applyCatalogWithLengths([null]);
+      await renderAudioSection();
+      expect(chipLabels('preferredLength')).toEqual(['Any']);
+    });
+
+    it('marks the saved length selected when the catalog offers it, and saves a newly chosen one', async () =>
+    {
+      applyCatalogWithLengths(['short', 'standard']);
+      usePreferencesStore.setState({ preferences: { ...DEFAULT_PREFERENCES, preferredLength: 'short' }, loaded: true });
+      const services = await renderAudioSection();
+      expect(screen.getByTestId('pref-preferredLength-Short').props.accessibilityState?.selected).toBe(true);
+      await fireEvent.press(screen.getByTestId('pref-preferredLength-Standard'));
+      await fireEvent.press(screen.getByTestId('pref-save'));
+      await act(async () => undefined);
+      expect((await services.preferences.load()).preferredLength).toBe('standard');
+    });
+
+    it('selects no chip and keeps the saved value when the saved length is not in the catalog', async () =>
+    {
+      applyCatalogWithLengths(['short', 'standard']);
+      usePreferencesStore.setState({ preferences: { ...DEFAULT_PREFERENCES, preferredLength: 'long' }, loaded: true });
+      await renderAudioSection();
+      const selectedChips = screen.getAllByTestId(/^pref-preferredLength-/).filter((chip) => chip.props.accessibilityState?.selected === true);
+      expect(selectedChips).toEqual([]);
+      expect(screen.getByTestId('pref-save').props.accessibilityState?.disabled).toBe(true);
+      expect(usePreferencesStore.getState().preferences.preferredLength).toBe('long');
+    });
   });
 
   it('guards unsaved changes on back', async () =>
