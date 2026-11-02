@@ -18,12 +18,14 @@ import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
 import { useMapUiStore, type MapFocusRequest } from '../../mapCommandStore';
 import { useToastStore } from '../../toastStore';
+import { WithMiniPlayer } from '../player/MiniPlayer';
 import { SEARCH_DEBOUNCE_MS } from '../search/SearchOverlay';
 import { HomeScreen } from './HomeScreen';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn(), dismissTo: jest.fn() }),
+  usePathname: () => '/',
   useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
@@ -43,7 +45,7 @@ async function renderHomeWithAudio(): Promise<AppServices>
   applyCatalogSnapshot(catalogFixture());
   const services = await createTestServices();
   bindAudioStore(services.audio);
-  await renderWithServices(services, <HomeScreen userLocation={null} />);
+  await renderWithServices(services, <WithMiniPlayer><HomeScreen userLocation={null} /></WithMiniPlayer>);
   return services;
 }
 

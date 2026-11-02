@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppServicesProvider } from '@/composition/AppServicesContext';
 import { useAppBootstrap } from '@/composition/useAppBootstrap';
+import { WithMiniPlayer } from '@/ui/features/player/MiniPlayer';
 import { ErrorState } from '@/ui/primitives/States';
 import { ToastHost } from '@/ui/primitives/ToastHost';
 import { FONT_SOURCES } from '@/ui/theme/fontSources';
@@ -46,7 +47,9 @@ export default function RootLayout()
         )}
         {bootstrap.status === 'ready' && (
           <AppServicesProvider services={bootstrap.services}>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }} />
+            <WithMiniPlayer>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }} />
+            </WithMiniPlayer>
           </AppServicesProvider>
         )}
         <ToastHost />
