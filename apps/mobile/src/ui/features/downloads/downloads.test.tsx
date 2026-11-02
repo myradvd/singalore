@@ -92,9 +92,9 @@ describe('download progress bar (UC 1.4.1 step 6)', () =>
     await renderWithServices(await createTestServices(), <PackActionButton parkId={parkId} estimatedBytes={0} />);
   }
 
-  afterEach(() =>
+  afterEach(async () =>
   {
-    useDownloadsStore.setState({ records: {} });
+    await act(async () => useDownloadsStore.setState({ records: {} }));
   });
 
   it.each([
@@ -134,6 +134,28 @@ describe('Downloads UI (UC 1.4.1, A7)', () =>
     expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
     expect(screen.getAllByTestId('pack-download').length).toBe(2);
     expect(screen.getByTestId('downloads-wifi-only')).toBeTruthy();
+  });
+
+  it('does not re-query the stored total as doneBytes changes, only when a park state or size changes', async () =>
+  {
+    const record = { parkId: PARK_CIVIC, state: 'downloading' as const, packEtag: null, totalBytes: 1000, doneBytes: 0, errorCode: null, completedAt: null };
+    useDownloadsStore.setState({ records: { [PARK_CIVIC]: record } });
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices();
+    const totalStoredBytes = jest.spyOn(services.downloads, 'totalStoredBytes');
+    await renderWithServices(services, <DownloadsScreen />);
+    await act(async () => undefined);
+    const queriesAtStart = totalStoredBytes.mock.calls.length;
+    for (const doneBytes of [100, 200, 300])
+    {
+      await act(async () => useDownloadsStore.setState({ records: { [PARK_CIVIC]: { ...record, doneBytes } } }));
+    }
+    expect(totalStoredBytes.mock.calls.length).toBe(queriesAtStart);
+    await act(async () => useDownloadsStore.setState({ records: { [PARK_CIVIC]: { ...record, state: 'downloaded', doneBytes: 1000 } } }));
+    expect(totalStoredBytes.mock.calls.length).toBe(queriesAtStart + 1);
+    await act(async () => useDownloadsStore.setState({ records: { [PARK_CIVIC]: { ...record, state: 'downloaded', doneBytes: 2000, totalBytes: 2000 } } }));
+    expect(totalStoredBytes.mock.calls.length).toBe(queriesAtStart + 2);
+    await act(async () => useDownloadsStore.setState({ records: {} }));
   });
 
   it('shows the unstable connection banner with a shortcut to downloads and Ignore', async () =>
