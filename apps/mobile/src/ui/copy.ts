@@ -3,6 +3,7 @@ export const COPY = {
   searchEmpty: 'No matching locations found. Try a different search.',
   catalogFetchFailed: 'Unable to fetch nearby landmarks. Check your connection.',
   waitingForGps: 'Waiting for GPS signal...',
+  stopAddedToRoute: 'Added to your route.',
   descriptionUnavailable: 'Description unavailable.',
   emptyCatalogTitle: 'No heritage map yet',
   emptyCatalogMessage: 'Connect to the internet once so Singalore can download the heritage map. After that it keeps working offline.',
