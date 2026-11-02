@@ -1,5 +1,5 @@
 import { distanceBetween, type GeoPoint } from '@singalore/shared';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAppServices } from '@/composition/AppServicesContext';
 import { routeTitle } from '@/composition/flowEffects';
@@ -64,6 +64,12 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
   const routeStops: RouteStop[] = stops.map((stop) => ({ landmarkId: stop.id, position: stop.position }));
   const podcastSeconds = stops.map((stop) => totalPodcastSeconds(catalog, stop.id) ?? 0);
 
+  // Starts the tour from the confirmation panel, by button or by autodetect.
+  const startTour = useCallback(() =>
+  {
+    dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
+  }, [services]);
+
   useEffect(() =>
   {
     if (flow.screen !== 'routeConfirm')
@@ -84,9 +90,9 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
   {
     if (flow.screen === 'routeConfirm' && route.status === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
     {
-      dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
+      startTour();
     }
-  }, [flow.screen, route.status, userPosition, stops, autodetect, services]);
+  }, [flow.screen, route.status, userPosition, stops, autodetect, startTour]);
 
   const autoOrder = async () =>
   {
@@ -158,7 +164,7 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
           waitingForGps={userPosition === null}
           autodetect={autodetect}
           onAutodetectChange={setAutodetect}
-          onStart={() => dispatchFlow({ type: 'startNavigation', at: services.clock.now() })}
+          onStart={startTour}
           onBack={() => dispatchFlow({ type: 'backFromConfirmation' })}
           onRetry={() =>
           {

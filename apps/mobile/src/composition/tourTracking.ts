@@ -11,6 +11,12 @@ export async function startTourTracking(services: AppServices): Promise<void>
     await services.diagnostics.record('info', 'tour_foreground_only');
     return;
   }
+  await startTourBackgroundTracking(services);
+}
+
+// Starts background location for a tour and records a warning if it fails.
+export async function startTourBackgroundTracking(services: AppServices): Promise<void>
+{
   try
   {
     await stopApproachWatch();
