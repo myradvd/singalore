@@ -1,4 +1,4 @@
-import { DUPLICATE_STOP_MESSAGE, EMPTY_ROUTE_MESSAGE, INITIAL_FLOW_STATE, TOUR_ACTIVE_MESSAGE, flowReducer, nextUnvisitedStop, toFlowCache } from './flowReducer';
+import { DUPLICATE_STOP_MESSAGE, EMPTY_ROUTE_MESSAGE, INITIAL_FLOW_STATE, ROUTE_STOP_LIMIT_MESSAGE, TOUR_ACTIVE_MESSAGE, flowReducer, nextUnvisitedStop, toFlowCache } from './flowReducer';
 import type { FlowEvent, FlowState } from './flowTypes';
 
 const A = 'landmark-a';
@@ -302,6 +302,109 @@ describe('guards and edge cases', () =>
     const restored = flowReducer(INITIAL_FLOW_STATE, { type: 'restoreFromCache', cache: cached }).state;
     expect(restored.itinerary).toEqual([A, B]);
     expect(restored.base).toBe('inProgress');
+  });
+});
+
+describe('route stop cap (FR 5.1, D35)', () =>
+{
+  const capToast = { type: 'toast', message: 'A route can have at most 11 stops.' };
+
+  // Builds a list of distinct landmark ids.
+  function stopIds(count: number, prefix = 'stop'): string[]
+  {
+    return Array.from({ length: count }, (_, index) => `${prefix}-${index}`);
+  }
+
+  // Builds a draft route holding the given number of stops.
+  function draftWithStops(count: number): FlowState
+  {
+    return flowReducer(homeEmpty, { type: 'loadItinerary', landmarkIds: stopIds(count) }).state;
+  }
+
+  it('uses the exact agreed message', () =>
+  {
+    expect(ROUTE_STOP_LIMIT_MESSAGE).toBe('A route can have at most 11 stops.');
+  });
+
+  it.each([
+    ['below the cap: 9 + 1 gives 10', 9, 10],
+    ['on the cap: 10 + 1 gives 11', 10, 11],
+  ])('valid EC, no toast, %s', (_label, startCount, expectedCount) =>
+  {
+    const result = flowReducer(draftWithStops(startCount), { type: 'addToItinerary', landmarkId: 'new-stop' });
+    expect(result.state.itinerary).toHaveLength(expectedCount);
+    expect(result.effects).toEqual([]);
+  });
+
+  it('invalid EC, above the cap: 11 + 1 stays 11 with one cap toast', () =>
+  {
+    const start = draftWithStops(11);
+    const result = flowReducer(start, { type: 'addToItinerary', landmarkId: 'new-stop' });
+    expect(result.state.itinerary).toEqual(start.itinerary);
+    expect(result.effects).toEqual([capToast]);
+  });
+
+  it('search batch: 10 + 3 adds only the first and shows one cap toast', () =>
+  {
+    const searching = run(draftWithStops(10), { type: 'openSearch', purpose: 'addToRoute' });
+    const result = flowReducer(searching, { type: 'closeSearch', addLandmarkIds: stopIds(3, 'new') });
+    expect(result.state.itinerary).toEqual([...stopIds(10), 'new-0']);
+    expect(result.effects).toEqual([capToast]);
+  });
+
+  it('duplicate at the cap shows only the exact duplicate toast', () =>
+  {
+    const result = flowReducer(draftWithStops(11), { type: 'addToItinerary', landmarkId: 'stop-0' });
+    expect(result.state.itinerary).toHaveLength(11);
+    expect(result.effects).toEqual([{ type: 'toast', message: 'Landmark is already in your route.' }]);
+  });
+
+  it('batch at the cap with a duplicate and a new stop shows one toast of each kind', () =>
+  {
+    const searching = run(draftWithStops(11), { type: 'openSearch', purpose: 'addToRoute' });
+    const result = flowReducer(searching, { type: 'closeSearch', addLandmarkIds: ['new-0', 'stop-0', 'new-1'] });
+    expect(result.state.itinerary).toHaveLength(11);
+    expect(result.effects).toEqual([{ type: 'toast', message: DUPLICATE_STOP_MESSAGE }, capToast]);
+  });
+
+  it('applies during a tour too', () =>
+  {
+    const touring = run(draftWithStops(11), { type: 'saveAndContinue' }, { type: 'startNavigation', at: 1 });
+    const result = flowReducer(touring, { type: 'addToItinerary', landmarkId: 'new-stop' });
+    expect(result.state.itinerary).toHaveLength(11);
+    expect(result.effects).toEqual([capToast]);
+  });
+
+  it.each([
+    ['below the cap', 10],
+    ['on the cap', 11],
+  ])('valid EC, no toast, saved route %s loads whole', (_label, count) =>
+  {
+    const result = flowReducer(homeEmpty, { type: 'loadItinerary', landmarkIds: stopIds(count) });
+    expect(result.state.itinerary).toEqual(stopIds(count));
+    expect(result.effects).toEqual([]);
+  });
+
+  it('invalid EC, saved route of 12 loads its first 11 with one cap toast', () =>
+  {
+    const result = flowReducer(homeEmpty, { type: 'loadItinerary', landmarkIds: stopIds(12) });
+    expect(result.state.itinerary).toEqual(stopIds(11));
+    expect(result.effects).toEqual([capToast]);
+  });
+
+  it('counts a saved route after removing repeats: 12 ids with 11 distinct loads whole, no toast', () =>
+  {
+    const result = flowReducer(homeEmpty, { type: 'loadItinerary', landmarkIds: [...stopIds(11), 'stop-0'] });
+    expect(result.state.itinerary).toEqual(stopIds(11));
+    expect(result.effects).toEqual([]);
+  });
+
+  it('Start Tour from a site replaces a full route with that one stop', () =>
+  {
+    const confirming = run(draftWithStops(11), { type: 'minimizeRouteEditor' }, { type: 'startTourFromSite', landmarkId: 'new-stop' });
+    const result = flowReducer(confirming, { type: 'confirmStartTour', at: 1 });
+    expect(result.state.itinerary).toEqual(['new-stop']);
+    expect(result.effects).toEqual([]);
   });
 });
 
