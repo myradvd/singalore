@@ -1,5 +1,4 @@
 export const APP_NAME = 'SINGALORE';
-export const APP_DISPLAY_NAME = 'Singalore';
 
 export const LANDMARK_CATEGORIES = [
   'religious',
@@ -32,5 +31,3 @@ export const MAX_ROUTE_COORDINATES = 12;
 export const GEOFENCE_RADIUS_MIN_M = 15;
 export const GEOFENCE_RADIUS_MAX_M = 100;
 export const GEOFENCE_RADIUS_DEFAULT_M = 30;
-export const AUDIO_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-export const ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'm4a', 'aac'] as const;
