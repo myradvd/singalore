@@ -13,7 +13,6 @@ export interface BottomBarAction
 
 export interface BottomBarProps
 {
-  left?: BottomBarAction;
   right: BottomBarAction;
   centerIcon: IconName;
   centerLabel: string;
@@ -31,11 +30,11 @@ function SideAction({ action }: { action: BottomBarAction })
   );
 }
 
-export function BottomBar({ left, right, centerIcon, centerLabel, onCenterPress, bottomInset }: BottomBarProps)
+export function BottomBar({ right, centerIcon, centerLabel, onCenterPress, bottomInset }: BottomBarProps)
 {
   return (
     <View style={[styles.bar, { paddingBottom: bottomInset + spacing.sm }]}>
-      <View style={styles.slot}>{left !== undefined && <SideAction action={left} />}</View>
+      <View style={styles.slot} />
       <IconButton testID="center-map-button" icon={centerIcon} accessibilityLabel={centerLabel} onPress={onCenterPress} variant="accent" size="playerPrimary" style={styles.center} />
       <View style={styles.slot}><SideAction action={right} /></View>
     </View>

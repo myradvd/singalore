@@ -12,18 +12,16 @@ export interface SidebarItem
   label: string;
   icon: IconName;
   onPress: () => void;
-  badge?: string;
 }
 
 export interface SidebarProps
 {
   primary: SidebarItem[];
   secondary: SidebarItem[];
-  footer: SidebarItem[];
   onClose: () => void;
 }
 
-export function Sidebar({ primary, secondary, footer, onClose }: SidebarProps)
+export function Sidebar({ primary, secondary, onClose }: SidebarProps)
 {
   const insets = useSafeAreaInsets();
   const renderItem = (item: SidebarItem) => (
@@ -33,7 +31,6 @@ export function Sidebar({ primary, secondary, footer, onClose }: SidebarProps)
       title={item.label}
       icon={item.icon}
       onPress={item.onPress}
-      trailing={item.badge === undefined ? undefined : <Text style={[typography.captionStrong, styles.badge]}>{item.badge}</Text>}
     />
   );
   return (
@@ -50,7 +47,6 @@ export function Sidebar({ primary, secondary, footer, onClose }: SidebarProps)
           {secondary.length > 0 && <View style={styles.divider} />}
           {secondary.map(renderItem)}
         </ScrollView>
-        {footer.length > 0 && <View style={styles.footer}>{footer.map(renderItem)}</View>}
       </View>
     </View>
   );
@@ -62,6 +58,4 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: spacing.xl, paddingRight: spacing.sm, paddingBottom: spacing.lg },
   section: { color: colors.primary, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.md, marginHorizontal: spacing.xl },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  badge: { color: colors.onAccent, backgroundColor: colors.accent, borderRadius: radii.pill, paddingHorizontal: spacing.sm, overflow: 'hidden' },
 });

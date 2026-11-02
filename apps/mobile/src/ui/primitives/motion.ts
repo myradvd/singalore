@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 export const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
-export const EASE_SHEET = Easing.bezier(0.32, 0.72, 0, 1);
 
 const PRESSED_SCALE = 0.97;
 const PRESS_DURATION_MS = 120;
