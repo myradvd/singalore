@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import type { CatalogLandmark } from '@singalore/shared';
 import type { AppServices } from '@/composition/container';
 import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
@@ -145,6 +146,48 @@ describe('SummaryCard with downloaded content (UC 1.4.2)', () =>
   {
     await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={'x'.repeat(length)} onClose={jest.fn()} />);
     expect(screen.queryByTestId('summary-read-more') !== null).toBe(shown);
+  });
+});
+
+describe('SummaryCard long text (SRS long descriptions)', () =>
+{
+  const landmark = fixtureLandmark(LANDMARK_CHIJMES);
+  const longText = 'A long history. '.repeat(200);
+
+  it('collapsed long text has no scroll view', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={longText} onClose={jest.fn()} />);
+    expect(screen.queryByTestId('summary-description-scroll')).toBeNull();
+    expect(screen.getByTestId('summary-description').props.numberOfLines).toBe(3);
+  });
+
+  it('expanded long text scrolls inside a height cap of 20% of the window', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={longText} onClose={jest.fn()} />);
+    await fireEvent.press(screen.getByTestId('summary-read-more'));
+    const scroll = screen.getByTestId('summary-description-scroll');
+    expect(StyleSheet.flatten(scroll.props.style).maxHeight).toBe(Dimensions.get('window').height * 0.2);
+    expect(within(scroll).getByTestId('summary-description').props.children).toBe(longText.trim());
+  });
+
+  it('expanded long text keeps the title, Close and Show less outside the scroll view', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={longText} onClose={jest.fn()} />);
+    await fireEvent.press(screen.getByTestId('summary-read-more'));
+    const scroll = within(screen.getByTestId('summary-description-scroll'));
+    expect(scroll.queryByText(landmark.name)).toBeNull();
+    expect(scroll.queryByTestId('close-summary')).toBeNull();
+    expect(scroll.queryByText('Show less')).toBeNull();
+    expect(screen.getByTestId('close-summary')).toBeTruthy();
+    expect(screen.getByText('Show less')).toBeTruthy();
+  });
+
+  it('Show less removes the scroll view again', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={longText} onClose={jest.fn()} />);
+    await fireEvent.press(screen.getByTestId('summary-read-more'));
+    await fireEvent.press(screen.getByTestId('summary-read-more'));
+    expect(screen.queryByTestId('summary-description-scroll')).toBeNull();
   });
 });
 
