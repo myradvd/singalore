@@ -12,8 +12,9 @@ import { DownloadsScreen } from './DownloadsScreen';
 import { packStatusLabel } from './PackActionButton';
 
 const mockPush = jest.fn();
+const mockBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn(), dismissTo: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: mockBack, dismissTo: jest.fn() }),
   useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
@@ -94,6 +95,29 @@ describe('Downloads UI (UC 1.4.1, A7)', () =>
     await act(async () => undefined);
     expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
     expect(screen.getAllByTestId('pack-download').length).toBe(2);
+    expect(screen.getByTestId('downloads-wifi-only')).toBeTruthy();
+  });
+
+  it('uses the shared header: one title and a back button that goes back once', async () =>
+  {
+    mockBack.mockClear();
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('downloads-screen')).toBeTruthy();
+    expect(screen.getAllByRole('header').length).toBe(1);
+    expect(screen.getByText('Manage downloads')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('screen-back'));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the rows, the total and the Wi-Fi toggle inside the shared header', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
+    expect(screen.getByTestId('downloads-total')).toBeTruthy();
     expect(screen.getByTestId('downloads-wifi-only')).toBeTruthy();
   });
 
