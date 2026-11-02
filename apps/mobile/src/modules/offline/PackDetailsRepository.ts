@@ -40,6 +40,13 @@ export class PackDetailsRepository
     return result.data;
   }
 
+  // Asks the server for the pack etag, returning null when the known etag is still current.
+  async latestPackEtag(parkId: string, knownEtag: string | null): Promise<string | null>
+  {
+    const result = await this.api.get(API_PATHS.pack(parkId), PackResponse, { ifNoneMatch: knownEtag });
+    return result.status === 'ok' ? result.data.etag : null;
+  }
+
   async storeDetails(pack: PackResponse): Promise<void>
   {
     await this.db.transaction(async (transaction) =>
