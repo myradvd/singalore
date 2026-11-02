@@ -107,7 +107,12 @@ export class GeofenceEngine
         this.handleExit(transition.landmarkId, transition.at);
       }
     }
-    this.update({ insideLandmarkIds: this.evaluator.insideLandmarkIds() });
+    const insideLandmarkIds = this.evaluator.insideLandmarkIds();
+    // A pending prompt keeps waking listeners: a prompt raised in the foreground only notifies on a fix after the app is backgrounded.
+    if (this.state.prompt !== null || !sameIdsInOrder(insideLandmarkIds, this.state.insideLandmarkIds))
+    {
+      this.update({ insideLandmarkIds });
+    }
     void this.refreshOsWindow(fix, targets);
   }
 
@@ -311,4 +316,10 @@ export class GeofenceEngine
       listener(this.state);
     }
   }
+}
+
+// Checks that two id lists hold the same ids in the same order.
+function sameIdsInOrder(first: readonly string[], second: readonly string[]): boolean
+{
+  return first.length === second.length && first.every((id, index) => id === second[index]);
 }

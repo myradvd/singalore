@@ -243,6 +243,47 @@ describe('GeofenceEngine listener updates from location fixes', () =>
     expect(calls.at(-1)?.insideLandmarkIds).toEqual(['raffles']);
   });
 
+  it('10 identical fixes inside a site with no podcast: 0 listener calls on fixes 2 to 10', () =>
+  {
+    const { engine, events } = createEngine();
+    const insideQuiet = { latitude: quiet.latitude, longitude: quiet.longitude, accuracyMeters: 5, source: 'device' as const };
+    events.emit('location/fix', { ...insideQuiet, timestamp: 1000 });
+    for (let second = 2; second <= 10; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, { ...insideQuiet, timestamp: second * 1000 })).toEqual([]);
+    }
+    expect(engine.getState().insideLandmarkIds).toEqual(['quiet']);
+  });
+
+  it('10 identical fixes outside every site: 0 listener calls on fixes 2 to 10', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(500, 1000));
+    for (let second = 2; second <= 10; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, fixAt(500, second * 1000))).toEqual([]);
+    }
+  });
+
+  it('prompt dismissed, 5 more fixes in place: 0 listener calls', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    engine.dismissPrompt();
+    for (let second = 2; second <= 6; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, fixAt(5, second * 1000))).toEqual([]);
+    }
+  });
+
+  it('first of two exit fixes: 0 listener calls until the exit is confirmed', () =>
+  {
+    const { engine, events } = createEngine({ geofenceTriggersEnabled: false });
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(listenerCallsDuringFix(engine, events, fixAt(80, 2000))).toEqual([]);
+    expect(listenerCallsDuringFix(engine, events, fixAt(80, 3000))).toHaveLength(1);
+  });
+
   it('prompt pending, 5 more fixes in place: each fix still reaches listeners with the prompt', () =>
   {
     const { engine, events } = createEngine();
