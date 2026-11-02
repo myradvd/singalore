@@ -19,6 +19,7 @@ import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
 import { createAppServices, type AppServices } from './container';
+import { startServicesRecheck } from './servicesRecheck';
 import { createFlowEffectHandler } from './flowEffects';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
@@ -178,6 +179,11 @@ export function useAppBootstrap(): BootstrapState
         void services.location.stop();
       }
     });
+    const stopServicesRecheck = startServicesRecheck({
+      appState: () => AppState.currentState,
+      locationState: () => services.location.getState(),
+      refreshPermission: () => refreshLocationPermission(services),
+    });
     const promptSubscription = services.geofence.subscribe((geofence) =>
     {
       if (geofence.prompt !== null && !geofence.prompt.forced && AppState.currentState !== 'active')
@@ -197,6 +203,7 @@ export function useAppBootstrap(): BootstrapState
     return () =>
     {
       appStateSubscription.remove();
+      stopServicesRecheck();
       promptSubscription();
       responseSubscription.remove();
     };
