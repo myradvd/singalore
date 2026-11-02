@@ -41,6 +41,7 @@ import { BottomBar } from './BottomBar';
 import { useHomeBackHandler } from './homeBack';
 import { HomeHeader } from './HomeHeader';
 import { MapControls } from './MapControls';
+import { useMapFocus } from './useMapFocus';
 import { SearchBarButton } from './SearchBarButton';
 import { ZOOM_CONTROLS_HEIGHT, ZoomControls } from './ZoomControls';
 
@@ -71,7 +72,6 @@ export function HomeScreen(props: HomeScreenProps)
   const flow = useFlowStore((store) => store.state);
   const layers = useMapUiStore((store) => store.layers);
   const setLayers = useMapUiStore((store) => store.setLayers);
-  const pendingFocus = useMapUiStore((store) => store.pendingFocus);
   const locationState = useLocationStore();
   const geofence = useGeofenceStore();
   const debug = useDebugStore();
@@ -157,48 +157,7 @@ export function HomeScreen(props: HomeScreenProps)
   const boundaries = useMemo(() => buildParkBoundaries(catalog.snapshot.parks), [catalog.snapshot.parks]);
   const parkMarkers = useMemo(() => buildParkCenterMarkers(catalog.snapshot.parks), [catalog.snapshot.parks]);
 
-  const focusLandmark = useCallback((landmarkId: string) =>
-  {
-    const landmark = catalog.landmarksById.get(landmarkId);
-    if (landmark === undefined)
-    {
-      return;
-    }
-    dispatchFlow({ type: 'selectLandmark', landmarkId });
-    mapRef.current?.centerOn(landmark.position.lat, landmark.position.lng, 16.5);
-  }, [catalog.landmarksById]);
-
-  const focusPark = useCallback((parkId: string) =>
-  {
-    const parkLandmarks = catalog.snapshot.landmarks.filter((landmark) => landmark.parkId === parkId);
-    const park = catalog.parksById.get(parkId);
-    dispatchFlow({ type: 'selectLandmark', landmarkId: null });
-    if (parkLandmarks.length > 0)
-    {
-      mapRef.current?.fitTo(parkLandmarks.map((landmark) => ({ latitude: landmark.position.lat, longitude: landmark.position.lng })));
-    }
-    else if (park !== undefined)
-    {
-      mapRef.current?.centerOn(park.center.lat, park.center.lng, 15.5);
-    }
-  }, [catalog.snapshot.landmarks, catalog.parksById]);
-
-  useEffect(() =>
-  {
-    if (pendingFocus === null || catalog.status !== 'ready')
-    {
-      return;
-    }
-    const request = useMapUiStore.getState().consumeFocus();
-    if (request?.kind === 'landmark')
-    {
-      focusLandmark(request.landmarkId);
-    }
-    else if (request?.kind === 'park')
-    {
-      focusPark(request.parkId);
-    }
-  }, [pendingFocus, catalog.status, focusLandmark, focusPark]);
+  const { focusLandmark, focusPark } = useMapFocus(mapRef);
 
   useHomeBackHandler();
 
