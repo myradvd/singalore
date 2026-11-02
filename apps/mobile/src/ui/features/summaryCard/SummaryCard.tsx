@@ -14,6 +14,7 @@ export interface SummaryCardProps
   parkName: string | null;
   podcastSeconds: number | null;
   description: string | null;
+  imageUri?: string | null;
   onClose: () => void;
   actions?: ReactNode;
   headerActions?: ReactNode;
@@ -21,7 +22,7 @@ export interface SummaryCardProps
 
 const COLLAPSED_LINES = 3;
 
-export function SummaryCard({ landmark, parkName, podcastSeconds, description, onClose, actions, headerActions }: SummaryCardProps)
+export function SummaryCard({ landmark, parkName, podcastSeconds, description, imageUri, onClose, actions, headerActions }: SummaryCardProps)
 {
   const [expanded, setExpanded] = useState(false);
   const fullText = (description ?? landmark.shortDescription).trim();
@@ -32,7 +33,7 @@ export function SummaryCard({ landmark, parkName, podcastSeconds, description, o
   return (
     <Card testID="summary-card" style={styles.card}>
       <View style={styles.top}>
-        <RemoteImage testID="summary-thumbnail" uri={landmark.thumbnailUrl} style={styles.thumbnail} accessibilityLabel={`Photo of ${landmark.name}`} />
+        <RemoteImage testID="summary-thumbnail" uri={imageUri ?? landmark.thumbnailUrl} style={styles.thumbnail} accessibilityLabel={`Photo of ${landmark.name}`} />
         <View style={styles.titleBlock}>
           <Text style={[typography.eyebrow, { color: colors.primary }]}>{categoryLabel(landmark.category).toUpperCase()}</Text>
           <Text style={[typography.title, { color: colors.text }]} accessibilityRole="header">{landmark.name}</Text>
