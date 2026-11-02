@@ -8,7 +8,7 @@ import {
   type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { SINGAPORE_CENTER, circlePolygonRing } from '@singalore/shared';
-import { forwardRef, useImperativeHandle, useMemo, useRef, type ReactNode } from 'react';
+import { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type NativeSyntheticEvent } from 'react-native';
 import type { LandmarkPinProperties, ParkFeatureProperties } from '@/modules/catalog/mapFeatures';
 import { colors, radii, spacing, typography } from '../theme/tokens';
@@ -121,6 +121,103 @@ export const HeritageMap = forwardRef<HeritageMapHandle, HeritageMapProps>(funct
     },
   }));
 
+  const showBoundaries = props.layers.showHeritageBoundaries;
+  const onLandmarkPressRef = useRef(props.onLandmarkPress);
+
+  // Keeps the memoised landmark source calling the latest press handler.
+  useLayoutEffect(() =>
+  {
+    onLandmarkPressRef.current = props.onLandmarkPress;
+  });
+
+  // Stable elements let React skip GeoJSONSource, whose render runs JSON.stringify on its data.
+  const boundarySource = useMemo(() => (
+    <GeoJSONSource id="park-boundaries" data={showBoundaries ? props.boundaries : EMPTY_POLYGONS}>
+      <Layer id="park-boundary-fill" type="fill" paint={{ 'fill-color': colors.mapBoundaryFill }} />
+      <Layer id="park-boundary-line" type="line" paint={{ 'line-color': colors.mapBoundaryLine, 'line-width': 2, 'line-dasharray': [2, 1] }} />
+    </GeoJSONSource>
+  ), [showBoundaries, props.boundaries]);
+  const parkCenterSource = useMemo(() => (
+    <GeoJSONSource id="park-centers" data={showBoundaries ? props.parkMarkers : { type: 'FeatureCollection', features: [] }}>
+      <Layer id="park-center" type="circle" paint={{ 'circle-radius': 10, 'circle-color': colors.mapBoundaryFill, 'circle-stroke-color': colors.mapBoundaryLine, 'circle-stroke-width': 2 }} />
+    </GeoJSONSource>
+  ), [showBoundaries, props.parkMarkers]);
+  const debugGeofenceSource = useMemo(() => (
+    <GeoJSONSource id="debug-geofences" data={props.debugGeofences ?? EMPTY_POLYGONS}>
+      <Layer id="debug-geofence-line" type="line" paint={{ 'line-color': colors.mapGeofenceDebug, 'line-width': 1.5 }} />
+    </GeoJSONSource>
+  ), [props.debugGeofences]);
+  const routeSource = useMemo(() => (
+    <GeoJSONSource id="route" data={props.routeLine ?? EMPTY_LINES}>
+      <Layer id="route-casing" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': colors.mapRouteCasing, 'line-width': 9 }} />
+      <Layer id="route-line" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': colors.mapRoute, 'line-width': 5 }} />
+    </GeoJSONSource>
+  ), [props.routeLine]);
+  const landmarkSource = useMemo(() => (
+    <GeoJSONSource
+      ref={pinSourceRef}
+      id="landmarks"
+      data={props.pins}
+      cluster
+      clusterRadius={44}
+      clusterMaxZoom={15}
+      onPress={(event) =>
+      {
+        event.stopPropagation();
+        const feature = event.nativeEvent.features[0];
+        const properties = feature?.properties ?? null;
+        if (properties !== null && typeof properties.landmarkId === 'string')
+        {
+          onLandmarkPressRef.current(properties.landmarkId);
+          return;
+        }
+        if (properties !== null && typeof properties.cluster_id === 'number' && feature?.geometry.type === 'Point')
+        {
+          const [longitude, latitude] = feature.geometry.coordinates;
+          const clusterId = properties.cluster_id;
+          void pinSourceRef.current?.getClusterExpansionZoom(clusterId).then((zoom) =>
+          {
+            if (longitude !== undefined && latitude !== undefined)
+            {
+              cameraRef.current?.easeTo({ center: [longitude, latitude], zoom, duration: 500 });
+            }
+          });
+        }
+      }}
+    >
+      <Layer id="landmark-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-color': colors.mapCluster, 'circle-radius': 18, 'circle-stroke-color': colors.mapPinStroke, 'circle-stroke-width': 2 }} />
+      <Layer id="landmark-cluster-count" type="symbol" filter={['has', 'point_count']} layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 13, 'text-font': ['Noto Sans Bold'] }} paint={{ 'text-color': colors.mapPinLabel }} />
+      <Layer
+        id="landmark-pins"
+        type="circle"
+        filter={['!', ['has', 'point_count']]}
+        paint={{
+          'circle-color': ['case', ['get', 'hasPodcast'], colors.mapPin, colors.mapPinNoPodcast],
+          'circle-radius': ['case', ['get', 'selected'], 13, ['get', 'inItinerary'], 11, 9],
+          'circle-stroke-color': ['case', ['get', 'selected'], colors.text, colors.mapPinStroke],
+          'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
+        }}
+      />
+      <Layer
+        id="landmark-itinerary-index"
+        type="symbol"
+        filter={['all', ['!', ['has', 'point_count']], ['get', 'inItinerary']]}
+        layout={{ 'text-field': ['to-string', ['get', 'itineraryIndex']], 'text-size': 11, 'text-font': ['Noto Sans Bold'], 'text-allow-overlap': true }}
+        paint={{ 'text-color': colors.mapPinLabel }}
+      />
+    </GeoJSONSource>
+  ), [props.pins]);
+  const accuracySource = useMemo(() => (
+    <GeoJSONSource id="user-accuracy" data={accuracy}>
+      <Layer id="user-accuracy-fill" type="fill" paint={{ 'fill-color': colors.mapUserHalo }} />
+    </GeoJSONSource>
+  ), [accuracy]);
+  const userDotSource = useMemo(() => (
+    <GeoJSONSource id="user-location" data={userDot}>
+      <Layer id="user-dot" type="circle" paint={{ 'circle-radius': 8, 'circle-color': colors.mapUserDot, 'circle-stroke-color': colors.mapUserDotStroke, 'circle-stroke-width': 3 }} />
+    </GeoJSONSource>
+  ), [userDot]);
+
   return (
     <View style={styles.container}>
       <Map
@@ -142,78 +239,13 @@ export const HeritageMap = forwardRef<HeritageMapHandle, HeritageMapProps>(funct
             <Layer id="satellite-layer" type="raster" />
           </RasterSource>
         )}
-        <GeoJSONSource id="park-boundaries" data={props.layers.showHeritageBoundaries ? props.boundaries : EMPTY_POLYGONS}>
-          <Layer id="park-boundary-fill" type="fill" paint={{ 'fill-color': colors.mapBoundaryFill }} />
-          <Layer id="park-boundary-line" type="line" paint={{ 'line-color': colors.mapBoundaryLine, 'line-width': 2, 'line-dasharray': [2, 1] }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="park-centers" data={props.layers.showHeritageBoundaries ? props.parkMarkers : { type: 'FeatureCollection', features: [] }}>
-          <Layer id="park-center" type="circle" paint={{ 'circle-radius': 10, 'circle-color': colors.mapBoundaryFill, 'circle-stroke-color': colors.mapBoundaryLine, 'circle-stroke-width': 2 }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="debug-geofences" data={props.debugGeofences ?? EMPTY_POLYGONS}>
-          <Layer id="debug-geofence-line" type="line" paint={{ 'line-color': colors.mapGeofenceDebug, 'line-width': 1.5 }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="route" data={props.routeLine ?? EMPTY_LINES}>
-          <Layer id="route-casing" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': colors.mapRouteCasing, 'line-width': 9 }} />
-          <Layer id="route-line" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': colors.mapRoute, 'line-width': 5 }} />
-        </GeoJSONSource>
-        <GeoJSONSource
-          ref={pinSourceRef}
-          id="landmarks"
-          data={props.pins}
-          cluster
-          clusterRadius={44}
-          clusterMaxZoom={15}
-          onPress={(event) =>
-          {
-            event.stopPropagation();
-            const feature = event.nativeEvent.features[0];
-            const properties = feature?.properties ?? null;
-            if (properties !== null && typeof properties.landmarkId === 'string')
-            {
-              props.onLandmarkPress(properties.landmarkId);
-              return;
-            }
-            if (properties !== null && typeof properties.cluster_id === 'number' && feature?.geometry.type === 'Point')
-            {
-              const [longitude, latitude] = feature.geometry.coordinates;
-              const clusterId = properties.cluster_id;
-              void pinSourceRef.current?.getClusterExpansionZoom(clusterId).then((zoom) =>
-              {
-                if (longitude !== undefined && latitude !== undefined)
-                {
-                  cameraRef.current?.easeTo({ center: [longitude, latitude], zoom, duration: 500 });
-                }
-              });
-            }
-          }}
-        >
-          <Layer id="landmark-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-color': colors.mapCluster, 'circle-radius': 18, 'circle-stroke-color': colors.mapPinStroke, 'circle-stroke-width': 2 }} />
-          <Layer id="landmark-cluster-count" type="symbol" filter={['has', 'point_count']} layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 13, 'text-font': ['Noto Sans Bold'] }} paint={{ 'text-color': colors.mapPinLabel }} />
-          <Layer
-            id="landmark-pins"
-            type="circle"
-            filter={['!', ['has', 'point_count']]}
-            paint={{
-              'circle-color': ['case', ['get', 'hasPodcast'], colors.mapPin, colors.mapPinNoPodcast],
-              'circle-radius': ['case', ['get', 'selected'], 13, ['get', 'inItinerary'], 11, 9],
-              'circle-stroke-color': ['case', ['get', 'selected'], colors.text, colors.mapPinStroke],
-              'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
-            }}
-          />
-          <Layer
-            id="landmark-itinerary-index"
-            type="symbol"
-            filter={['all', ['!', ['has', 'point_count']], ['get', 'inItinerary']]}
-            layout={{ 'text-field': ['to-string', ['get', 'itineraryIndex']], 'text-size': 11, 'text-font': ['Noto Sans Bold'], 'text-allow-overlap': true }}
-            paint={{ 'text-color': colors.mapPinLabel }}
-          />
-        </GeoJSONSource>
-        <GeoJSONSource id="user-accuracy" data={accuracy}>
-          <Layer id="user-accuracy-fill" type="fill" paint={{ 'fill-color': colors.mapUserHalo }} />
-        </GeoJSONSource>
-        <GeoJSONSource id="user-location" data={userDot}>
-          <Layer id="user-dot" type="circle" paint={{ 'circle-radius': 8, 'circle-color': colors.mapUserDot, 'circle-stroke-color': colors.mapUserDotStroke, 'circle-stroke-width': 3 }} />
-        </GeoJSONSource>
+        {boundarySource}
+        {parkCenterSource}
+        {debugGeofenceSource}
+        {routeSource}
+        {landmarkSource}
+        {accuracySource}
+        {userDotSource}
       </Map>
       <View pointerEvents="none" style={[styles.attribution, { bottom: (props.bottomInset ?? 0) + 2 }]}>
         <Text style={[typography.caption, styles.attributionText]} maxFontSizeMultiplier={1.2}>{MAP_ATTRIBUTION}</Text>

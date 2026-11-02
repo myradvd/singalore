@@ -42,6 +42,7 @@ const ROUTE_LINE: NonNullable<HeritageMapProps['routeLine']> = {
 };
 const GEOFENCES: NonNullable<HeritageMapProps['debugGeofences']> = BOUNDARIES as NonNullable<HeritageMapProps['debugGeofences']>;
 const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
+const STATIC_SOURCE_IDS = ['park-boundaries', 'park-centers', 'debug-geofences', 'route', 'landmarks'];
 
 // Builds a full prop set for the map with stable data references.
 function baseProps(overrides: Partial<HeritageMapProps> = {}): HeritageMapProps
@@ -59,6 +60,21 @@ function baseProps(overrides: Partial<HeritageMapProps> = {}): HeritageMapProps
     onLandmarkPress: jest.fn(),
     ...overrides,
   };
+}
+
+// Counts how many times the named source has rendered.
+function rendersOf(sourceId: string): number
+{
+  return sourceRenders.filter((source) => source.id === sourceId).length;
+}
+
+// Lists how many extra renders each source gets while the action runs.
+async function extraRendersDuring(action: () => Promise<unknown>): Promise<Record<string, number>>
+{
+  const sourceIds = [...STATIC_SOURCE_IDS, 'user-location', 'user-accuracy'];
+  const before = sourceIds.map(rendersOf);
+  await action();
+  return Object.fromEntries(sourceIds.map((sourceId, index) => [sourceId, rendersOf(sourceId) - (before[index] ?? 0)]));
 }
 
 // Reads the props of the named source's most recent render.
@@ -194,6 +210,81 @@ describe('HeritageMap source data', () =>
     await view.rerender(<HeritageMap {...baseProps({ userLocation: null })} />);
     expect(latestSource('user-location').data).toEqual(EMPTY_COLLECTION);
     expect(latestSource('user-accuracy').data).toEqual(EMPTY_COLLECTION);
+  });
+});
+
+describe('HeritageMap source render counts', () =>
+{
+  const NO_EXTRA_RENDERS = { 'park-boundaries': 0, 'park-centers': 0, 'debug-geofences': 0, route: 0, landmarks: 0, 'user-location': 0, 'user-accuracy': 0 };
+
+  it('10 location changes: static sources get 0 extra renders, user sources get 10', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps({ userLocation: fixAt(0) })} />);
+    const extra = await extraRendersDuring(async () =>
+    {
+      for (let step = 1; step <= 10; step += 1)
+      {
+        await view.rerender(<HeritageMap {...baseProps({ userLocation: fixAt(step) })} />);
+      }
+    });
+    expect(extra).toEqual({ ...NO_EXTRA_RENDERS, 'user-location': 10, 'user-accuracy': 10 });
+  });
+
+  it('same data, new insets and a new onLandmarkPress: no source renders again', async () =>
+  {
+    const fix = fixAt(0);
+    const view = await render(<HeritageMap {...baseProps({ userLocation: fix })} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ userLocation: fix, topInset: 50 })} />));
+    expect(extra).toEqual(NO_EXTRA_RENDERS);
+  });
+
+  it('selection changes: only the landmarks source renders, once', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps()} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ pins: PINS_SELECTED })} />));
+    expect(extra).toEqual({ ...NO_EXTRA_RENDERS, landmarks: 1 });
+    expect(latestSource('landmarks').data).toBe(PINS_SELECTED);
+  });
+
+  it('boundaries turned off: only the two park sources render, once, with empty data', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps()} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ layers: { baseLayer: 'standard', showHeritageBoundaries: false } })} />));
+    expect(extra).toEqual({ ...NO_EXTRA_RENDERS, 'park-boundaries': 1, 'park-centers': 1 });
+    expect(latestSource('park-boundaries').data).toEqual(EMPTY_COLLECTION);
+    expect(latestSource('park-centers').data).toEqual(EMPTY_COLLECTION);
+  });
+
+  it('base layer changes with boundaries still on: no source renders again', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps()} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ layers: { baseLayer: 'satellite', showHeritageBoundaries: true } })} />));
+    expect(extra).toEqual(NO_EXTRA_RENDERS);
+  });
+
+  it('route line cleared: only the route source renders, once', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps()} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ routeLine: null })} />));
+    expect(extra).toEqual({ ...NO_EXTRA_RENDERS, route: 1 });
+  });
+
+  it('debug geofences cleared: only the debug source renders, once', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps()} />);
+    const extra = await extraRendersDuring(() => view.rerender(<HeritageMap {...baseProps({ debugGeofences: null })} />));
+    expect(extra).toEqual({ ...NO_EXTRA_RENDERS, 'debug-geofences': 1 });
+  });
+
+  it('cluster press after 3 location changes: memoised source still reaches the camera', async () =>
+  {
+    const view = await render(<HeritageMap {...baseProps({ userLocation: fixAt(0) })} />);
+    for (let step = 1; step <= 3; step += 1)
+    {
+      await view.rerender(<HeritageMap {...baseProps({ userLocation: fixAt(step) })} />);
+    }
+    await pressLandmarkSource([{ properties: { cluster_id: 7 }, geometry: { type: 'Point', coordinates: [103.9, 1.3] } }]);
+    expect(cameraCalls).toEqual([{ method: 'easeTo', args: [{ center: [103.9, 1.3], zoom: 16, duration: 500 }] }]);
   });
 });
 
