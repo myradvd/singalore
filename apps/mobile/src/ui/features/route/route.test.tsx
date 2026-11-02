@@ -13,8 +13,8 @@ import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_MARKET, LANDMARK_RAFFLES } f
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { useToastStore } from '@/ui/toastStore';
 import { HomeScreen } from '../home/HomeScreen';
-import { RouteExperience } from './RouteExperience';
 import { estimateFromStops } from './routeEstimates';
+import { RouteExperience } from './RouteExperience';
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() }),
