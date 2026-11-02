@@ -2,6 +2,7 @@ import { buildManeuverWithDistance, formatDistance, formatDurationShort, maneuve
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProgress } from '@/modules/routing/progress';
+import { COPY } from '../../copy';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { Card } from '../../primitives/Card';
 import { Icon, type IconName } from '../../primitives/Icon';
@@ -43,7 +44,7 @@ export function NavigationPanel(props: NavigationPanelProps)
   const instruction = props.approximate
     ? `Head towards ${props.nextStopName ?? 'your next stop'}. Approximate guide, no turn by turn directions.`
     : step === null
-      ? (props.nextStopName === null ? 'Follow the gold line' : `Continue to ${props.nextStopName}`)
+      ? (props.nextStopName === null ? COPY.followRouteLine : `Continue to ${props.nextStopName}`)
       : buildManeuverWithDistance({ type: step.maneuver.type, modifier: step.maneuver.modifier, name: step.name, exit: step.maneuver.exit }, props.progress?.distanceToNextManeuverM ?? 0, props.unit);
   const arrow: ManeuverArrow = step === null || props.approximate ? 'straight' : maneuverArrow({ type: step.maneuver.type, modifier: step.maneuver.modifier, name: step.name });
   return (

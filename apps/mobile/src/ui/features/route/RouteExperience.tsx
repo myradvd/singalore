@@ -10,6 +10,7 @@ import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { shouldAutoStart } from '@/modules/routing/progress';
 import { useRouteStore } from '@/modules/routing/routeStore';
 import type { RouteStop } from '@/modules/routing/routeTypes';
+import { COPY } from '../../copy';
 import { AppModal } from '../../primitives/AppModal';
 
 import { showToast } from '../../toastStore';
@@ -213,7 +214,7 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
         testID="off-route-modal"
         visible={route.offRoute && flow.screen === 'navigation'}
         title="You are off the route"
-        message="Return to the gold path, or recalculate a new route from here through your remaining stops."
+        message={COPY.offRouteMessage}
         onRequestClose={() => services.routes.returnToPath()}
         actions={[
           { label: 'Return to path', kind: 'secondary', testID: 'off-route-return', onPress: () => services.routes.returnToPath() },
