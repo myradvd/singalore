@@ -403,6 +403,7 @@ export function HomeScreen(props: HomeScreenProps)
               exiting={reducedMotion ? FadeOut.duration(150) : FadeOutDown.duration(160).easing(EASE_OUT)}
             >
               <SummaryCard
+                key={selected.id}
                 landmark={selected}
                 parkName={catalog.parksById.get(selected.parkId)?.name ?? null}
                 podcastSeconds={totalPodcastSeconds(catalog, selected.id)}
