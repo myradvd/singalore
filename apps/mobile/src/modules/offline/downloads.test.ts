@@ -145,6 +145,63 @@ describe('packStateMachine', () =>
   });
 });
 
+describe('DownloadManager.checkForUpdates callback results (UC 1.4.1.2)', () =>
+{
+  it('changed: callback returns a new etag, state becomes update_available', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => '"p2"');
+    expect((await repository.get(parkId))?.state).toBe('update_available');
+  });
+
+  it('same etag: callback returns the stored etag, state stays downloaded', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => '"p1"');
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('no answer: callback returns null, state stays downloaded', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => null);
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('exception flow: callback rejects, state stays downloaded and nothing throws', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await expect(manager.checkForUpdates(async () =>
+    {
+      throw new Error('network');
+    })).resolves.toBeUndefined();
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('paused pack: callback is not called, state stays paused', async () =>
+  {
+    const { manager, repository, transport } = await setup();
+    transport.script = [() => ({ kind: 'interrupted', resumeData: null })];
+    await manager.download(parkId);
+    const fetchEtag = jest.fn(async () => '"p2"');
+    await manager.checkForUpdates(fetchEtag);
+    expect(fetchEtag).not.toHaveBeenCalled();
+    expect((await repository.get(parkId))?.state).toBe('paused');
+  });
+
+  it('no packs: callback is not called', async () =>
+  {
+    const { manager } = await setup();
+    const fetchEtag = jest.fn(async () => '"p2"');
+    await manager.checkForUpdates(fetchEtag);
+    expect(fetchEtag).not.toHaveBeenCalled();
+  });
+});
+
 describe('DownloadManager (UC 1.4.1)', () =>
 {
   it('downloads every file, verifies it, stores image paths and notifies on completion', async () =>
