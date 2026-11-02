@@ -1,5 +1,6 @@
 import { haversineDistanceMeters } from '@singalore/shared';
 import type { GeofenceTarget, LocationFix } from '@/core/location';
+import type { ActivePrompt } from './GeofenceEngine';
 import { ENTRY_ACCURACY_LIMIT_METERS } from './GeofenceEvaluator';
 import { DISMISS_SUPPRESSION_MS } from './promptPolicy';
 
@@ -53,4 +54,14 @@ export function evaluateBackgroundArrival(input: BackgroundArrivalInput): Backgr
 export function arrivalNotificationText(name: string): { title: string; body: string }
 {
   return { title: `You have reached ${name}`, body: 'A podcast about this site is available. Tap to listen.' };
+}
+
+// Decides whether a pending prompt should send an arrival notification.
+export function shouldNotifyArrival(prompt: ActivePrompt | null, lastNotifiedPrompt: ActivePrompt | null, appActive: boolean): boolean
+{
+  if (prompt === null || prompt.forced || prompt.openedFromNotification === true || appActive)
+  {
+    return false;
+  }
+  return prompt.landmarkId !== lastNotifiedPrompt?.landmarkId || prompt.triggeredAt !== lastNotifiedPrompt.triggeredAt;
 }
