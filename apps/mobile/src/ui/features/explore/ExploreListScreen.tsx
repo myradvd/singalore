@@ -8,8 +8,8 @@ import { COPY } from '../../copy';
 import { Chip } from '../../primitives/Chip';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
-import { EmptyState } from '../../primitives/States';
 import { colors, radii, shadows, spacing, touchTargets, typography } from '../../theme/tokens';
+import { CatalogEmptyState } from './CatalogEmptyState';
 import { formatBytes } from './formatBytes';
 import { RemoteImage } from '../../primitives/RemoteImage';
 
@@ -61,7 +61,7 @@ export function ExploreListScreen()
         keyExtractor={(park) => park.id}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + spacing.xl }}
         ListEmptyComponent={parks.length === 0
-          ? <EmptyState icon="cloud-off-outline" title={COPY.emptyCatalogTitle} message={COPY.emptyCatalogMessage} />
+          ? <CatalogEmptyState />
           : <Text testID="explore-empty" style={[typography.body, { color: colors.textMuted, textAlign: 'center' }]}>{COPY.searchEmpty}</Text>}
         renderItem={({ item }) => (
           <Pressable testID={`explore-park-${item.slug}`} accessibilityRole="button" accessibilityLabel={`${item.name}, ${item.district}, ${item.landmarkCount} sites`} onPress={() => router.push(`/explore/${item.id}`)} style={styles.parkCard}>
