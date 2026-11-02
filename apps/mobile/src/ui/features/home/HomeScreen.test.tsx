@@ -47,6 +47,59 @@ describe('HomeScreen', () =>
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toContain(COPY.catalogFetchFailed);
   });
 
+  describe('first load notice (UC 1.2.1, design 6.4)', () =>
+  {
+    const NOTICE_TEXT = 'Loading heritage sites...';
+
+    it('loading with 0 landmarks: shows the exact notice without blocking the map', async () =>
+    {
+      useCatalogStore.setState({ status: 'loading', snapshot: EMPTY_CATALOG });
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(COPY.catalogLoading).toBe(NOTICE_TEXT);
+      expect(screen.getByText(NOTICE_TEXT)).toBeTruthy();
+      expect(screen.getByTestId('catalog-loading-notice').props.pointerEvents).toBe('none');
+      expect(screen.getByTestId('maplibre-map')).toBeTruthy();
+      expect(screen.queryByTestId('empty-catalog')).toBeNull();
+    });
+
+    it('loading with 1 landmark: no notice', async () =>
+    {
+      const fixture = catalogFixture();
+      useCatalogStore.setState({ status: 'loading', snapshot: { ...fixture, landmarks: fixture.landmarks.slice(0, 1) } });
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(screen.queryByText(NOTICE_TEXT)).toBeNull();
+    });
+
+    it('loading with cached landmarks: no notice', async () =>
+    {
+      useCatalogStore.setState({ status: 'loading', snapshot: catalogFixture() });
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(screen.queryByText(NOTICE_TEXT)).toBeNull();
+    });
+
+    it('ready with landmarks: no notice', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(screen.queryByText(NOTICE_TEXT)).toBeNull();
+    });
+
+    it('ready with 0 landmarks: no notice', async () =>
+    {
+      applyCatalogSnapshot(EMPTY_CATALOG);
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(screen.queryByText(NOTICE_TEXT)).toBeNull();
+    });
+
+    it('unavailable with 0 landmarks: empty state only', async () =>
+    {
+      useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      expect(screen.getByTestId('empty-catalog')).toBeTruthy();
+      expect(screen.queryByText(NOTICE_TEXT)).toBeNull();
+    });
+  });
+
   it('shows the summary card for the selected landmark and closes it', async () =>
   {
     applyCatalogSnapshot(catalogFixture());
