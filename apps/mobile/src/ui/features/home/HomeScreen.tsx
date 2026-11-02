@@ -215,6 +215,7 @@ export function HomeScreen(props: HomeScreenProps)
   const topOverlay = flow.overlays[flow.overlays.length - 1];
   const headerHeight = insets.top + 112;
   const showEmptyCatalog = catalog.status === 'unavailable' && catalog.snapshot.landmarks.length === 0;
+  const showCatalogLoading = catalog.status === 'loading' && catalog.snapshot.landmarks.length === 0;
   const zoomTop = controlsSpan === null ? null : controlsSpan.top + controlsSpan.height + spacing.sm;
   const zoomObstacleTop = homeChrome ? cardHostTop : screenHeight === null ? null : screenHeight - insets.bottom - spacing.lg;
   const showZoom = (homeChrome || expanded) && zoomTop !== null && zoomObstacleTop !== null
@@ -275,6 +276,11 @@ export function HomeScreen(props: HomeScreenProps)
       )}
 
       <View style={[styles.notices, { top: (expanded ? insets.top : headerHeight) + spacing.sm }]} pointerEvents="box-none">
+        {showCatalogLoading && (
+          <View testID="catalog-loading-notice" pointerEvents="none">
+            <Banner icon="map-search-outline" tone="info" message={COPY.catalogLoading} />
+          </View>
+        )}
         {bannerVisible && (
           <Banner
             testID="connectivity-banner"

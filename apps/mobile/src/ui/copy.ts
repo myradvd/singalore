@@ -7,6 +7,7 @@ export const COPY = {
   searchRecentSeeAll: 'See all',
   searchSuggestedTitle: 'Suggested',
   catalogFetchFailed: 'Unable to fetch nearby landmarks. Check your connection.',
+  catalogLoading: 'Loading heritage sites...',
   waitingForGps: 'Waiting for GPS signal...',
   stopAddedToRoute: 'Added to your route.',
   offRouteMessage: 'Return to the highlighted path, or recalculate a new route from here through your remaining stops.',
@@ -15,6 +16,10 @@ export const COPY = {
   emptyCatalogTitle: 'No heritage map yet',
   emptyCatalogMessage: 'Connect to the internet once so Singalore can download the heritage map. After that it keeps working offline.',
   emptyCatalogRetry: 'Try again',
+  historyLoading: 'Loading...',
+  historyLoadFailedTitle: 'Could not load tour history',
+  historyLoadFailedMessage: 'Please try again.',
+  historyRetry: 'Retry',
   noPodcast: 'No podcast for this site yet',
   noPodcastShort: 'No podcast yet',
 } as const;
