@@ -3,6 +3,13 @@ export const COPY = {
   searchEmpty: 'No matching locations found. Try a different search.',
   catalogFetchFailed: 'Unable to fetch nearby landmarks. Check your connection.',
   waitingForGps: 'Waiting for GPS signal...',
+  nearestToYou: 'Nearest to you',
+  selectLocationPrompt: 'Select a location to see nearby sites',
+  selectLocation: 'Select a location',
+  clearLocation: 'Clear location',
+  closeLocationPicker: 'Close location picker',
+  locationPickerParks: 'Parks',
+  locationPickerSites: 'Sites',
   descriptionUnavailable: 'Description unavailable.',
   emptyCatalogTitle: 'No heritage map yet',
   emptyCatalogMessage: 'Connect to the internet once so Singalore can download the heritage map. After that it keeps working offline.',
@@ -10,6 +17,12 @@ export const COPY = {
   noPodcast: 'No podcast for this site yet',
   noPodcastShort: 'No podcast yet',
 } as const;
+
+// Builds the section title for a location the user picked.
+export function nearestToLocationTitle(locationName: string): string
+{
+  return `Nearest to ${locationName}`;
+}
 
 export const CATEGORY_LABELS: Record<string, string> = {
   religious: 'Religious heritage',
