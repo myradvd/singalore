@@ -42,6 +42,7 @@ export class ExpoAudioEngine implements AudioEngine
   private rate = 1;
   private wantsPlay = false;
   private modeConfigured = false;
+  private lockScreenMetadata: TrackMetadata | null = null;
 
   async load(uri: string, metadata: TrackMetadata, startAtSeconds: number, autoPlay: boolean): Promise<void>
   {
@@ -57,7 +58,11 @@ export class ExpoAudioEngine implements AudioEngine
     this.wantsPlay = autoPlay;
     this.subscription = player.addListener('playbackStatusUpdate', (status) => this.emit(mapExpoStatus(status, this.rate, this.wantsPlay)));
     player.setPlaybackRate(this.rate);
-    player.setActiveForLockScreen(true, { title: metadata.title, artist: metadata.artist, ...(metadata.artworkUrl === null ? {} : { artworkUrl: metadata.artworkUrl }) }, { showSeekBackward: true, showSeekForward: true });
+    this.lockScreenMetadata = metadata;
+    if (autoPlay)
+    {
+      this.activateLockScreen();
+    }
     if (startAtSeconds > 0)
     {
       await player.seekTo(startAtSeconds);
@@ -71,6 +76,7 @@ export class ExpoAudioEngine implements AudioEngine
   play(): void
   {
     this.wantsPlay = true;
+    this.activateLockScreen();
     this.player?.play();
   }
 
@@ -103,6 +109,7 @@ export class ExpoAudioEngine implements AudioEngine
       this.player = null;
     }
     this.wantsPlay = false;
+    this.lockScreenMetadata = null;
     this.emit({ ...IDLE_STATUS, rate: this.rate });
   }
 
@@ -115,6 +122,17 @@ export class ExpoAudioEngine implements AudioEngine
   {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  // Shows the lock screen controls once, when the track first plays, because their Play action bypasses the app.
+  private activateLockScreen(): void
+  {
+    const metadata = this.lockScreenMetadata;
+    if (metadata !== null)
+    {
+      this.lockScreenMetadata = null;
+      this.player?.setActiveForLockScreen(true, { title: metadata.title, artist: metadata.artist, ...(metadata.artworkUrl === null ? {} : { artworkUrl: metadata.artworkUrl }) }, { showSeekBackward: true, showSeekForward: true });
+    }
   }
 
   private emit(status: EngineStatus): void
