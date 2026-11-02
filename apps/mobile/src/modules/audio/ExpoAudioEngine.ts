@@ -43,15 +43,22 @@ export class ExpoAudioEngine implements AudioEngine
   private wantsPlay = false;
   private modeConfigured = false;
   private lockScreenMetadata: TrackMetadata | null = null;
+  private latestLoadRequest = 0;
 
   async load(uri: string, metadata: TrackMetadata, startAtSeconds: number, autoPlay: boolean): Promise<void>
   {
+    this.latestLoadRequest += 1;
+    const request = this.latestLoadRequest;
     if (!this.modeConfigured)
     {
       await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'doNotMix' });
       this.modeConfigured = true;
     }
-    this.stop();
+    if (request !== this.latestLoadRequest)
+    {
+      return;
+    }
+    this.releasePlayer();
     this.emit({ ...IDLE_STATUS, state: 'loading', rate: this.rate });
     const player = createAudioPlayer({ uri }, { updateInterval: 500 });
     this.player = player;
@@ -67,7 +74,7 @@ export class ExpoAudioEngine implements AudioEngine
     {
       await player.seekTo(startAtSeconds);
     }
-    if (autoPlay)
+    if (autoPlay && this.player === player)
     {
       player.play();
     }
@@ -98,15 +105,26 @@ export class ExpoAudioEngine implements AudioEngine
     this.emit({ ...this.current, rate });
   }
 
+  // Stops playback, cancels any load still waiting, and frees the native player.
   stop(): void
+  {
+    this.latestLoadRequest += 1;
+    this.releasePlayer();
+  }
+
+  // Pauses, removes and releases the current player, because remove alone leaves native audio playing.
+  private releasePlayer(): void
   {
     this.subscription?.remove();
     this.subscription = null;
     if (this.player !== null)
     {
-      this.player.clearLockScreenControls();
-      this.player.remove();
+      const player = this.player;
       this.player = null;
+      player.pause();
+      player.clearLockScreenControls();
+      player.remove();
+      player.release();
     }
     this.wantsPlay = false;
     this.lockScreenMetadata = null;
