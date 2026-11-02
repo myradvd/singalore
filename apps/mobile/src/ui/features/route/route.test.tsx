@@ -307,3 +307,91 @@ describe('background rationale screen returns to the running tour (UC 1.3.2.3)',
     expectTourKept(resetTour);
   });
 });
+
+describe('notification permission at tour start (UC 1.3.2.3)', () =>
+{
+  const screensAtRequest: string[] = [];
+
+  beforeEach(() =>
+  {
+    useFlowStore.setState({ state: INITIAL_FLOW_STATE });
+    mockPush.mockClear();
+    screensAtRequest.length = 0;
+    resetBackgroundRationaleOfferForTests();
+  });
+
+  // Renders Home on the confirmation panel with the given notification status.
+  async function renderConfirmation(status: 'undetermined' | 'granted' | 'denied', metersFromFirstStop = 500)
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices(async () => new Response(JSON.stringify(routeBody)));
+    bindRouteStore(services.routes);
+    configureFlowRuntime({ onEffect: createFlowEffectHandler(services), persist: () => undefined });
+    await services.location.setPermission('foreground');
+    jest.spyOn(services.notifier, 'permission').mockResolvedValue(status);
+    const request = jest.spyOn(services.notifier, 'requestPermission').mockImplementation(async () =>
+    {
+      screensAtRequest.push(useFlowStore.getState().state.screen);
+      return 'denied';
+    });
+    const point = destinationPoint(RAFFLES_POSITION, 0, metersFromFirstStop);
+    await renderWithServices(services, <HomeScreen userLocation={{ latitude: point.lat, longitude: point.lng, accuracyMeters: 5 }} />);
+    await act(async () => dispatchFlow({ type: 'startTourFromSite', landmarkId: LANDMARK_RAFFLES }));
+    await act(async () => undefined);
+    await act(async () => undefined);
+    return request;
+  }
+
+  it('Start Navigation, undetermined, user refuses: requests once before the tour, tour still starts', async () =>
+  {
+    const request = await renderConfirmation('undetermined');
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    await act(async () => undefined);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(screensAtRequest).toEqual(['routeConfirm']);
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('autodetect, undetermined, user refuses: requests once before the tour, tour still starts', async () =>
+  {
+    const request = await renderConfirmation('undetermined', 49);
+    await fireEvent(screen.getByTestId('confirm-autodetect'), 'valueChange', true);
+    await act(async () => undefined);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(screensAtRequest).toEqual(['routeConfirm']);
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('granted: does not request, tour starts', async () =>
+  {
+    const request = await renderConfirmation('granted');
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    await act(async () => undefined);
+    expect(request).not.toHaveBeenCalled();
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('valid EC, no action: denied does not request, tour still starts', async () =>
+  {
+    const request = await renderConfirmation('denied');
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    await act(async () => undefined);
+    expect(request).not.toHaveBeenCalled();
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('Back pressed while the request is open: the tour does not start and the rationale stays closed', async () =>
+  {
+    const request = await renderConfirmation('undetermined');
+    request.mockImplementation(async () =>
+    {
+      dispatchFlow({ type: 'backFromConfirmation' });
+      return 'denied';
+    });
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    await act(async () => undefined);
+    expect(useFlowStore.getState().state.screen).toBe('routeEditor');
+    expect(useFlowStore.getState().state.base).not.toBe('inProgress');
+    expect(mockPush).not.toHaveBeenCalledWith('/background-rationale');
+  });
+});
