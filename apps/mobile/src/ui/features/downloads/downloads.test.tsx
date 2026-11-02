@@ -106,7 +106,8 @@ describe('Downloads UI (UC 1.4.1, A7)', () =>
     await act(async () => undefined);
     expect(screen.getByTestId('downloads-screen')).toBeTruthy();
     expect(screen.getAllByRole('header').length).toBe(1);
-    expect(screen.getByText('Manage downloads')).toBeTruthy();
+    expect(screen.getByText('Manage Downloads')).toBeTruthy();
+    expect(screen.queryByText('Manage downloads')).toBeNull();
     await fireEvent.press(screen.getByTestId('screen-back'));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });

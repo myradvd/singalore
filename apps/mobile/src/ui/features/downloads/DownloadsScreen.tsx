@@ -27,7 +27,7 @@ export function DownloadsScreen()
   }, [records, services]);
 
   return (
-    <ScreenScaffold title="Manage downloads" onBack={() => router.back()} testID="downloads-screen">
+    <ScreenScaffold title="Manage Downloads" onBack={() => router.back()} testID="downloads-screen">
       <Text testID="downloads-total" style={[typography.caption, styles.total]}>{`Stored on this phone: ${formatBytes(storedBytes)}`}</Text>
       <Toggle testID="downloads-wifi-only" label="Download over Wi-Fi only" description="Avoid mobile data charges" value={wifiOnly} onValueChange={(value) => void updatePreferences(services.preferences, { downloadOverWifiOnly: value })} />
       {parks.length === 0 && <CatalogEmptyState />}
