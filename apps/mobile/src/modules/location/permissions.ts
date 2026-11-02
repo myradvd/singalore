@@ -30,6 +30,12 @@ export function canTrackLocation(state: LocationPermissionState): boolean
   return state === 'foreground' || state === 'always';
 }
 
+// Says whether to offer the "always" location rationale at a tour start.
+export function shouldOfferBackgroundRationale(state: LocationPermissionState, alreadyOffered: boolean): boolean
+{
+  return state === 'foreground' && !alreadyOffered;
+}
+
 export interface PermissionService
 {
   snapshot(): Promise<RawPermissionSnapshot>;

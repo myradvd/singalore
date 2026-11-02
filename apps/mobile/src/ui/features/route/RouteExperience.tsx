@@ -1,4 +1,5 @@
 import { distanceBetween, type GeoPoint } from '@singalore/shared';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAppServices } from '@/composition/AppServicesContext';
@@ -6,6 +7,7 @@ import { routeTitle } from '@/composition/flowEffects';
 import { totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { nextUnvisitedStop } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import { shouldOfferBackgroundRationale } from '@/modules/location/permissions';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { shouldAutoStart } from '@/modules/routing/progress';
 import { useRouteStore } from '@/modules/routing/routeStore';
@@ -26,6 +28,14 @@ export const EXIT_MODAL_COPY = {
   discard: 'Discard & Exit',
   cancel: 'Cancel',
 } as const;
+
+let backgroundRationaleOffered = false;
+
+// Lets tests start from a fresh app run.
+export function resetBackgroundRationaleOfferForTests(): void
+{
+  backgroundRationaleOffered = false;
+}
 
 export function RouteStripHost({ onOpen }: { onOpen: () => void })
 {
@@ -48,6 +58,7 @@ export function RouteStripHost({ onOpen }: { onOpen: () => void })
 export function RouteExperience({ userPosition }: { userPosition: GeoPoint | null })
 {
   const services = useAppServices();
+  const router = useRouter();
   const flow = useFlowStore((store) => store.state);
   const catalog = useCatalogStore();
   const route = useRouteStore();
@@ -68,7 +79,12 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
   const startTour = useCallback(() =>
   {
     dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
-  }, [services]);
+    if (useFlowStore.getState().state.screen === 'navigation' && shouldOfferBackgroundRationale(services.location.getState().permission, backgroundRationaleOffered))
+    {
+      backgroundRationaleOffered = true;
+      router.push('/background-rationale');
+    }
+  }, [services, router]);
 
   useEffect(() =>
   {
