@@ -36,7 +36,6 @@ import { DebugOverlay } from '../debug/DebugOverlay';
 import { NextUpChip, OutOfRangeNotice, PodcastPrompt } from '../prompt/PodcastPrompt';
 import { Banner } from '../../primitives/Banner';
 import { GpsStatusButton, gpsStatusLabel } from './GpsStatusButton';
-import { MiniPlayerHost } from '../player/MiniPlayer';
 import { shownEpisodeSeconds } from '../player/playerLabels';
 import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
@@ -395,7 +394,6 @@ export function HomeScreen(props: HomeScreenProps)
               onDismiss={() => void services.audio.dismissResumeOffer()}
             />
           )}
-          <MiniPlayerHost />
         </View>
       )}
 

@@ -1,11 +1,15 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppServices } from '@/composition/AppServicesContext';
 import type { AudioControllerState } from '@/modules/audio/AudioController';
 import { useAudioStore } from '@/modules/audio/audioStore';
 import { IconButton } from '../../primitives/IconButton';
 import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 import { isActivelyPlaying } from './playerLabels';
+
+const FULL_PLAYER_PATH = '/player';
 
 export interface MiniPlayerProps
 {
@@ -52,11 +56,35 @@ export function MiniPlayerHost()
 {
   const services = useAppServices();
   const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const audio = useAudioStore();
-  return <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push('/player')} onClose={() => void services.audio.stopAndClear()} />;
+  if (pathname === FULL_PLAYER_PATH)
+  {
+    return null;
+  }
+  return (
+    <View style={[styles.host, { paddingBottom: insets.bottom + spacing.sm }]}>
+      <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push(FULL_PLAYER_PATH)} onClose={() => void services.audio.stopAndClear()} />
+    </View>
+  );
+}
+
+// Stacks the mini player under the screens so it never covers their bottom controls.
+export function WithMiniPlayer({ children }: { children: ReactNode })
+{
+  return (
+    <View style={styles.frame}>
+      <View style={styles.screens}>{children}</View>
+      <MiniPlayerHost />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  frame: { flex: 1 },
+  screens: { flex: 1 },
+  host: { paddingHorizontal: spacing.md, paddingTop: spacing.xs, backgroundColor: colors.background },
   container: { backgroundColor: colors.glass, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
   track: { height: 3, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, overflow: 'hidden' },
   progress: { height: 3, backgroundColor: colors.accent },
