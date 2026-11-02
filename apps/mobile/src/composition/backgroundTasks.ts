@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { systemClock } from '@/core/clock';
 import { openExpoSqliteAdapter } from '@/core/db/expoSqliteAdapter';
+import { upsertMeta } from '@/core/db/meta';
 import { migrate } from '@/core/db/migrations';
 import type { LocationFix } from '@/core/location';
 import { CatalogRepository } from '@/modules/catalog/CatalogRepository';
@@ -53,7 +54,7 @@ async function handleHeadlessFix(fix: LocationFix, candidateLandmarkId?: string)
     const notifier = createExpoLocalNotifier((category) => category !== 'arrivals' || preferences.notifyArrivals);
     const text = arrivalNotificationText(result.name);
     await notifier.notify('arrivals', text.title, text.body, { landmarkId: result.landmarkId });
-    await db.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', [`${NOTIFIED_PREFIX}${result.landmarkId}`, String(now)]);
+    await upsertMeta(db, `${NOTIFIED_PREFIX}${result.landmarkId}`, String(now));
   }
   return result.kind;
 }
