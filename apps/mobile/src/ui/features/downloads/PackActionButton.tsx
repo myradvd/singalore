@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAppServices } from '@/composition/AppServicesContext';
+import { ensureNotificationPermission } from '@/core/notifications';
 import type { DownloadRecord } from '@/modules/offline/DownloadsRepository';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
@@ -33,18 +34,11 @@ export function PackActionButton({ parkId, estimatedBytes }: { parkId: string; e
   const record = useDownloadsStore((state) => state.records[parkId]);
   const start = async () =>
   {
+    await ensureNotificationPermission(services.notifier);
     const outcome = await services.downloads.download(parkId);
     if (outcome.kind !== 'downloaded')
     {
       showToast(outcome.message, outcome.kind === 'paused' ? 'info' : 'error');
-    }
-    else
-    {
-      const permission = await services.notifier.permission();
-      if (permission === 'undetermined')
-      {
-        await services.notifier.requestPermission();
-      }
     }
   };
   const state = record?.state ?? 'not_downloaded';

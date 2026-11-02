@@ -19,6 +19,7 @@ import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
 import { wireArrivalNotifications } from './arrivalNotifyWiring';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
+import { bindLateBackgroundGrant } from './tourTracking';
 import { createAppServices, type AppServices } from './container';
 import { createFlowEffectHandler } from './flowEffects';
 import { wirePromptAudio } from './promptAudioWiring';
@@ -90,6 +91,7 @@ export function useAppBootstrap(): BootstrapState
           void services.notifier.notify('route_updates', 'You are off the route', 'Open Singalore to return to the path or recalculate.');
         }
       });
+      bindLateBackgroundGrant(services);
       services.audio.start();
       wirePromptAudio(services.geofence, services.audio);
       registerLiveBackgroundRuntime({
