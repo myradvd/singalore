@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { circlePolygonRing } from '@singalore/shared';
@@ -38,6 +38,7 @@ import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { SummaryCard } from '../summaryCard/SummaryCard';
 import { BottomBar } from './BottomBar';
+import { useHomeBackHandler } from './homeBack';
 import { HomeHeader } from './HomeHeader';
 import { MapControls } from './MapControls';
 import { SearchBarButton } from './SearchBarButton';
@@ -199,36 +200,7 @@ export function HomeScreen(props: HomeScreenProps)
     }
   }, [pendingFocus, catalog.status, focusLandmark, focusPark]);
 
-  useEffect(() =>
-  {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () =>
-    {
-      const state = useFlowStore.getState().state;
-      const top = state.overlays[state.overlays.length - 1];
-      if (top === 'search')
-      {
-        dispatchFlow({ type: 'closeSearch' });
-        return true;
-      }
-      if (top === 'sidebar')
-      {
-        dispatchFlow({ type: 'closeSidebar' });
-        return true;
-      }
-      if (state.screen === 'expandedMap')
-      {
-        dispatchFlow({ type: 'closeExpandedMap' });
-        return true;
-      }
-      if (state.selectedLandmarkId !== null)
-      {
-        dispatchFlow({ type: 'selectLandmark', landmarkId: null });
-        return true;
-      }
-      return false;
-    });
-    return () => subscription.remove();
-  }, []);
+  useHomeBackHandler();
 
   const recenter = () =>
   {
