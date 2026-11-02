@@ -79,6 +79,9 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
           {query.length > 0 && <IconButton icon="close-circle" accessibilityLabel="Clear search" onPress={() => setQuery('')} variant="plain" />}
         </View>
       </View>
+      {debouncedQuery.trim().length === 1 && (
+        <Text testID="search-minimum-length-hint" style={[typography.body, styles.empty]} accessibilityLiveRegion="polite">{COPY.searchMinimumLengthHint}</Text>
+      )}
       {searched && rows.length === 0 && (
         <Text testID="search-empty" style={[typography.body, styles.empty]} accessibilityLiveRegion="polite">{COPY.searchEmpty}</Text>
       )}
