@@ -50,9 +50,18 @@ describe('ExploreListScreen (Explore menu)', () =>
 
   it('shows the empty catalog state before the first sync', async () =>
   {
-    useCatalogStore.setState({ snapshot: EMPTY_CATALOG });
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
     await renderWithServices(await createTestServices(), <ExploreListScreen />);
     expect(screen.getByText(COPY.emptyCatalogTitle)).toBeTruthy();
+  });
+
+  it('shows the Home copy with Try again when the catalog is ready with 0 parks', async () =>
+  {
+    useCatalogStore.setState({ status: 'ready', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <ExploreListScreen />);
+    expect(screen.getByText('No heritage map yet')).toBeTruthy();
+    expect(screen.getByText('Try again')).toBeTruthy();
+    expect(screen.queryByTestId('catalog-loading')).toBeNull();
   });
 
   it('shows loading, not the empty title, while the first sync runs with 0 parks', async () =>
