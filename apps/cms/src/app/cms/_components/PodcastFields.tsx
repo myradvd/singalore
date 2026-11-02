@@ -22,6 +22,7 @@ export function PodcastFields({ landmarkId, podcast }: { landmarkId: string; pod
       <label>
         {podcast?.audio_path === null || podcast === null ? 'Audio file (M4A, AAC or MP3, up to 50 MB)' : 'Replace audio file (optional)'}
         <input name="audio" type="file" accept="audio/mp4,audio/x-m4a,audio/aac,audio/mpeg" />
+        <span className="muted">Hosted on Vercel, uploads are limited to about 4.5 MB. Run locally or self hosted, the CMS accepts up to 50 MB.</span>
       </label>
       <label>
         Transcript
