@@ -163,6 +163,11 @@ export function useAppBootstrap(): BootstrapState
       return undefined;
     }
     const services = state.services;
+    const stopServicesRecheck = startServicesRecheck({
+      appState: () => AppState.currentState,
+      locationState: () => services.location.getState(),
+      refreshPermission: () => refreshLocationPermission(services),
+    });
     const appStateSubscription = AppState.addEventListener('change', (next) =>
     {
       if (next === 'active')
@@ -178,11 +183,6 @@ export function useAppBootstrap(): BootstrapState
       {
         void services.location.stop();
       }
-    });
-    const stopServicesRecheck = startServicesRecheck({
-      appState: () => AppState.currentState,
-      locationState: () => services.location.getState(),
-      refreshPermission: () => refreshLocationPermission(services),
     });
     const promptSubscription = services.geofence.subscribe((geofence) =>
     {
