@@ -3,6 +3,7 @@ import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalog
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import { useLocationStore } from '@/modules/location/locationStore';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_SHELTER, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
@@ -21,6 +22,7 @@ beforeEach(() =>
 {
   useFlowStore.setState({ state: INITIAL_FLOW_STATE });
   useToastStore.setState({ toasts: [] });
+  useLocationStore.setState({ status: 'idle' });
   cameraCalls.length = 0;
   mockPush.mockClear();
 });
@@ -98,6 +100,39 @@ describe('HomeScreen', () =>
     await view.rerender(<HomeScreen userLocation={{ latitude: 1.29, longitude: 103.85, accuracyMeters: 8 }} />);
     await fireEvent.press(screen.getByTestId('recenter'));
     expect(cameraCalls.at(-1)).toMatchObject({ method: 'easeTo' });
+  });
+
+  it('recenter with no fix shows the exact toast and makes 0 camera calls (UC 1.1.2.1)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    cameraCalls.length = 0;
+    await fireEvent.press(screen.getByTestId('recenter'));
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Waiting for GPS signal...']);
+    expect(cameraCalls).toHaveLength(0);
+  });
+
+  it('recenter with an old fix after signal loss shows the exact toast and makes 0 camera calls (UC 1.1.2.1)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useLocationStore.setState({ status: 'waiting_for_signal' });
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={{ latitude: 1.29, longitude: 103.85, accuracyMeters: 8 }} />);
+    cameraCalls.length = 0;
+    await fireEvent.press(screen.getByTestId('recenter'));
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Waiting for GPS signal...']);
+    expect(cameraCalls).toHaveLength(0);
+  });
+
+  it('recenter with a fix and status ok moves the camera to zoom 16 with no toast (FR 1.2.1)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useLocationStore.setState({ status: 'ok' });
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={{ latitude: 1.29, longitude: 103.85, accuracyMeters: 8 }} />);
+    cameraCalls.length = 0;
+    await fireEvent.press(screen.getByTestId('recenter'));
+    expect(useToastStore.getState().toasts).toHaveLength(0);
+    expect(cameraCalls).toHaveLength(1);
+    expect(cameraCalls[0]).toMatchObject({ method: 'easeTo', args: [expect.objectContaining({ zoom: 16 })] });
   });
 
   it('disables Listen with a short reason when a site has no podcast', async () =>

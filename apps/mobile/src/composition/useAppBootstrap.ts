@@ -21,6 +21,7 @@ import { wireArrivalNotifications } from './arrivalNotifyWiring';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
 import { bindLateBackgroundGrant } from './tourTracking';
 import { createAppServices, type AppServices } from './container';
+import { startServicesRecheck } from './servicesRecheck';
 import { createFlowEffectHandler } from './flowEffects';
 import { wirePromptAudio } from './promptAudioWiring';
 
@@ -148,6 +149,11 @@ export function useAppBootstrap(): BootstrapState
       return undefined;
     }
     const services = state.services;
+    const stopServicesRecheck = startServicesRecheck({
+      appState: () => AppState.currentState,
+      locationState: () => services.location.getState(),
+      refreshPermission: () => refreshLocationPermission(services),
+    });
     const appStateSubscription = AppState.addEventListener('change', (next) =>
     {
       if (next === 'active')
@@ -176,6 +182,7 @@ export function useAppBootstrap(): BootstrapState
     return () =>
     {
       appStateSubscription.remove();
+      stopServicesRecheck();
       promptSubscription();
       responseSubscription.remove();
     };
