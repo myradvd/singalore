@@ -3,11 +3,11 @@ import type { AppEventBus } from '@/core/appEvents';
 import type { Clock } from '@/core/clock';
 import type { DiagnosticsRecorder } from '@/core/diagnostics';
 import type { ConnectivityProvider, LocalMediaResolver, MediaProbe } from '@/core/media';
-import { IDLE_STATUS, SKIP_SECONDS, type AudioEngine, type EngineStatus } from './AudioEngine';
+import { IDLE_STATUS, SKIP_SECONDS, type AudioEngine, type EngineStatus, type TrackMetadata } from './AudioEngine';
 import type { AudioSessionRecord, AudioSessionRepository } from './AudioSessionRepository';
 import { PLAYBACK_ERROR_MESSAGES, classifyStreamFailure, type PlaybackFailureKind } from './playbackErrors';
 import { pickPodcast, type PodcastPreferences } from './pickPodcast';
-import { chooseAudioSource } from './sourceChoice';
+import { chooseAudioSource, type AudioSourceChoice } from './sourceChoice';
 
 export const SESSION_SAVE_INTERVAL_MS = 5000;
 
@@ -26,6 +26,13 @@ export interface AudioControllerState
   status: EngineStatus;
   resumeOffer: (AudioSessionRecord & { title: string; landmarkName: string }) | null;
   lastError: string | null;
+}
+
+interface PreparedAudio
+{
+  landmarkId: string;
+  podcastId: string;
+  loaded: { track: CurrentTrack; uri: string } | null;
 }
 
 export interface AudioCatalogAccess
@@ -65,6 +72,7 @@ export class AudioController
   private sessionId = '';
   private currentUri: string | null = null;
   private unsubscribers: (() => void)[] = [];
+  private prepared: PreparedAudio | null = null;
 
   constructor(private readonly dependencies: AudioControllerDependencies)
   {
@@ -105,19 +113,54 @@ export class AudioController
 
   currentLandmarkId(): string | null
   {
-    return this.state.track?.landmarkId ?? null;
+    const state = this.state.status.state;
+    return state === 'idle' || state === 'ended' || state === 'error' ? null : this.state.track?.landmarkId ?? null;
   }
   /** Loads a landmark's podcast without playing it, so playback starts fast if the walker taps Play. */
   async prepare(landmarkId: string): Promise<void>
   {
-    if (this.isPlaying() || this.state.track?.landmarkId === landmarkId)
+    if (this.state.track !== null || this.prepared?.landmarkId === landmarkId)
     {
       return;
     }
     const podcast = pickPodcast(this.dependencies.catalog.podcastsForLandmark(landmarkId), this.dependencies.preferences());
-    if (podcast !== null)
+    if (podcast === null)
     {
-      await this.loadPodcast(podcast, 0, false);
+      this.discardPrepared();
+      return;
+    }
+    const prepared: PreparedAudio = { landmarkId, podcastId: podcast.id, loaded: null };
+    this.prepared = prepared;
+    const choice = await this.chooseSource(podcast);
+    if (this.prepared !== prepared)
+    {
+      return;
+    }
+    if (choice.kind === 'unavailable')
+    {
+      this.discardPrepared();
+      return;
+    }
+    const { track, metadata } = this.describeTrack(podcast, choice.kind);
+    this.dependencies.engine.setRate(this.dependencies.preferences().playbackRate);
+    await this.dependencies.engine.load(choice.uri, metadata, 0, false);
+    if (this.prepared === prepared)
+    {
+      prepared.loaded = { track, uri: choice.uri };
+    }
+    else if (this.prepared === null && this.state.track === null)
+    {
+      this.dependencies.engine.stop();
+    }
+  }
+
+  // Releases audio prepared for a prompt the user did not accept.
+  discardPrepared(): void
+  {
+    if (this.prepared !== null)
+    {
+      this.prepared = null;
+      this.dependencies.engine.stop();
     }
   }
   /**
@@ -133,8 +176,16 @@ export class AudioController
       await this.dependencies.diagnostics.record('warn', 'audio_no_podcast', `landmark ${landmarkId}`);
       return false;
     }
-    if (this.state.track?.podcastId === podcast.id && this.state.status.state !== 'idle' && this.state.status.state !== 'error')
+    if (this.state.track?.podcastId === podcast.id && this.state.status.state !== 'idle' && this.state.status.state !== 'error' && this.state.status.state !== 'ended')
     {
+      this.dependencies.engine.play();
+      return true;
+    }
+    const engineState = this.dependencies.engine.status().state;
+    const loaded = this.prepared?.podcastId === podcast.id ? this.prepared.loaded : null;
+    if (loaded !== null && engineState !== 'idle' && engineState !== 'error')
+    {
+      this.adoptTrack(loaded.track, loaded.uri);
       this.dependencies.engine.play();
       return true;
     }
@@ -263,23 +314,46 @@ export class AudioController
 
   private async loadPodcast(podcast: CatalogPodcast, startAtSeconds: number, autoPlay: boolean): Promise<boolean>
   {
-    const localUri = await this.dependencies.media.localAudioUri(podcast.id);
-    const choice = chooseAudioSource(localUri, podcast.audioUrl, this.dependencies.connectivity.isOnline());
+    const choice = await this.chooseSource(podcast);
     if (choice.kind === 'unavailable')
     {
       this.update({ lastError: choice.message });
       await this.dependencies.diagnostics.record('warn', 'audio_unavailable_offline');
       return false;
     }
+    const { track, metadata } = this.describeTrack(podcast, choice.kind);
+    this.adoptTrack(track, choice.uri);
+    await this.dependencies.engine.load(choice.uri, metadata, startAtSeconds, autoPlay);
+    return true;
+  }
+
+  // Picks the local file or the stream for a podcast.
+  private async chooseSource(podcast: CatalogPodcast): Promise<AudioSourceChoice>
+  {
+    const localUri = await this.dependencies.media.localAudioUri(podcast.id);
+    return chooseAudioSource(localUri, podcast.audioUrl, this.dependencies.connectivity.isOnline());
+  }
+
+  // Builds the current track and the lock screen metadata for a podcast.
+  private describeTrack(podcast: CatalogPodcast, source: CurrentTrack['source']): { track: CurrentTrack; metadata: TrackMetadata }
+  {
     const landmark = this.dependencies.catalog.landmarkInfo(podcast.landmarkId);
     const landmarkName = landmark?.name ?? '';
-    this.sessionId = `${podcast.id}-${this.dependencies.clock.now()}`;
+    return {
+      track: { podcastId: podcast.id, landmarkId: podcast.landmarkId, title: podcast.title, landmarkName, source },
+      metadata: { title: podcast.title, artist: `Singalore  ·  ${landmarkName}`, artworkUrl: landmark?.thumbnailUrl ?? null },
+    };
+  }
+
+  // Makes a track the current one and starts a new session for it.
+  private adoptTrack(track: CurrentTrack, uri: string): void
+  {
+    this.prepared = null;
+    this.sessionId = `${track.podcastId}-${this.dependencies.clock.now()}`;
     this.startedTrackId = null;
-    this.currentUri = choice.uri;
-    this.update({ track: { podcastId: podcast.id, landmarkId: podcast.landmarkId, title: podcast.title, landmarkName, source: choice.kind }, lastError: null, resumeOffer: null });
+    this.currentUri = uri;
+    this.update({ track, status: this.dependencies.engine.status(), lastError: null, resumeOffer: null });
     this.dependencies.engine.setRate(this.dependencies.preferences().playbackRate);
-    await this.dependencies.engine.load(choice.uri, { title: podcast.title, artist: `Singalore  ·  ${landmarkName}`, artworkUrl: landmark?.thumbnailUrl ?? null }, startAtSeconds, autoPlay);
-    return true;
   }
 
   private async reportPlaybackFailure(source: CurrentTrack['source'], engineMessage: string | null): Promise<void>
@@ -303,13 +377,13 @@ export class AudioController
 
   private handleStatus(status: EngineStatus): void
   {
-    const previous = this.state.status.state;
-    this.update({ status });
     const track = this.state.track;
     if (track === null)
     {
       return;
     }
+    const previous = this.state.status.state;
+    this.update({ status });
     if (status.state === 'playing' && this.startedTrackId !== this.sessionId)
     {
       this.startedTrackId = this.sessionId;
