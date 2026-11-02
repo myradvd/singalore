@@ -13,7 +13,8 @@ import { useAudioStore } from '@/modules/audio/audioStore';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { useRouteStore } from '@/modules/routing/routeStore';
 import { RouteExperience, RouteStripHost } from '../route/RouteExperience';
-import { refreshCatalog, totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { refreshCatalog, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { buildLandmarkPins, buildParkBoundaries, buildParkCenterMarkers } from '@/modules/catalog/mapFeatures';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import { COPY } from '../../copy';
@@ -34,6 +35,7 @@ import { NextUpChip, OutOfRangeNotice, PodcastPrompt } from '../prompt/PodcastPr
 import { Banner } from '../../primitives/Banner';
 import { GpsStatusButton, gpsStatusLabel } from './GpsStatusButton';
 import { MiniPlayer } from '../player/MiniPlayer';
+import { shownEpisodeSeconds } from '../player/playerLabels';
 import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { SummaryCard } from '../summaryCard/SummaryCard';
@@ -75,6 +77,7 @@ export function HomeScreen(props: HomeScreenProps)
   const geofence = useGeofenceStore();
   const debug = useDebugStore();
   const audio = useAudioStore();
+  const preferences = usePreferencesStore((state) => state.preferences);
   const bannerVisible = useDownloadsStore((state) => state.connectivity.bannerVisible);
   const plannedRoute = useRouteStore((state) => state.route);
   const reducedMotion = useReducedMotion();
@@ -361,7 +364,7 @@ export function HomeScreen(props: HomeScreenProps)
         {geofence.prompt !== null && (
           <PodcastPrompt
             landmarkName={catalog.landmarksById.get(geofence.prompt.landmarkId)?.name ?? 'a heritage site'}
-            podcastSeconds={totalPodcastSeconds(catalog, geofence.prompt.landmarkId)}
+            podcastSeconds={shownEpisodeSeconds(catalog, geofence.prompt.landmarkId, preferences)}
             onListen={() => services.geofence.acceptPrompt()}
             onDismiss={() => services.geofence.dismissPrompt()}
           />
@@ -403,7 +406,7 @@ export function HomeScreen(props: HomeScreenProps)
               <SummaryCard
                 landmark={selected}
                 parkName={catalog.parksById.get(selected.parkId)?.name ?? null}
-                podcastSeconds={totalPodcastSeconds(catalog, selected.id)}
+                podcastSeconds={shownEpisodeSeconds(catalog, selected.id, preferences)}
                 description={null}
                 onClose={() => dispatchFlow({ type: 'selectLandmark', landmarkId: null })}
                 headerActions={(

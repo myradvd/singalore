@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAppServices } from '@/composition/AppServicesContext';
 import { routeTitle } from '@/composition/flowEffects';
-import { totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { nextUnvisitedStop } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
@@ -11,6 +11,7 @@ import { shouldAutoStart } from '@/modules/routing/progress';
 import { useRouteStore } from '@/modules/routing/routeStore';
 import type { RouteStop } from '@/modules/routing/routeTypes';
 import { AppModal } from '../../primitives/AppModal';
+import { shownEpisodeSeconds } from '../player/playerLabels';
 
 import { showToast } from '../../toastStore';
 import { NavigationPanel } from './NavigationPanel';
@@ -62,7 +63,7 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
     return landmark === undefined ? [] : [landmark];
   }), [flow.itinerary, catalog.landmarksById]);
   const routeStops: RouteStop[] = stops.map((stop) => ({ landmarkId: stop.id, position: stop.position }));
-  const podcastSeconds = stops.map((stop) => totalPodcastSeconds(catalog, stop.id) ?? 0);
+  const podcastSeconds = stops.map((stop) => shownEpisodeSeconds(catalog, stop.id, preferences) ?? 0);
 
   useEffect(() =>
   {
