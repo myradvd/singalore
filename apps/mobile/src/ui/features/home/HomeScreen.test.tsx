@@ -47,6 +47,29 @@ describe('HomeScreen', () =>
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toContain(COPY.catalogFetchFailed);
   });
 
+  it('shows no toast when the catalog retry succeeds', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    const services = await createTestServices();
+    jest.spyOn(services.catalogSync, 'sync').mockResolvedValue({ kind: 'updated', snapshot: catalogFixture() });
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByText(COPY.emptyCatalogRetry));
+    await act(async () => undefined);
+    expect(useToastStore.getState().toasts).toEqual([]);
+    expect(screen.queryByTestId('empty-catalog')).toBeNull();
+  });
+
+  it('shows no toast when the catalog retry falls back to the cache', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    const services = await createTestServices();
+    jest.spyOn(services.catalogSync, 'sync').mockResolvedValue({ kind: 'failed_using_cache', snapshot: EMPTY_CATALOG, reason: 'offline' });
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByText(COPY.emptyCatalogRetry));
+    await act(async () => undefined);
+    expect(useToastStore.getState().toasts).toEqual([]);
+  });
+
   it('shows the summary card for the selected landmark and closes it', async () =>
   {
     applyCatalogSnapshot(catalogFixture());
