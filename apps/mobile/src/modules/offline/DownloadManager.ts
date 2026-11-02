@@ -140,7 +140,7 @@ export class DownloadManager
   }
 
   /** Marks downloaded packs as update_available when the server's pack has changed. */
-  async checkForUpdates(fetchEtag: (parkId: string) => Promise<string | null>): Promise<void>
+  async checkForUpdates(fetchEtag: (parkId: string, knownEtag: string | null) => Promise<string | null>): Promise<void>
   {
     for (const record of await this.dependencies.repository.all())
     {
@@ -148,7 +148,7 @@ export class DownloadManager
       {
         continue;
       }
-      const latest = await fetchEtag(record.parkId).catch(() => null);
+      const latest = await fetchEtag(record.parkId, record.packEtag).catch(() => null);
       if (latest !== null && latest !== record.packEtag)
       {
         await this.transition(record, 'update_found', {});
