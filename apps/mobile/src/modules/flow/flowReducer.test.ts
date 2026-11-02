@@ -254,7 +254,7 @@ describe('guards and edge cases', () =>
     expect(run(routeEditor, { type: 'clearAll' }, { type: 'minimizeRouteEditor' }).base).toBe('empty');
   });
 
-  it('warns on duplicate stops (UC 1.5.1.1)', () =>
+  it('warns on duplicate stops (UC 1.5.1.2)', () =>
   {
     const result = flowReducer(homeDraft, { type: 'addToItinerary', landmarkId: A });
     expect(result.state.itinerary).toEqual([A, B]);

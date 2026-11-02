@@ -163,7 +163,7 @@ describe('LocationEngine', () =>
     expect(engine.refreshRateHz()).toBeCloseTo(1);
   });
 
-  it('raises waiting_for_signal after 10 s without a fix and logs it once (NFR 6.2, UC 1.1.2.1)', async () =>
+  it('raises waiting_for_signal after 10 s without a fix and logs it once (NFR 6.2, UC 1.1.1.2)', async () =>
   {
     const { engine, device, advance, diagnostics, statuses } = createEngine();
     await engine.setPermission('foreground');

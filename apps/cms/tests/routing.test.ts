@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { decodePolyline6 } from '@singalore/shared';
-import { hashClientKey } from '@/server/rateLimit';
+import { clientKeyFromRequest, hashClientKey } from '@/server/rateLimit';
 import { handleRouting } from '@/server/routeHandlers';
 import { createOsrmProvider, mapOsrmRoute, mapOsrmTable, RoutingProviderError, type RoutingProvider } from '@/server/routingProvider';
 
@@ -59,6 +59,41 @@ function provider(overrides: Partial<RoutingProvider> = {}): RoutingProvider
 
 const allow = { allow: async () => true };
 const post = (body: unknown) => new Request('https://api.test/api/v1/route', { method: 'POST', body: JSON.stringify(body), headers: { 'x-forwarded-for': '203.0.113.9' } });
+
+describe('clientKeyFromRequest (D6)', () =>
+{
+  // Builds a request carrying only the given headers.
+  function requestWithHeaders(headers: Record<string, string>): Request
+  {
+    return new Request('https://cms.test/api/v1/route', { headers });
+  }
+
+  it('forwarded list: returns the first address', () =>
+  {
+    expect(clientKeyFromRequest(requestWithHeaders({ 'x-forwarded-for': '1.1.1.1, 2.2.2.2' }))).toBe('1.1.1.1');
+  });
+
+  it('x-real-ip only: returns that address', () =>
+  {
+    expect(clientKeyFromRequest(requestWithHeaders({ 'x-real-ip': '3.3.3.3' }))).toBe('3.3.3.3');
+  });
+
+  it('no headers (invalid EC): returns unknown', () =>
+  {
+    expect(clientKeyFromRequest(requestWithHeaders({}))).toBe('unknown');
+  });
+
+  it('both headers: the forwarded address wins', () =>
+  {
+    expect(clientKeyFromRequest(requestWithHeaders({ 'x-forwarded-for': '1.1.1.1', 'x-real-ip': '3.3.3.3' }))).toBe('1.1.1.1');
+  });
+
+  // Pins today's output, a possible defect: an empty forwarded header blocks the x-real-ip fallback.
+  it('empty forwarded header with x-real-ip: returns an empty string', () =>
+  {
+    expect(clientKeyFromRequest(requestWithHeaders({ 'x-forwarded-for': '', 'x-real-ip': '3.3.3.3' }))).toBe('');
+  });
+});
 
 describe('route proxy handler', () =>
 {
