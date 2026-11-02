@@ -107,7 +107,7 @@ export async function createAppServices(): Promise<AppServices>
   const db = await openExpoSqliteAdapter(DATABASE_NAME);
   await migrate(db);
   const diagnostics = new DiagnosticsLog(db, clock, events);
-  const api = new ApiClient({ baseUrl: () => effectiveApiBaseUrl(config), fetchImplementation: fetch, clock, events });
+  const api = new ApiClient({ baseUrl: () => effectiveApiBaseUrl(config), fetchImplementation: fetch, clock, events, diagnostics });
   const catalogRepository = new CatalogRepository(db);
   const catalogSync = new CatalogSync(api, catalogRepository, clock, events, diagnostics);
   const spoofSource = new SpoofLocationSource(clock);
