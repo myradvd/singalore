@@ -1,4 +1,4 @@
-import type { CatalogLandmark, CatalogPark } from '@singalore/shared';
+import type { CatalogLandmark, CatalogPark, GeoPoint } from '@singalore/shared';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,17 +6,20 @@ import type { SearchIndex } from '@/modules/catalog/searchIndex';
 import { SEARCH_MINIMUM_QUERY_LENGTH } from '@/modules/catalog/searchIndex';
 import { COPY, categoryLabel } from '../../copy';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import { PrimaryButton } from '../../primitives/Buttons';
+import { PrimaryButton, TextButton } from '../../primitives/Buttons';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { colors, fill, radii, shadows, spacing, touchTargets, typography } from '../../theme/tokens';
+import { recentCatalogSites, SHOWN_RECENT_SITES, suggestedSites } from './searchSuggestions';
 
 export const SEARCH_DEBOUNCE_MS = 300;
 
 type ResultRow =
   | { kind: 'header'; key: string; title: string }
+  | { kind: 'recentHeader'; key: string }
+  | { kind: 'recentSeeAll'; key: string }
   | { kind: 'park'; key: string; park: CatalogPark }
-  | { kind: 'landmark'; key: string; landmark: CatalogLandmark; parkName: string };
+  | { kind: 'landmark'; key: string; testIdPrefix: string; landmark: CatalogLandmark; parkName: string };
 
 export interface SearchOverlayProps
 {
@@ -24,21 +27,49 @@ export interface SearchOverlayProps
   parksById: ReadonlyMap<string, CatalogPark>;
   purpose: 'browse' | 'addToRoute';
   itineraryIds: readonly string[];
+  landmarksById: ReadonlyMap<string, CatalogLandmark>;
+  recentLandmarkIds: readonly string[];
+  userPosition: GeoPoint | null;
+  onClearRecent: () => void;
   onSelectLandmark: (landmarkId: string) => void;
   onSelectPark: (parkId: string) => void;
   onClose: (addLandmarkIds: string[]) => void;
 }
 
-export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelectLandmark, onSelectPark, onClose }: SearchOverlayProps)
+export function SearchOverlay({ index, parksById, purpose, itineraryIds, landmarksById, recentLandmarkIds, userPosition, onClearRecent, onSelectLandmark, onSelectPark, onClose }: SearchOverlayProps)
 {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const results = useMemo(() => index.search(debouncedQuery), [index, debouncedQuery]);
+  const boxEmpty = debouncedQuery.trim().length === 0;
   const rows = useMemo<ResultRow[]>(() =>
   {
     const list: ResultRow[] = [];
+    if (boxEmpty)
+    {
+      // Builds one row of an empty box section.
+      const landmarkRow = (section: 'recent' | 'suggested', landmark: CatalogLandmark): ResultRow => ({ kind: 'landmark', key: `${section}-${landmark.id}`, testIdPrefix: `search-${section}`, landmark, parkName: parksById.get(landmark.parkId)?.name ?? '' });
+      const recent = recentCatalogSites(recentLandmarkIds, landmarksById);
+      if (recent.length > 0)
+      {
+        list.push({ kind: 'recentHeader', key: 'recent-header' });
+        list.push(...(showAllRecent ? recent : recent.slice(0, SHOWN_RECENT_SITES)).map((landmark) => landmarkRow('recent', landmark)));
+        if (!showAllRecent && recent.length > SHOWN_RECENT_SITES)
+        {
+          list.push({ kind: 'recentSeeAll', key: 'recent-see-all' });
+        }
+      }
+      const suggested = suggestedSites({ landmarksById, purpose, itineraryIds, userPosition });
+      if (suggested.length > 0)
+      {
+        list.push({ kind: 'header', key: 'suggested-header', title: COPY.searchSuggestedTitle });
+        list.push(...suggested.map((landmark) => landmarkRow('suggested', landmark)));
+      }
+      return list;
+    }
     if (purpose === 'browse' && results.parks.length > 0)
     {
       list.push({ kind: 'header', key: 'parks', title: 'Heritage parks' });
@@ -47,10 +78,10 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
     if (results.landmarks.length > 0)
     {
       list.push({ kind: 'header', key: 'landmarks', title: 'Landmarks' });
-      list.push(...results.landmarks.map((landmark) => ({ kind: 'landmark' as const, key: `landmark-${landmark.id}`, landmark, parkName: parksById.get(landmark.parkId)?.name ?? '' })));
+      list.push(...results.landmarks.map((landmark) => ({ kind: 'landmark' as const, key: `landmark-${landmark.id}`, testIdPrefix: 'search', landmark, parkName: parksById.get(landmark.parkId)?.name ?? '' })));
     }
     return list;
-  }, [results, parksById, purpose]);
+  }, [results, parksById, purpose, boxEmpty, recentLandmarkIds, landmarksById, showAllRecent, itineraryIds, userPosition]);
   const searched = debouncedQuery.trim().length >= SEARCH_MINIMUM_QUERY_LENGTH;
 
   const togglePicked = (landmarkId: string) =>
@@ -79,6 +110,9 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
           {query.length > 0 && <IconButton icon="close-circle" accessibilityLabel="Clear search" onPress={() => setQuery('')} variant="plain" />}
         </View>
       </View>
+      {debouncedQuery.trim().length === 1 && (
+        <Text testID="search-minimum-length-hint" style={[typography.body, styles.empty]} accessibilityLiveRegion="polite">{COPY.searchMinimumLengthHint}</Text>
+      )}
       {searched && rows.length === 0 && (
         <Text testID="search-empty" style={[typography.body, styles.empty]} accessibilityLiveRegion="polite">{COPY.searchEmpty}</Text>
       )}
@@ -93,6 +127,19 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
           {
             return <Text style={[typography.eyebrow, styles.sectionHeader]} accessibilityRole="header">{item.title.toUpperCase()}</Text>;
           }
+          if (item.kind === 'recentHeader')
+          {
+            return (
+              <View style={styles.recentHeader}>
+                <Text style={[typography.eyebrow, { color: colors.textMuted }]} accessibilityRole="header">{COPY.searchRecentTitle.toUpperCase()}</Text>
+                <TextButton testID="search-recent-clear" label={COPY.searchRecentClear} onPress={onClearRecent} />
+              </View>
+            );
+          }
+          if (item.kind === 'recentSeeAll')
+          {
+            return <TextButton testID="search-recent-see-all" label={COPY.searchRecentSeeAll} onPress={() => setShowAllRecent(true)} style={styles.recentSeeAll} />;
+          }
           if (item.kind === 'park')
           {
             return (
@@ -106,9 +153,10 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
             );
           }
           const inRoute = itineraryIds.includes(item.landmark.id) || picked.includes(item.landmark.id);
+          const pickingForRoute = purpose === 'addToRoute';
           return (
             <View style={styles.result}>
-              <Pressable testID={`search-landmark-${item.landmark.slug}`} accessibilityRole="button" accessibilityLabel={`${item.landmark.name}, ${categoryLabel(item.landmark.category)}`} onPress={() => onSelectLandmark(item.landmark.id)} style={styles.resultPress}>
+              <Pressable testID={`${item.testIdPrefix}-landmark-${item.landmark.slug}`} accessibilityRole="button" accessibilityLabel={`${item.landmark.name}, ${categoryLabel(item.landmark.category)}`} accessibilityState={pickingForRoute ? { selected: inRoute } : undefined} disabled={pickingForRoute && itineraryIds.includes(item.landmark.id)} onPress={() => (pickingForRoute ? togglePicked(item.landmark.id) : onSelectLandmark(item.landmark.id))} style={styles.resultPress}>
                 <Icon name="map-marker" size={24} color={colors.primary} />
                 <View style={styles.resultText}>
                   <Text style={[typography.eyebrow, { color: colors.primary }]}>{categoryLabel(item.landmark.category).toUpperCase()}</Text>
@@ -118,7 +166,7 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
               </Pressable>
               {purpose === 'addToRoute' && (
                 <IconButton
-                  testID={`search-add-${item.landmark.slug}`}
+                  testID={`${item.testIdPrefix}-add-${item.landmark.slug}`}
                   icon={inRoute ? 'check' : 'plus'}
                   accessibilityLabel={inRoute ? `${item.landmark.name} is in your route` : `Add ${item.landmark.name} to route`}
                   onPress={() => togglePicked(item.landmark.id)}
@@ -145,6 +193,8 @@ const styles = StyleSheet.create({
   inputWrap: { flex: 1, minHeight: touchTargets.minimum, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingLeft: spacing.lg, gap: spacing.sm, ...shadows.card },
   input: { flex: 1, color: colors.text, minHeight: touchTargets.minimum },
   empty: { color: colors.textMuted, textAlign: 'center', padding: spacing.xl },
+  recentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: spacing.xl, paddingRight: spacing.md, paddingTop: spacing.md },
+  recentSeeAll: { alignSelf: 'flex-start', marginLeft: spacing.md },
   sectionHeader: { color: colors.textMuted, paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.sm },
   result: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xl, gap: spacing.md, minHeight: touchTargets.minimum + 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   resultPress: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.md },
