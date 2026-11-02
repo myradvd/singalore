@@ -5,7 +5,6 @@ import { AppState } from 'react-native';
 import { bindAudioStore } from '@/modules/audio/audioStore';
 import { bindDownloadsStore } from '@/modules/offline/downloadsStore';
 import { bindRouteStore } from '@/modules/routing/routeStore';
-import { API_PATHS, PackResponse } from '@singalore/shared';
 import { initializeCatalog, refreshCatalog } from '@/modules/catalog/catalogStore';
 import type { CatalogSyncOutcome } from '@/modules/catalog/CatalogSync';
 import { bindNetworkLog } from '@/modules/debug/debugStore';
@@ -52,11 +51,7 @@ async function checkPackUpdates(services: AppServices): Promise<void>
   {
     return;
   }
-  await services.downloads.checkForUpdates(async (parkId) =>
-  {
-    const result = await services.api.get(API_PATHS.pack(parkId), PackResponse);
-    return result.status === 'ok' ? result.data.etag : null;
-  });
+  await services.downloads.checkForUpdates((parkId, knownEtag) => services.packDetails.latestPackEtag(parkId, knownEtag));
 }
 
 export type BootstrapState =

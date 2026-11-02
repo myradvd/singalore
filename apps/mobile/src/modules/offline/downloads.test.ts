@@ -1,10 +1,13 @@
 import type { PackResponse } from '@singalore/shared';
+import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import { migrate } from '@/core/db/migrations';
+import { ApiClient } from '@/core/http/ApiClient';
 import { createMemoryDb } from '@test/support/betterSqliteAdapter';
 import { DownloadedMediaResolver } from './DownloadedMediaResolver';
 import { DOWNLOAD_MESSAGES, DownloadManager, STORAGE_MARGIN_BYTES } from './DownloadManager';
 import { DownloadsRepository } from './DownloadsRepository';
+import { PackDetailsRepository } from './PackDetailsRepository';
 import type { FileTransport, TransferResult } from './FileTransport';
 import { isOfflineReady, nextPackState } from './packStateMachine';
 
@@ -199,6 +202,79 @@ describe('DownloadManager.checkForUpdates callback results (UC 1.4.1.2)', () =>
     const fetchEtag = jest.fn(async () => '"p2"');
     await manager.checkForUpdates(fetchEtag);
     expect(fetchEtag).not.toHaveBeenCalled();
+  });
+});
+
+// Runs one update check against a scripted server and records what it was sent.
+async function checkAgainstServer(respond: () => Response, storedEtag: string | null = '"p1"')
+{
+  const { manager, repository } = await setup();
+  await manager.download(parkId);
+  const record = await repository.get(parkId);
+  await repository.upsert({ ...record!, packEtag: storedEtag }, '2026-11-02T00:00:00.000Z');
+  const sentEtags: (string | undefined)[] = [];
+  const jsonBodiesParsed = { count: 0 };
+  const api = new ApiClient({
+    baseUrl: () => 'https://api.test',
+    fetchImplementation: async (_url, init) =>
+    {
+      sentEtags.push((init?.headers as Record<string, string>)['If-None-Match']);
+      const response = respond();
+      const parseJson = response.json.bind(response);
+      response.json = async () =>
+      {
+        jsonBodiesParsed.count += 1;
+        return parseJson();
+      };
+      return response;
+    },
+    clock: new ManualClock(0),
+    events: createAppEventBus(),
+  });
+  const packDetails = new PackDetailsRepository(createMemoryDb(), api);
+  await manager.checkForUpdates((id, knownEtag) => packDetails.latestPackEtag(id, knownEtag));
+  return { sentEtags, jsonBodiesParsed: jsonBodiesParsed.count, state: (await repository.get(parkId))?.state };
+}
+
+describe('pack update check over HTTP (UC 1.4.1.2)', () =>
+{
+  it('unchanged: 304 parses 0 JSON bodies and stays downloaded', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(null, { status: 304 }));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 0, state: 'downloaded' });
+  });
+
+  it('changed: 200 with a new etag sends the stored etag and becomes update_available', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p2"'))));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 1, state: 'update_available' });
+  });
+
+  it('same etag: 200 with the stored etag stays downloaded', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p1"'))));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 1, state: 'downloaded' });
+  });
+
+  it('null etag: packEtag null sends no header and a 200 becomes update_available', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p2"'))), null);
+    expect(result).toEqual({ sentEtags: [undefined], jsonBodiesParsed: 1, state: 'update_available' });
+  });
+
+  it('exception flow: a network error stays downloaded and nothing throws', async () =>
+  {
+    const result = await checkAgainstServer(() =>
+    {
+      throw new TypeError('Network request failed');
+    });
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 0, state: 'downloaded' });
+  });
+
+  it('exception flow: a 503 stays downloaded and nothing throws', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify({ error: { code: 'internal', message: 'Down' } }), { status: 503 }));
+    expect(result.state).toBe('downloaded');
   });
 });
 
