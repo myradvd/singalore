@@ -20,6 +20,7 @@ import { showToast } from '@/ui/toastStore';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
 import { createAppServices, type AppServices } from './container';
 import { createFlowEffectHandler } from './flowEffects';
+import { bindLateBackgroundGrant } from './tourTracking';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 {
@@ -100,6 +101,7 @@ export function useAppBootstrap(): BootstrapState
           void services.notifier.notify('route_updates', 'You are off the route', 'Open Singalore to return to the path or recalculate.');
         }
       });
+      bindLateBackgroundGrant(services);
       services.audio.start();
       services.geofence.subscribe((geofence) =>
       {
