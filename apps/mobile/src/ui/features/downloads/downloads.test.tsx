@@ -1,19 +1,22 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { ensureNotificationPermission, type LocalNotifier, type NotificationPermission } from '@/core/notifications';
-import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
+import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { useFlowStore } from '@/modules/flow/flowStore';
 import { bindDownloadsStore, useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { catalogFixture, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
+import { useToastStore } from '../../toastStore';
 import { HomeScreen } from '../home/HomeScreen';
 import { DownloadsScreen } from './DownloadsScreen';
 import { formatMegabytes } from '../explore/formatBytes';
 import { downloadProgressFraction, PackActionButton, packStatusLabel } from './PackActionButton';
 
 const mockPush = jest.fn();
+const mockBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn(), dismissTo: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: mockBack, dismissTo: jest.fn() }),
   useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
@@ -117,6 +120,53 @@ describe('download progress bar (UC 1.4.1 step 6)', () =>
   });
 });
 
+describe('Downloads catalog states (UC 1.2.1.4)', () =>
+{
+  beforeEach(() => useToastStore.setState({ toasts: [] }));
+
+  it('shows loading, not the empty title, while the first sync runs with 0 parks', async () =>
+  {
+    useCatalogStore.setState({ status: 'loading', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('catalog-loading')).toBeTruthy();
+    expect(screen.getByText('Loading heritage sites...')).toBeTruthy();
+    expect(screen.queryByText('No heritage map yet')).toBeNull();
+  });
+
+  it('shows the exact Home copy with Try again when unavailable, and no old text', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByText('No heritage map yet')).toBeTruthy();
+    expect(screen.getByText('Try again')).toBeTruthy();
+    expect(screen.queryByText('No parks yet')).toBeNull();
+    expect(screen.queryByTestId('catalog-loading')).toBeNull();
+  });
+
+  it('shows the exact toast when Try again fails with no cache', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    await fireEvent.press(screen.getByText('Try again'));
+    await act(async () => undefined);
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Unable to fetch nearby landmarks. Check your connection.']);
+  });
+
+  it('shows neither state when parks exist, even while loading', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useCatalogStore.setState({ status: 'loading' });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
+    expect(screen.queryByTestId('catalog-loading')).toBeNull();
+    expect(screen.queryByText('No heritage map yet')).toBeNull();
+  });
+});
+
 describe('Downloads UI (UC 1.4.1, A7)', () =>
 {
   beforeEach(() =>
@@ -157,6 +207,30 @@ describe('Downloads UI (UC 1.4.1, A7)', () =>
     await act(async () => useDownloadsStore.setState({ records: { [PARK_CIVIC]: { ...record, state: 'downloaded', doneBytes: 2000, totalBytes: 2000 } } }));
     expect(totalStoredBytes.mock.calls.length).toBe(queriesAtStart + 2);
     await act(async () => useDownloadsStore.setState({ records: {} }));
+  });
+
+  it('uses the shared header: one title and a back button that goes back once', async () =>
+  {
+    mockBack.mockClear();
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('downloads-screen')).toBeTruthy();
+    expect(screen.getAllByRole('header').length).toBe(1);
+    expect(screen.getByText('Manage Downloads')).toBeTruthy();
+    expect(screen.queryByText('Manage downloads')).toBeNull();
+    await fireEvent.press(screen.getByTestId('screen-back'));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the rows, the total and the Wi-Fi toggle inside the shared header', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
+    expect(screen.getByTestId('downloads-total')).toBeTruthy();
+    expect(screen.getByTestId('downloads-wifi-only')).toBeTruthy();
   });
 
   it('shows the unstable connection banner with a shortcut to downloads and Ignore', async () =>
