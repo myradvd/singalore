@@ -3,7 +3,7 @@ import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import type { GeofenceTarget, LocationFix } from '@/core/location';
 import { syntheticLandmarks } from '@test/support/syntheticCatalog';
-import { GeofenceEngine, type GeofenceSettings, type OsGeofencer } from './GeofenceEngine';
+import { GeofenceEngine, type GeofenceSettings, type GeofenceState, type OsGeofencer } from './GeofenceEngine';
 import { exitRadiusMeters, GeofenceEvaluator } from './GeofenceEvaluator';
 import { OS_MIN_REGION_RADIUS_METERS, selectOsWindow, shouldRefreshWindow } from './osWindow';
 import { decidePrompt, DISMISS_SUPPRESSION_MS, type PromptContext } from './promptPolicy';
@@ -354,6 +354,96 @@ describe('played sites rule applies only during the current tour (UC 1.3.2 notes
     events.emit('tour/trackingChanged', { active: true });
     events.emit('location/fix', fixAt(5, 1000));
     expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', triggeredAt: 1000 });
+  });
+});
+
+describe('GeofenceEngine listener updates from location fixes', () =>
+{
+  // Collects the states listeners receive while one fix is handled.
+  function listenerCallsDuringFix(engine: GeofenceEngine, events: ReturnType<typeof createEngine>['events'], fix: LocationFix): GeofenceState[]
+  {
+    const calls: GeofenceState[] = [];
+    const unsubscribe = engine.subscribe((state) => calls.push(state));
+    events.emit('location/fix', fix);
+    unsubscribe();
+    return calls;
+  }
+
+  it('outside to inside: insideLandmarkIds gains the id', () =>
+  {
+    const { engine, events } = createEngine({ geofenceTriggersEnabled: false });
+    events.emit('location/fix', fixAt(500, 1000));
+    expect(listenerCallsDuringFix(engine, events, fixAt(5, 2000)).at(-1)?.insideLandmarkIds).toEqual(['chijmes']);
+  });
+
+  it('confirmed exit: insideLandmarkIds loses the id', () =>
+  {
+    const { engine, events } = createEngine({ geofenceTriggersEnabled: false });
+    events.emit('location/fix', fixAt(5, 1000));
+    events.emit('location/fix', fixAt(80, 2000));
+    expect(listenerCallsDuringFix(engine, events, fixAt(80, 3000)).at(-1)?.insideLandmarkIds).toEqual([]);
+  });
+
+  it('one id swapped for another on the same fix: listeners get the new id', () =>
+  {
+    const { engine, events } = createEngine({ geofenceTriggersEnabled: false });
+    const raffles = destinationPoint(CENTER, 90, 250);
+    events.emit('location/fix', fixAt(5, 1000));
+    events.emit('location/fix', fixAt(80, 2000));
+    const calls = listenerCallsDuringFix(engine, events, { ...fixAt(0, 3000), latitude: raffles.lat, longitude: raffles.lng });
+    expect(calls.at(-1)?.insideLandmarkIds).toEqual(['raffles']);
+  });
+
+  it('10 identical fixes inside a site with no podcast: 0 listener calls on fixes 2 to 10', () =>
+  {
+    const { engine, events } = createEngine();
+    const insideQuiet = { latitude: quiet.latitude, longitude: quiet.longitude, accuracyMeters: 5, source: 'device' as const };
+    events.emit('location/fix', { ...insideQuiet, timestamp: 1000 });
+    for (let second = 2; second <= 10; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, { ...insideQuiet, timestamp: second * 1000 })).toEqual([]);
+    }
+    expect(engine.getState().insideLandmarkIds).toEqual(['quiet']);
+  });
+
+  it('10 identical fixes outside every site: 0 listener calls on fixes 2 to 10', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(500, 1000));
+    for (let second = 2; second <= 10; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, fixAt(500, second * 1000))).toEqual([]);
+    }
+  });
+
+  it('prompt dismissed, 5 more fixes in place: 0 listener calls', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    engine.dismissPrompt();
+    for (let second = 2; second <= 6; second += 1)
+    {
+      expect(listenerCallsDuringFix(engine, events, fixAt(5, second * 1000))).toEqual([]);
+    }
+  });
+
+  it('first of two exit fixes: 0 listener calls until the exit is confirmed', () =>
+  {
+    const { engine, events } = createEngine({ geofenceTriggersEnabled: false });
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(listenerCallsDuringFix(engine, events, fixAt(80, 2000))).toEqual([]);
+    expect(listenerCallsDuringFix(engine, events, fixAt(80, 3000))).toHaveLength(1);
+  });
+
+  it('prompt pending, 5 more fixes in place: each fix still reaches listeners with the prompt', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    for (let second = 2; second <= 6; second += 1)
+    {
+      const calls = listenerCallsDuringFix(engine, events, fixAt(5, second * 1000));
+      expect(calls.map((state) => state.prompt?.landmarkId)).toEqual(['chijmes']);
+    }
   });
 });
 
