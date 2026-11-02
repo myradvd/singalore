@@ -90,6 +90,58 @@ describe('SearchOverlay (A1)', () =>
   });
 });
 
+describe('SearchOverlay minimum length hint (T2-2)', () =>
+{
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it('zero: an empty query shows no hint', async () =>
+  {
+    await renderOverlay();
+    await typeQuery('');
+    expect(screen.queryByText('Type at least 2 letters to search.')).toBeNull();
+    expect(screen.queryByTestId('search-empty')).toBeNull();
+  });
+
+  it('spaces only: a query that trims to 0 characters shows no hint', async () =>
+  {
+    await renderOverlay();
+    await typeQuery('   ');
+    expect(screen.queryByText('Type at least 2 letters to search.')).toBeNull();
+  });
+
+  it('below: "a" shows the exact hint and not the empty results text', async () =>
+  {
+    await renderOverlay();
+    await typeQuery('a');
+    expect(screen.getByText('Type at least 2 letters to search.')).toBeTruthy();
+    expect(screen.queryByTestId('search-empty')).toBeNull();
+  });
+
+  it('spaces: " a " trims to 1 character and shows the hint', async () =>
+  {
+    await renderOverlay();
+    await typeQuery(' a ');
+    expect(screen.getByText('Type at least 2 letters to search.')).toBeTruthy();
+  });
+
+  it('on: "ch" shows no hint and the search runs', async () =>
+  {
+    await renderOverlay();
+    await typeQuery('ch');
+    expect(screen.queryByText('Type at least 2 letters to search.')).toBeNull();
+    expect(screen.getByTestId('search-landmark-chijmes')).toBeTruthy();
+  });
+
+  it('no match: "zzz" shows the exact SRS empty results text and no hint', async () =>
+  {
+    await renderOverlay();
+    await typeQuery('zzz');
+    expect(screen.getByText('No matching locations found. Try a different search.')).toBeTruthy();
+    expect(screen.queryByText('Type at least 2 letters to search.')).toBeNull();
+  });
+});
+
 describe('SearchOverlay row press (UC 1.5.1.1)', () =>
 {
   beforeEach(() => jest.useFakeTimers());
