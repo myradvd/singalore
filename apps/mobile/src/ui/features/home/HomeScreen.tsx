@@ -37,6 +37,7 @@ import { MiniPlayer } from '../player/MiniPlayer';
 import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { SummaryCard } from '../summaryCard/SummaryCard';
+import { useLandmarkDetail } from '../summaryCard/useLandmarkDetail';
 import { BottomBar } from './BottomBar';
 import { HomeHeader } from './HomeHeader';
 import { MapControls } from './MapControls';
@@ -241,6 +242,7 @@ export function HomeScreen(props: HomeScreenProps)
   };
 
   const selected = flow.selectedLandmarkId === null ? undefined : catalog.landmarksById.get(flow.selectedLandmarkId);
+  const selectedDetail = useLandmarkDetail(selected?.id ?? null);
   const expanded = flow.screen === 'expandedMap';
   const showRoute = plannedRoute !== null && (flow.base === 'inProgress' || flow.screen === 'routeConfirm');
   const routeLine = useMemo<GeoJSON.FeatureCollection<GeoJSON.LineString> | null>(() => (!showRoute || plannedRoute === null
@@ -404,7 +406,8 @@ export function HomeScreen(props: HomeScreenProps)
                 landmark={selected}
                 parkName={catalog.parksById.get(selected.parkId)?.name ?? null}
                 podcastSeconds={totalPodcastSeconds(catalog, selected.id)}
-                description={null}
+                description={selectedDetail.description}
+                imageUri={selectedDetail.imageUri}
                 onClose={() => dispatchFlow({ type: 'selectLandmark', landmarkId: null })}
                 headerActions={(
                   <>

@@ -59,6 +59,20 @@ describe('HomeScreen', () =>
     expect(screen.queryByTestId('summary-card')).toBeNull();
   });
 
+  it('passes the downloaded photo and full description to the summary card, and queries nothing before a selection (UC 1.4.2)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices();
+    await services.packDetails.storeDetails({ schemaVersion: 1, parkId: PARK_CIVIC, etag: '"x"', generatedAt: '2026-10-12T00:00:00.000Z', totalBytes: 0, landmarks: [{ landmarkId: LANDMARK_CHIJMES, description: 'The full downloaded history.', imageUrl: null }], podcasts: [], files: [] });
+    await services.packDetails.setLandmarkImageLocalPath(LANDMARK_CHIJMES, 'file:///packs/civic/chijmes.jpg');
+    const landmarkDetail = jest.spyOn(services.packDetails, 'landmarkDetail');
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    expect(landmarkDetail).not.toHaveBeenCalled();
+    await act(async () => dispatchFlow({ type: 'selectLandmark', landmarkId: LANDMARK_CHIJMES }));
+    expect(screen.getByTestId('summary-description').props.children).toBe('The full downloaded history.');
+    expect(screen.getByTestId('summary-thumbnail').props.source[0].uri).toBe('file:///packs/civic/chijmes.jpg');
+  });
+
   it('recenter warns while waiting for GPS and centres when a fix exists (UC 1.1.2)', async () =>
   {
     applyCatalogSnapshot(catalogFixture());
