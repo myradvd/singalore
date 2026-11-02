@@ -18,9 +18,9 @@ import { COPY } from '@/ui/copy';
 import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
+import { bindLateBackgroundGrant } from './tourTracking';
 import { createAppServices, type AppServices } from './container';
 import { createFlowEffectHandler } from './flowEffects';
-import { bindLateBackgroundGrant } from './tourTracking';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 {
