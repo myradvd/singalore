@@ -33,7 +33,7 @@ import { DebugOverlay } from '../debug/DebugOverlay';
 import { NextUpChip, OutOfRangeNotice, PodcastPrompt } from '../prompt/PodcastPrompt';
 import { Banner } from '../../primitives/Banner';
 import { GpsStatusButton, gpsStatusLabel } from './GpsStatusButton';
-import { MiniPlayer } from '../player/MiniPlayer';
+import { MiniPlayerHost } from '../player/MiniPlayer';
 import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { SummaryCard } from '../summaryCard/SummaryCard';
@@ -74,7 +74,9 @@ export function HomeScreen(props: HomeScreenProps)
   const locationState = useLocationStore();
   const geofence = useGeofenceStore();
   const debug = useDebugStore();
-  const audio = useAudioStore();
+  const audioError = useAudioStore((state) => state.lastError);
+  const resumeOffer = useAudioStore((state) => state.resumeOffer);
+  const noAudioTrack = useAudioStore((state) => state.track === null);
   const bannerVisible = useDownloadsStore((state) => state.connectivity.bannerVisible);
   const plannedRoute = useRouteStore((state) => state.route);
   const reducedMotion = useReducedMotion();
@@ -87,12 +89,12 @@ export function HomeScreen(props: HomeScreenProps)
 
   useEffect(() =>
   {
-    if (audio.lastError !== null)
+    if (audioError !== null)
     {
-      showToast(audio.lastError, 'error');
+      showToast(audioError, 'error');
       services.audio.clearError();
     }
-  }, [audio.lastError, services]);
+  }, [audioError, services]);
   const storeLocation = useMemo<UserLocationFix | null>(() => (locationState.lastFix === null
     ? null
     : { latitude: locationState.lastFix.latitude, longitude: locationState.lastFix.longitude, accuracyMeters: locationState.lastFix.accuracyMeters }), [locationState.lastFix]);
@@ -431,16 +433,16 @@ export function HomeScreen(props: HomeScreenProps)
               />
             </Animated.View>
           )}
-          {audio.resumeOffer !== null && audio.track === null && (
+          {resumeOffer !== null && noAudioTrack && (
             <ResumeCard
-              title={audio.resumeOffer.title}
-              landmarkName={audio.resumeOffer.landmarkName}
-              positionMs={audio.resumeOffer.positionMs}
+              title={resumeOffer.title}
+              landmarkName={resumeOffer.landmarkName}
+              positionMs={resumeOffer.positionMs}
               onResume={() => void services.audio.resumeOffered()}
               onDismiss={() => void services.audio.dismissResumeOffer()}
             />
           )}
-          <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push('/player')} onClose={() => void services.audio.stopAndClear()} />
+          <MiniPlayerHost />
         </View>
       )}
 

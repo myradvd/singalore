@@ -99,6 +99,39 @@ describe('HomeScreen audio', () =>
     expect(screen.queryByTestId('mini-player')).toBeNull();
   });
 
+  it('10 position updates: the map does not render again and the mini player updates 10 times', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    const mapPropsBefore = latestMapPropsRef.current;
+    const widths: unknown[] = [];
+    for (let second = 1; second <= 10; second += 1)
+    {
+      await act(async () => services.audio.seekTo(second * 6));
+      widths.push(miniPlayerProgressWidth());
+    }
+    expect(latestMapPropsRef.current === mapPropsBefore).toBe(true);
+    expect(new Set(widths).size).toBe(10);
+    expect(widths.at(-1)).toBe('50%');
+  });
+
+  it('pause pressed: the map does not render again', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    const mapPropsBefore = latestMapPropsRef.current;
+    await fireEvent.press(screen.getByLabelText('Pause'));
+    expect(latestMapPropsRef.current === mapPropsBefore).toBe(true);
+  });
+
+  it('track goes from null to set: Home renders again', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    const mapPropsBefore = latestMapPropsRef.current;
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    expect(latestMapPropsRef.current === mapPropsBefore).toBe(false);
+  });
+
   it('resume offer with no track: shows the resume card', async () =>
   {
     await renderHomeWithAudio();
