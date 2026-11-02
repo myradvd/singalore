@@ -1,6 +1,7 @@
 import { CatalogLandmark, CatalogPark, CatalogPodcast, GeoJsonPolygon, type CatalogResponse } from '@singalore/shared';
 import { z } from 'zod';
 import type { DbAdapter } from '@/core/db/DbAdapter';
+import { upsertMeta } from '@/core/db/meta';
 import type { CatalogSnapshot } from './types';
 
 const ParkRow = z.object({
@@ -78,7 +79,7 @@ export class CatalogRepository
 
   async setMeta(key: string, value: string): Promise<void>
   {
-    await this.db.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', [key, value]);
+    await upsertMeta(this.db, key, value);
   }
 
   async replaceAll(catalog: CatalogResponse, syncedAtIso: string): Promise<void>
@@ -116,8 +117,8 @@ export class CatalogRepository
             podcast.voice, podcast.accent, podcast.lengthClass, podcast.hasTranscript ? 1 : 0],
         );
       }
-      await transaction.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', ['catalog_etag', catalog.etag]);
-      await transaction.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', ['catalog_synced_at', syncedAtIso]);
+      await upsertMeta(transaction, 'catalog_etag', catalog.etag);
+      await upsertMeta(transaction, 'catalog_synced_at', syncedAtIso);
     });
   }
 

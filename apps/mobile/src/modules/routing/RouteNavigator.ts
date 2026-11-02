@@ -2,6 +2,7 @@ import type { GeoPoint } from '@singalore/shared';
 import { z } from 'zod';
 import type { AppEventBus } from '@/core/appEvents';
 import type { DbAdapter } from '@/core/db/DbAdapter';
+import { upsertMeta } from '@/core/db/meta';
 import { computeProgress, OffRouteDetector, type RouteProgress } from './progress';
 import type { PlanResult, RoutePlanner } from './RoutePlanner';
 import type { PlannedRoute, RouteStop } from './routeTypes';
@@ -98,7 +99,7 @@ export class RouteNavigator
   {
     this.offRoute.reset();
     this.update({ status: 'ready', route, fallback: null, failureMessage: null, offRoute: false, progress: null });
-    await this.db.run('insert into meta (key, value) values (?, ?) on conflict(key) do update set value = excluded.value', [CACHE_KEY, JSON.stringify(route)]);
+    await upsertMeta(this.db, CACHE_KEY, JSON.stringify(route));
   }
 
   async restore(): Promise<void>
