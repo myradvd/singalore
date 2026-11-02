@@ -1,5 +1,6 @@
 import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
+import type { DbAdapter } from '@/core/db/DbAdapter';
 import { migrate } from '@/core/db/migrations';
 import { silentDiagnostics } from '@/core/diagnostics';
 import { ApiClient } from '@/core/http/ApiClient';
@@ -130,6 +131,85 @@ describe('CatalogSync', () =>
     expect(await sync.loadCached()).toBeNull();
     await sync.sync();
     expect((await sync.loadCached())?.parks).toHaveLength(2);
+  });
+});
+
+describe('CatalogRepository meta writes', () =>
+{
+  // Opens a migrated database with a repository on top of it.
+  async function metaSetup()
+  {
+    const db = createMemoryDb();
+    await migrate(db);
+    return { db, repository: new CatalogRepository(db) };
+  }
+
+  // Reads every meta row stored under one key.
+  async function metaRows(db: DbAdapter, key: string)
+  {
+    return db.all('select key, value from meta where key = ?', [key]);
+  }
+
+  it('setMeta with a new key inserts one row holding the value', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.setMeta('some_key', 'first');
+    expect(await metaRows(db, 'some_key')).toEqual([{ key: 'some_key', value: 'first' }]);
+    expect(await repository.getMeta('some_key')).toBe('first');
+  });
+
+  it('setMeta with an existing key keeps one row and holds the new value', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.setMeta('some_key', 'first');
+    await repository.setMeta('some_key', 'second');
+    expect(await metaRows(db, 'some_key')).toEqual([{ key: 'some_key', value: 'second' }]);
+  });
+
+  it('setMeta on one key leaves another key unchanged', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.setMeta('other_key', 'other');
+    await repository.setMeta('some_key', 'first');
+    await repository.setMeta('some_key', 'second');
+    expect(await metaRows(db, 'other_key')).toEqual([{ key: 'other_key', value: 'other' }]);
+  });
+
+  it('replaceAll on an empty database inserts the etag and synced at rows', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.replaceAll(catalogFixture('"v1"'), '2026-10-12T00:00:00.000Z');
+    expect(await metaRows(db, 'catalog_etag')).toEqual([{ key: 'catalog_etag', value: '"v1"' }]);
+    expect(await metaRows(db, 'catalog_synced_at')).toEqual([{ key: 'catalog_synced_at', value: '2026-10-12T00:00:00.000Z' }]);
+  });
+
+  it('replaceAll a second time keeps one row per key with the new values', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.replaceAll(catalogFixture('"v1"'), '2026-10-12T00:00:00.000Z');
+    await repository.replaceAll(catalogFixture('"v2"'), '2026-10-13T00:00:00.000Z');
+    expect(await metaRows(db, 'catalog_etag')).toEqual([{ key: 'catalog_etag', value: '"v2"' }]);
+    expect(await metaRows(db, 'catalog_synced_at')).toEqual([{ key: 'catalog_synced_at', value: '2026-10-13T00:00:00.000Z' }]);
+  });
+
+  it('replaceAll failing on its last meta write rolls back the earlier etag update', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await repository.replaceAll(catalogFixture('"v1"'), '2026-10-12T00:00:00.000Z');
+    await db.exec(`create trigger reject_synced_at before insert on meta when new.key = 'catalog_synced_at'
+      begin select raise(abort, 'synced at rejected'); end`);
+    await expect(repository.replaceAll(catalogFixture('"v2"'), '2026-10-13T00:00:00.000Z')).rejects.toThrow('synced at rejected');
+    expect(await repository.getMeta('catalog_etag')).toBe('"v1"');
+    expect(await repository.getMeta('catalog_synced_at')).toBe('2026-10-12T00:00:00.000Z');
+  });
+
+  it('replaceAll failing on its last meta write rolls back a first time etag insert', async () =>
+  {
+    const { db, repository } = await metaSetup();
+    await db.exec(`create trigger reject_synced_at before insert on meta when new.key = 'catalog_synced_at'
+      begin select raise(abort, 'synced at rejected'); end`);
+    await expect(repository.replaceAll(catalogFixture('"v1"'), '2026-10-12T00:00:00.000Z')).rejects.toThrow('synced at rejected');
+    expect(await metaRows(db, 'catalog_etag')).toEqual([]);
   });
 });
 
