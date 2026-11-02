@@ -102,3 +102,113 @@ describe('prompt audio wiring characterisation', () =>
     await settle();
   });
 });
+
+describe('prompt and audio together, with no fake playback provider (UC 1.3.2.1, NFR 1.2, NFR 2.3)', () =>
+{
+  it('not now after a prompt leaves no track, no saved session and an idle engine', async () =>
+  {
+    const { audio, geofence, engine, events, sessions } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    await settle();
+    expect(engine.loads).toHaveLength(1);
+    geofence.dismissPrompt();
+    await settle();
+    expect(audio.getState().track).toBeNull();
+    expect(await sessions.load()).toBeNull();
+    expect(engine.status().state).toBe('idle');
+  });
+
+  it('listen after a prompt starts the prepared episode with exactly one load', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    await settle();
+    geofence.acceptPrompt();
+    await settle();
+    expect(engine.loads).toHaveLength(1);
+    expect(engine.status().state).toBe('playing');
+    expect(audio.getState().track?.landmarkId).toBe(LANDMARK_CHIJMES);
+    expect(geofence.getState().prompt).toBeNull();
+  });
+
+  it('listen pressed before the prepare finishes still gives exactly one load', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    geofence.acceptPrompt();
+    await settle();
+    expect(engine.loads).toHaveLength(1);
+    expect(engine.status().state).toBe('playing');
+  });
+
+  it('re-entry after not now and an exit prompts again', async () =>
+  {
+    const { audio, geofence, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    await settle();
+    geofence.dismissPrompt();
+    events.emit('location/fix', fixAt(80, 2000));
+    events.emit('location/fix', fixAt(80, 3000));
+    events.emit('location/fix', fixAt(5, 4000));
+    expect(geofence.getState().prompt?.landmarkId).toBe(LANDMARK_CHIJMES);
+    await settle();
+  });
+
+  it('fixes while a prompt is pending load the episode only once', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    for (let second = 2; second <= 6; second += 1)
+    {
+      events.emit('location/fix', fixAt(5, second * 1000));
+      await settle();
+    }
+    expect(engine.loads).toHaveLength(1);
+  });
+
+  it('fixes with no prompt load nothing', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    for (let second = 1; second <= 5; second += 1)
+    {
+      events.emit('location/fix', fixAt(500, second * 1000));
+      await settle();
+    }
+    expect(geofence.getState().prompt).toBeNull();
+    expect(engine.loads).toHaveLength(0);
+  });
+
+  it('walking out of the site with a pending prompt releases the prepared episode', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    events.emit('location/fix', fixAt(5, 1000));
+    await settle();
+    events.emit('location/fix', fixAt(80, 2000));
+    events.emit('location/fix', fixAt(80, 3000));
+    expect(geofence.getState().prompt).toBeNull();
+    expect(engine.status().state).toBe('idle');
+  });
+
+  it('a paused episode survives a prompt and its not now, with one load in total (valid EC, no action)', async () =>
+  {
+    const { audio, geofence, engine, events } = await setupRealPair();
+    wirePromptAudio(geofence, audio);
+    await audio.playLandmark(LANDMARK_RAFFLES);
+    audio.togglePlay();
+    events.emit('location/fix', fixAt(5, 1000));
+    await settle();
+    expect(geofence.getState().prompt?.landmarkId).toBe(LANDMARK_CHIJMES);
+    geofence.dismissPrompt();
+    await settle();
+    expect(audio.getState().track?.landmarkId).toBe(LANDMARK_RAFFLES);
+    expect(engine.loads).toHaveLength(1);
+    expect(engine.status().state).toBe('paused');
+  });
+});

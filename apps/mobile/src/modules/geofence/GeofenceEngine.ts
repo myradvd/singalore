@@ -139,8 +139,8 @@ export class GeofenceEngine
     {
       return;
     }
-    this.update({ prompt: null });
     this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: prompt.landmarkId, reason: 'prompt_accepted' });
+    this.update({ prompt: null });
   }
 
   dismissPrompt(): void
