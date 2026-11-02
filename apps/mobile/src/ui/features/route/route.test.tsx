@@ -11,6 +11,7 @@ import type { PlannedRoute } from '@/modules/routing/routeTypes';
 import { createFlowEffectHandler } from '@/composition/flowEffects';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_MARKET, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
+import { useToastStore } from '@/ui/toastStore';
 import { HomeScreen } from '../home/HomeScreen';
 import { RouteExperience } from './RouteExperience';
 import { estimateFromStops } from './routeEstimates';
@@ -143,6 +144,164 @@ describe('confirm panel with a route planned for other stops (UC 1.5.2.5)', () =
     expect(screen.getByTestId('route-error').props.children).toBe('Unable to calculate route. Please try again later.');
     expect(screen.queryByTestId('confirm-distance')).toBeNull();
     expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(true);
+  });
+});
+
+describe('Recalculate during navigation (UC 1.5.4.3, UC 1.5.2.4)', () =>
+{
+  const OFF_ROUTE_POSITION: GeoPoint = { lat: 1.4, lng: 103.9 };
+  const USER_POSITION: GeoPoint = { lat: 1.295, lng: 103.85 };
+  const ROUTE_ERROR = 'Unable to calculate route. Please try again later.';
+  const failingFetch: typeof fetch = async () => new Response(null, { status: 500 });
+  const succeedingFetch: typeof fetch = async () => new Response(JSON.stringify(routeBody));
+
+  beforeEach(() => useToastStore.setState({ toasts: [] }));
+
+  // Feeds two far away fixes 5 seconds apart so the route raises the off route flag.
+  async function raiseOffRoute(services: AppServices): Promise<void>
+  {
+    await act(async () =>
+    {
+      services.routes.handleFix(OFF_ROUTE_POSITION, 1000);
+      services.routes.handleFix(OFF_ROUTE_POSITION, 6000);
+    });
+  }
+
+  // Opens navigation on a tour of two stops with the off route modal showing.
+  async function renderOffRoute(fetchImplementation: typeof fetch, userPosition: GeoPoint | null, visitedLandmarkIds: string[]): Promise<{ services: AppServices; view: Awaited<ReturnType<typeof renderWithServices>> }>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices(fetchImplementation);
+    bindRouteStore(services.routes);
+    configureFlowRuntime({ onEffect: createFlowEffectHandler(services), persist: () => undefined });
+    const itinerary = [LANDMARK_CHIJMES, LANDMARK_RAFFLES];
+    await services.routes.setRoute(plannedRouteFor(itinerary));
+    services.routes.setNavigating(true);
+    useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, base: 'inProgress', screen: 'navigation', itinerary, tourStartedAt: 1, visitedLandmarkIds } });
+    const view = await renderWithServices(services, <RouteExperience userPosition={userPosition} />);
+    await raiseOffRoute(services);
+    expect(screen.getByTestId('off-route-modal')).toBeTruthy();
+    return { services, view };
+  }
+
+  it('fail: API 500 shows the exact error, retry and guide, closes the modal and keeps the old route', async () =>
+  {
+    const { services } = await renderOffRoute(failingFetch, USER_POSITION, []);
+    const oldRoute = services.routes.getState().route;
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(screen.getByTestId('route-error').props.children).toBe(ROUTE_ERROR);
+    expect(screen.getByText('Try again')).toBeTruthy();
+    expect(screen.getByText('Use approximate straight line guide')).toBeTruthy();
+    expect(screen.queryByTestId('off-route-modal')).toBeNull();
+    expect(services.routes.getState().route).toBe(oldRoute);
+    expect(services.routes.getState().navigating).toBe(true);
+  });
+
+  it('fail then off route again: the modal stays hidden so the error options stay reachable', async () =>
+  {
+    const { services } = await renderOffRoute(failingFetch, USER_POSITION, []);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    await raiseOffRoute(services);
+    expect(services.routes.getState().offRoute).toBe(true);
+    expect(screen.queryByTestId('off-route-modal')).toBeNull();
+    expect(screen.getByTestId('route-error')).toBeTruthy();
+  });
+
+  it('success: API 200 replaces the route with one through the remaining stops and shows no error', async () =>
+  {
+    const { services } = await renderOffRoute(succeedingFetch, USER_POSITION, [LANDMARK_CHIJMES]);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(services.routes.getState().route?.stopIds).toEqual([LANDMARK_RAFFLES]);
+    expect(screen.queryByTestId('route-error')).toBeNull();
+    expect(screen.queryByTestId('off-route-modal')).toBeNull();
+    expect(services.routes.getState().navigating).toBe(true);
+  });
+
+  it('guide: pressing the guide after a failure shows the approximate text and clears the error', async () =>
+  {
+    await renderOffRoute(failingFetch, USER_POSITION, []);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    await fireEvent.press(screen.getByTestId('route-fallback'));
+    await flushRouteWork();
+    expect(screen.getByTestId('turn-instruction').props.children).toContain('Approximate guide');
+    expect(screen.queryByTestId('route-error')).toBeNull();
+  });
+
+  it('try again: a retry that succeeds through the remaining stops clears the error', async () =>
+  {
+    const fetchMock = jest.fn(failingFetch);
+    const { services } = await renderOffRoute(fetchMock, USER_POSITION, [LANDMARK_CHIJMES]);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    fetchMock.mockImplementation(succeedingFetch);
+    await fireEvent.press(screen.getByTestId('route-retry'));
+    await flushRouteWork();
+    expect(screen.queryByTestId('route-error')).toBeNull();
+    expect(services.routes.getState().route?.stopIds).toEqual([LANDMARK_RAFFLES]);
+  });
+
+  it('exception flow, no fix: Recalculate shows the GPS toast, keeps the modal and sends no request', async () =>
+  {
+    const fetchMock = jest.fn(succeedingFetch);
+    await renderOffRoute(fetchMock, null, []);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Waiting for GPS signal...']);
+    expect(screen.getByTestId('off-route-modal')).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('boundary, one remaining stop: Recalculate sends one request', async () =>
+  {
+    const fetchMock = jest.fn(succeedingFetch);
+    await renderOffRoute(fetchMock, USER_POSITION, [LANDMARK_CHIJMES]);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('boundary, zero remaining stops: Recalculate sends no request and closes the modal', async () =>
+  {
+    const fetchMock = jest.fn(succeedingFetch);
+    await renderOffRoute(fetchMock, USER_POSITION, [LANDMARK_CHIJMES, LANDMARK_RAFFLES]);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('off-route-modal')).toBeNull();
+  });
+
+  it('planning: while a request runs the old route stays, the text shows and a new off route flag stays hidden', async () =>
+  {
+    const { services } = await renderOffRoute(pendingFetch, USER_POSITION, []);
+    const oldRoute = services.routes.getState().route;
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await flushRouteWork();
+    expect(screen.getByText('Calculating walking route...')).toBeTruthy();
+    await raiseOffRoute(services);
+    expect(services.routes.getState().offRoute).toBe(true);
+    expect(screen.queryByTestId('off-route-modal')).toBeNull();
+    expect(services.routes.getState().route).toBe(oldRoute);
+  });
+
+  it('exit during a request: a late answer leaves navigating false', async () =>
+  {
+    let answerRequest: (response: Response) => void = () => undefined;
+    const { services } = await renderOffRoute(() => new Promise<Response>((resolve) =>
+    {
+      answerRequest = resolve;
+    }), USER_POSITION, []);
+    await fireEvent.press(screen.getByTestId('off-route-recalculate'));
+    await fireEvent.press(screen.getByTestId('nav-exit'));
+    await fireEvent.press(screen.getByTestId('exit-discard'));
+    await flushRouteWork();
+    answerRequest(new Response(JSON.stringify(routeBody)));
+    await flushRouteWork();
+    expect(services.routes.getState().navigating).toBe(false);
+    expect(services.routes.getState().route).toBeNull();
   });
 });
 
