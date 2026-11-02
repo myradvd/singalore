@@ -4,6 +4,8 @@ export const COPY = {
   catalogFetchFailed: 'Unable to fetch nearby landmarks. Check your connection.',
   waitingForGps: 'Waiting for GPS signal...',
   stopAddedToRoute: 'Added to your route.',
+  offRouteMessage: 'Return to the highlighted path, or recalculate a new route from here through your remaining stops.',
+  followRouteLine: 'Follow the highlighted line',
   descriptionUnavailable: 'Description unavailable.',
   emptyCatalogTitle: 'No heritage map yet',
   emptyCatalogMessage: 'Connect to the internet once so Singalore can download the heritage map. After that it keeps working offline.',
