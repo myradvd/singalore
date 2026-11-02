@@ -1,3 +1,4 @@
+import { destinationPoint } from '@singalore/shared';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -11,11 +12,14 @@ import { createTestServices, renderWithServices } from '@test/support/renderWith
 import { HomeScreen } from '../home/HomeScreen';
 import { estimateFromStops } from './routeEstimates';
 
+const mockPush = jest.fn();
+const mockBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: mockBack, dismissTo: jest.fn() }),
   useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
+const RAFFLES_POSITION = { lat: 1.29486, lng: 103.85441 };
 const fixture = JSON.parse(readFileSync(path.join(__dirname, '../../../../test/fixtures/osrm-route.json'), 'utf8')) as { routes: { distance: number; duration: number; geometry: string }[] };
 const recorded = fixture.routes[0];
 const routeBody = { distanceM: recorded?.distance ?? 0, durationS: recorded?.duration ?? 0, geometryPolyline6: recorded?.geometry ?? '', provider: 'x', legs: [] };
@@ -88,5 +92,71 @@ describe('route flow on the home screen (UC 1.5.1 to 1.5.5, A6)', () =>
     expect(screen.getByTestId('route-error').props.children).toBe('Unable to calculate route. Please try again later.');
     await fireEvent.press(screen.getByTestId('route-fallback'));
     expect(services.routes.getState().route?.approximate).toBe(true);
+  });
+});
+
+describe('tour start paths (UC 1.5.3, UC 1.5.4)', () =>
+{
+  beforeEach(() =>
+  {
+    useFlowStore.setState({ state: INITIAL_FLOW_STATE });
+    mockPush.mockClear();
+    mockBack.mockClear();
+  });
+
+  // Renders Home with a planned route on the confirmation panel for one stop.
+  async function renderConfirmation(userLocation: { latitude: number; longitude: number; accuracyMeters: number })
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices(async () => new Response(JSON.stringify(routeBody)));
+    bindRouteStore(services.routes);
+    configureFlowRuntime({ onEffect: createFlowEffectHandler(services), persist: () => undefined });
+    await services.location.setPermission('foreground');
+    await renderWithServices(services, <HomeScreen userLocation={userLocation} />);
+    await act(async () => dispatchFlow({ type: 'startTourFromSite', landmarkId: LANDMARK_RAFFLES }));
+    await act(async () => undefined);
+    await act(async () => undefined);
+    expect(services.routes.getState().status).toBe('ready');
+    return services;
+  }
+
+  // Builds a fix the given distance north of the first stop.
+  function fixMetersFromFirstStop(meters: number)
+  {
+    const point = destinationPoint(RAFFLES_POSITION, 0, meters);
+    return { latitude: point.lat, longitude: point.lng, accuracyMeters: 5 };
+  }
+
+  it('Start Navigation pressed: tour starts and navigation opens', async () =>
+  {
+    await renderConfirmation(fixMetersFromFirstStop(500));
+    expect(useFlowStore.getState().state.screen).toBe('routeConfirm');
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    await act(async () => undefined);
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+    expect(useFlowStore.getState().state.base).toBe('inProgress');
+  });
+
+  it('autodetect on, 49 m from the first stop: tour starts by itself', async () =>
+  {
+    await renderConfirmation(fixMetersFromFirstStop(49));
+    await fireEvent(screen.getByTestId('confirm-autodetect'), 'valueChange', true);
+    await act(async () => undefined);
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('autodetect on, 51 m from the first stop: tour does not start', async () =>
+  {
+    await renderConfirmation(fixMetersFromFirstStop(51));
+    await fireEvent(screen.getByTestId('confirm-autodetect'), 'valueChange', true);
+    await act(async () => undefined);
+    expect(useFlowStore.getState().state.screen).toBe('routeConfirm');
+  });
+
+  it('autodetect off, 49 m from the first stop: tour does not start', async () =>
+  {
+    await renderConfirmation(fixMetersFromFirstStop(49));
+    await act(async () => undefined);
+    expect(useFlowStore.getState().state.screen).toBe('routeConfirm');
   });
 });
