@@ -27,17 +27,26 @@ export function NearbySitesSection({ choice, onChoiceChange }: { choice: Locatio
   const parks = useCatalogStore((state) => state.snapshot.parks);
   const landmarks = useCatalogStore((state) => state.snapshot.landmarks);
   const lastFix = useLocationStore((state) => state.lastFix);
+  const signalLost = useLocationStore((state) => state.status === 'waiting_for_signal');
   const distanceUnit = usePreferencesStore((state) => state.preferences.distanceUnit);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const parkNames = useMemo(() => new Map(parks.map((park) => [park.id, park.name])), [parks]);
   const sites = useMemo(() => landmarks.filter((site) => parkNames.has(site.parkId)).sort((first, second) => first.name.localeCompare(second.name)), [landmarks, parkNames]);
-  const chosenPark = choice?.kind === 'park' ? parks.find((park) => park.id === choice.id) : undefined;
-  const chosenSite = choice?.kind === 'site' ? sites.find((site) => site.id === choice.id) : undefined;
-  const chosenName = chosenSite?.name ?? chosenPark?.name ?? null;
-  const userPosition = lastFix === null ? null : { lat: lastFix.latitude, lng: lastFix.longitude };
-  const origin = chosenSite?.position ?? chosenPark?.center ?? userPosition;
-  const nearbySites = origin === null ? [] : nearestSites(sites, origin, chosenSite?.id ?? null);
+  const chosenLocation = useMemo(() =>
+  {
+    const chosenPark = choice?.kind === 'park' ? parks.find((park) => park.id === choice.id) : undefined;
+    const chosenSite = choice?.kind === 'site' ? sites.find((site) => site.id === choice.id) : undefined;
+    return {
+      name: chosenSite?.name ?? chosenPark?.name ?? null,
+      point: chosenSite?.position ?? chosenPark?.center ?? null,
+      excludedSiteId: chosenSite?.id ?? null,
+    };
+  }, [choice, parks, sites]);
+  const chosenName = chosenLocation.name;
+  const userPosition = useMemo(() => (lastFix === null || signalLost ? null : { lat: lastFix.latitude, lng: lastFix.longitude }), [lastFix, signalLost]);
+  const origin = chosenLocation.point ?? userPosition;
+  const nearbySites = useMemo(() => (origin === null ? [] : nearestSites(sites, origin, chosenLocation.excludedSiteId)), [sites, origin, chosenLocation.excludedSiteId]);
 
   if (sites.length === 0)
   {
