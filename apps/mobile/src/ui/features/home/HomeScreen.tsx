@@ -9,6 +9,8 @@ import { useDebugStore, toggleDebugMode } from '@/modules/debug/debugStore';
 import { exitRadiusMeters } from '@/modules/geofence/GeofenceEvaluator';
 import { useGeofenceStore } from '@/modules/geofence/geofenceStore';
 import { useLocationStore } from '@/modules/location/locationStore';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
+import { clearRecentSites, recordRecentSites } from '@/modules/prefs/recentSites';
 import { useAudioStore } from '@/modules/audio/audioStore';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { useRouteStore } from '@/modules/routing/routeStore';
@@ -79,6 +81,7 @@ export function HomeScreen(props: HomeScreenProps)
   const plannedRoute = useRouteStore((state) => state.route);
   const reducedMotion = useReducedMotion();
   const [savedLandmarkIds, setSavedLandmarkIds] = useState<string[]>([]);
+  const recentLandmarkIds = usePreferencesStore((state) => state.preferences.recentSiteIds);
 
   useFocusEffect(useCallback(() =>
   {
@@ -260,6 +263,11 @@ export function HomeScreen(props: HomeScreenProps)
     const saved = await services.saved.toggleLandmark(landmarkId);
     setSavedLandmarkIds(await services.saved.savedLandmarkIds());
     showToast(saved ? 'Saved to Saved Routes and Sites.' : 'Removed from saved sites.');
+  };
+  // Runs a recent sites write and logs a failure, because a failed write must not interrupt the user.
+  const logRecentSitesFailure = (write: Promise<void>) =>
+  {
+    void write.catch((error: unknown) => services.diagnostics.record('warn', 'recent_sites_write_failed', error instanceof Error ? error.message : 'unknown'));
   };
   const topOverlay = flow.overlays[flow.overlays.length - 1];
   const headerHeight = insets.top + 112;
@@ -486,9 +494,19 @@ export function HomeScreen(props: HomeScreenProps)
           parksById={catalog.parksById}
           purpose={flow.searchPurpose}
           itineraryIds={flow.itinerary}
-          onClose={(addLandmarkIds) => dispatchFlow({ type: 'closeSearch', addLandmarkIds })}
+          landmarksById={catalog.landmarksById}
+          recentLandmarkIds={recentLandmarkIds}
+          userPosition={userPosition}
+          onClearRecent={() => logRecentSitesFailure(clearRecentSites(services.preferences))}
+          onClose={(addLandmarkIds) =>
+          {
+            dispatchFlow({ type: 'closeSearch', addLandmarkIds });
+            const itinerary = useFlowStore.getState().state.itinerary;
+            logRecentSitesFailure(recordRecentSites(services.preferences, addLandmarkIds.filter((landmarkId) => itinerary.includes(landmarkId))));
+          }}
           onSelectLandmark={(landmarkId) =>
           {
+            logRecentSitesFailure(recordRecentSites(services.preferences, [landmarkId]));
             dispatchFlow({ type: 'closeSearch' });
             focusLandmark(landmarkId);
           }}

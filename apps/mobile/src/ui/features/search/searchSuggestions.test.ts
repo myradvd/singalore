@@ -5,21 +5,25 @@ import { recentCatalogSites, SHOWN_RECENT_SITES, SHOWN_SUGGESTED_SITES, suggeste
 const ORIGIN: GeoPoint = { lat: 1.3, lng: 103.8 };
 const baseLandmark = catalogFixture().landmarks[0] as CatalogLandmark;
 
+// Builds a site a given distance north of the origin.
 function siteAt(name: string, metersNorthOfOrigin: number): CatalogLandmark
 {
   return { ...baseLandmark, id: name, slug: name, name, position: destinationPoint(ORIGIN, 0, metersNorthOfOrigin) };
 }
 
+// Builds numbered sites, each 100 m further from the origin.
 function namedSites(count: number): CatalogLandmark[]
 {
   return Array.from({ length: count }, (_, position) => siteAt(`site-${position + 1}`, (position + 1) * 100));
 }
 
+// Indexes sites by id like the catalog store.
 function byId(sites: readonly CatalogLandmark[]): ReadonlyMap<string, CatalogLandmark>
 {
   return new Map(sites.map((site) => [site.id, site]));
 }
 
+// Runs suggestedSites with browse defaults and returns the names.
 function suggestedNames(input: Partial<Parameters<typeof suggestedSites>[0]> & { sites: readonly CatalogLandmark[] }): string[]
 {
   return suggestedSites({ purpose: 'browse', itineraryIds: [], userPosition: null, ...input, landmarksById: byId(input.sites) }).map((site) => site.name);

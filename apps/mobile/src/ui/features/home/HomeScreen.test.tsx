@@ -3,7 +3,9 @@ import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalog
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
-import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_SHELTER, PARK_CIVIC } from '@test/support/catalogFixture';
+import { DEFAULT_PREFERENCES } from '@/modules/prefs/preferencesSchema';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
+import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES, LANDMARK_SHELTER, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
@@ -44,6 +46,117 @@ describe('HomeScreen browse search row (UC 1.5.1.1)', () =>
     await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
     expect(screen.queryByTestId('search-overlay')).toBeNull();
     expect(screen.getByTestId('summary-card')).toBeTruthy();
+  });
+});
+
+describe('HomeScreen recent searches (NFR 3.2)', () =>
+{
+  beforeEach(() =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    usePreferencesStore.setState({ preferences: DEFAULT_PREFERENCES });
+  });
+  afterEach(() =>
+  {
+    jest.useRealTimers();
+    usePreferencesStore.setState({ preferences: DEFAULT_PREFERENCES });
+  });
+
+  // Types a query into the open search box and waits out the debounce.
+  async function typeSearch(text: string): Promise<void>
+  {
+    jest.useFakeTimers();
+    await fireEvent.changeText(screen.getByTestId('search-input'), text);
+    await act(() =>
+    {
+      jest.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
+    });
+    jest.useRealTimers();
+  }
+
+  // Reads what is saved in the device database for recent sites.
+  async function storedRecentSites(services: Awaited<ReturnType<typeof createTestServices>>): Promise<string[]>
+  {
+    return (await services.preferences.load()).recentSiteIds;
+  }
+
+  it('browse: selecting a site saves it, typing alone does not, and it shows next time', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    await typeSearch('Chijmes');
+    expect(await storedRecentSites(services)).toEqual([]);
+    await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
+    expect(await storedRecentSites(services)).toEqual([LANDMARK_CHIJMES]);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    expect(screen.getByTestId('search-recent-landmark-chijmes')).toBeTruthy();
+  });
+
+  it('browse: selecting a park saves nothing', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    await typeSearch('Tiong Bahru');
+    await fireEvent.press(screen.getByTestId('search-park-tiong-bahru'));
+    expect(await storedRecentSites(services)).toEqual([]);
+  });
+
+  it('add to route: picks save only when added on closing, and an undone pick is not saved', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await act(async () => dispatchFlow({ type: 'openSearch', purpose: 'addToRoute' }));
+    await fireEvent.press(screen.getByTestId('search-suggested-landmark-chijmes'));
+    await fireEvent.press(screen.getByTestId('search-suggested-landmark-raffles-hotel'));
+    await fireEvent.press(screen.getByTestId('search-suggested-landmark-tiong-bahru-market'));
+    await fireEvent.press(screen.getByTestId('search-suggested-landmark-tiong-bahru-market'));
+    expect(await storedRecentSites(services)).toEqual([]);
+    await fireEvent.press(screen.getByTestId('search-add-picked'));
+    expect(useFlowStore.getState().state.itinerary).toEqual([LANDMARK_CHIJMES, LANDMARK_RAFFLES]);
+    expect(await storedRecentSites(services)).toEqual([LANDMARK_RAFFLES, LANDMARK_CHIJMES]);
+  });
+
+  it('add to route: closing with no picks saves nothing', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await act(async () => dispatchFlow({ type: 'openSearch', purpose: 'addToRoute' }));
+    await fireEvent.press(screen.getByTestId('close-search'));
+    expect(await storedRecentSites(services)).toEqual([]);
+  });
+
+  it('Clear: removes them all from the screen and the device', async () =>
+  {
+    const services = await createTestServices();
+    await services.preferences.save({ recentSiteIds: [LANDMARK_CHIJMES, LANDMARK_RAFFLES] });
+    usePreferencesStore.setState({ preferences: { ...DEFAULT_PREFERENCES, recentSiteIds: [LANDMARK_CHIJMES, LANDMARK_RAFFLES] } });
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    await fireEvent.press(screen.getByTestId('search-recent-clear'));
+    expect(screen.queryByText('RECENT SEARCHES')).toBeNull();
+    expect(await storedRecentSites(services)).toEqual([]);
+  });
+
+  it('with a fix: Suggested starts with the site nearest the user', async () =>
+  {
+    const shelter = catalogFixture().landmarks.find((landmark) => landmark.id === LANDMARK_SHELTER);
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={{ latitude: shelter?.position.lat ?? 0, longitude: shelter?.position.lng ?? 0, accuracyMeters: 8 }} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    expect(screen.getAllByTestId(/^search-suggested-landmark-/)[0]?.props.testID).toBe('search-suggested-landmark-tiong-bahru-air-raid-shelter');
+  });
+
+  it('NFR 3.2: selecting a site sends nothing about it off the device', async () =>
+  {
+    const fetchSpy = jest.fn<Promise<Response>, Parameters<typeof fetch>>(async () => new Response(null, { status: 503 }));
+    const services = await createTestServices(fetchSpy);
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    await typeSearch('Chijmes');
+    await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
+    expect(await storedRecentSites(services)).toEqual([LANDMARK_CHIJMES]);
+    expect(JSON.stringify(fetchSpy.mock.calls)).not.toContain(LANDMARK_CHIJMES);
   });
 });
 

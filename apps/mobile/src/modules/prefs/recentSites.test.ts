@@ -5,11 +5,13 @@ import { PreferencesRepository } from './PreferencesRepository';
 import { getPreferences, usePreferencesStore } from './preferencesStore';
 import { clearRecentSites, MAX_STORED_RECENT_SITES, recordRecentSites, withRecentSites } from './recentSites';
 
+// Builds a list of distinct site ids.
 function siteIds(count: number): string[]
 {
   return Array.from({ length: count }, (_, position) => `site-${position + 1}`);
 }
 
+// Gives a fresh store and a migrated in memory database.
 async function setup()
 {
   usePreferencesStore.setState({ preferences: DEFAULT_PREFERENCES });
