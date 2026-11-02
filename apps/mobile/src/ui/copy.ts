@@ -2,6 +2,7 @@ export const COPY = {
   searchPlaceholder: 'Search a site or area, e.g. Tiong Bahru',
   searchEmpty: 'No matching locations found. Try a different search.',
   catalogFetchFailed: 'Unable to fetch nearby landmarks. Check your connection.',
+  catalogLoading: 'Loading heritage sites...',
   waitingForGps: 'Waiting for GPS signal...',
   descriptionUnavailable: 'Description unavailable.',
   emptyCatalogTitle: 'No heritage map yet',

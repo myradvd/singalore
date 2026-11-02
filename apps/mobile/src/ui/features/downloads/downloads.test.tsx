@@ -1,10 +1,12 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
+import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { useFlowStore } from '@/modules/flow/flowStore';
 import { bindDownloadsStore, useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { catalogFixture, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
+import { useToastStore } from '../../toastStore';
 import { HomeScreen } from '../home/HomeScreen';
 import { DownloadsScreen } from './DownloadsScreen';
 import { packStatusLabel } from './PackActionButton';
@@ -25,6 +27,53 @@ describe('packStatusLabel', () =>
     expect(packStatusLabel({ ...base, state: 'downloaded' }, 0)).toBe('Available offline  ·  2.0 MB');
     expect(packStatusLabel({ ...base, state: 'failed', errorCode: 'insufficient_storage' }, 0)).toBe('Not enough storage');
     expect(packStatusLabel({ ...base, state: 'update_available' }, 0)).toBe('Update available');
+  });
+});
+
+describe('Downloads catalog states (UC 1.2.1.4)', () =>
+{
+  beforeEach(() => useToastStore.setState({ toasts: [] }));
+
+  it('shows loading, not the empty title, while the first sync runs with 0 parks', async () =>
+  {
+    useCatalogStore.setState({ status: 'loading', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('catalog-loading')).toBeTruthy();
+    expect(screen.getByText('Loading heritage sites...')).toBeTruthy();
+    expect(screen.queryByText('No heritage map yet')).toBeNull();
+  });
+
+  it('shows the exact Home copy with Try again when unavailable, and no old text', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByText('No heritage map yet')).toBeTruthy();
+    expect(screen.getByText('Try again')).toBeTruthy();
+    expect(screen.queryByText('No parks yet')).toBeNull();
+    expect(screen.queryByTestId('catalog-loading')).toBeNull();
+  });
+
+  it('shows the exact toast when Try again fails with no cache', async () =>
+  {
+    useCatalogStore.setState({ status: 'unavailable', snapshot: EMPTY_CATALOG });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    await fireEvent.press(screen.getByText('Try again'));
+    await act(async () => undefined);
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Unable to fetch nearby landmarks. Check your connection.']);
+  });
+
+  it('shows neither state when parks exist, even while loading', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useCatalogStore.setState({ status: 'loading' });
+    await renderWithServices(await createTestServices(), <DownloadsScreen />);
+    await act(async () => undefined);
+    expect(screen.getByTestId(`pack-${PARK_CIVIC}`)).toBeTruthy();
+    expect(screen.queryByTestId('catalog-loading')).toBeNull();
+    expect(screen.queryByText('No heritage map yet')).toBeNull();
   });
 });
 
