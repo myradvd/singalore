@@ -71,7 +71,7 @@ export function NearbySitesSection({ choice, onChoiceChange }: { choice: Locatio
               testID={`nearby-site-${site.slug}`}
               title={site.name}
               subtitle={`${formatDistance(distanceMeters, distanceUnit)}  ·  ${parkNames.get(site.parkId) ?? ''}`}
-              onPress={() => router.push(`/explore/${site.parkId}`)}
+              onPress={() => router.push(`/explore/${site.parkId}?site=${site.id}`)}
             />
           ))}
         </View>
