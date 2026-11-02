@@ -3,10 +3,12 @@ import type { CatalogPodcast } from '@singalore/shared';
 import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import type { TourHistoryEntry } from '@/modules/history/HistoryRepository';
 import { DEFAULT_PREFERENCES } from '@/modules/prefs/preferencesSchema';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
+import { COPY } from '../../copy';
 import { HistoryScreen } from '../history/HistoryScreen';
 import { HomeScreen } from '../home/HomeScreen';
 import { NOT_AVAILABLE_ROUTING, PREFERENCE_SECTIONS } from '../preferences/preferenceSections';
@@ -104,6 +106,74 @@ describe('Tour History', () =>
     await services.history.record({ id: 'tour-1', title: 'Civic walk', landmarkIds: [LANDMARK_CHIJMES], startedAt: '2026-10-12T01:00:00.000Z', endedAt: '2026-10-12T02:00:00.000Z', status: 'completed', completedLandmarkIds: [LANDMARK_CHIJMES] });
     await renderWithServices(services, <HistoryScreen />);
     expect(await screen.findByText('Civic walk')).toBeTruthy();
+  });
+
+  const civicWalkEntry: TourHistoryEntry = { id: 'tour-1', title: 'Civic walk', landmarkIds: [LANDMARK_CHIJMES], startedAt: '2026-10-12T01:00:00.000Z', endedAt: '2026-10-12T02:00:00.000Z', status: 'completed', completedLandmarkIds: [LANDMARK_CHIJMES] };
+
+  it('loading: a pending list shows only the loading text', async () =>
+  {
+    const services = await createTestServices();
+    jest.spyOn(services.history, 'list').mockReturnValue(new Promise(() => undefined));
+    await renderWithServices(services, <HistoryScreen />);
+    expect(screen.getByText(COPY.historyLoading)).toBeTruthy();
+    expect(screen.queryByTestId('history-empty')).toBeNull();
+    expect(screen.queryByTestId('history-error')).toBeNull();
+  });
+
+  it('exception flow: a rejected list shows the error with Retry and not the empty state', async () =>
+  {
+    const services = await createTestServices();
+    jest.spyOn(services.history, 'list').mockRejectedValue(new Error('database closed'));
+    await renderWithServices(services, <HistoryScreen />);
+    expect(await screen.findByTestId('history-error')).toBeTruthy();
+    expect(screen.getByText(COPY.historyLoadFailedTitle)).toBeTruthy();
+    expect(screen.getByText(COPY.historyRetry)).toBeTruthy();
+    expect(screen.queryByTestId('history-empty')).toBeNull();
+    expect(screen.queryByText('No tours yet')).toBeNull();
+    expect(screen.queryByText(COPY.historyLoading)).toBeNull();
+  });
+
+  it('retry: a Retry that succeeds replaces the error with the list', async () =>
+  {
+    const services = await createTestServices();
+    await services.history.record(civicWalkEntry);
+    jest.spyOn(services.history, 'list').mockRejectedValueOnce(new Error('database closed'));
+    await renderWithServices(services, <HistoryScreen />);
+    await fireEvent.press(await screen.findByText(COPY.historyRetry));
+    expect(await screen.findByText('Civic walk')).toBeTruthy();
+    expect(screen.queryByTestId('history-error')).toBeNull();
+  });
+
+  it('retry: a Retry that fails again keeps the error', async () =>
+  {
+    const services = await createTestServices();
+    const list = jest.spyOn(services.history, 'list').mockRejectedValue(new Error('database closed'));
+    await renderWithServices(services, <HistoryScreen />);
+    await fireEvent.press(await screen.findByText(COPY.historyRetry));
+    await act(async () => undefined);
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('history-error')).toBeTruthy();
+    expect(screen.queryByText('No tours yet')).toBeNull();
+  });
+
+  it('empty: a list of 0 entries shows only the empty state', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HistoryScreen />);
+    expect(await screen.findByText('No tours yet')).toBeTruthy();
+    expect(screen.queryByText(COPY.historyLoading)).toBeNull();
+    expect(screen.queryByTestId('history-error')).toBeNull();
+  });
+
+  it('list: a list of 1 entry shows 1 row and no other state', async () =>
+  {
+    const services = await createTestServices();
+    await services.history.record(civicWalkEntry);
+    await renderWithServices(services, <HistoryScreen />);
+    expect((await screen.findAllByText('Civic walk')).length).toBe(1);
+    expect(screen.queryByTestId('history-empty')).toBeNull();
+    expect(screen.queryByTestId('history-error')).toBeNull();
+    expect(screen.queryByText(COPY.historyLoading)).toBeNull();
   });
 });
 
