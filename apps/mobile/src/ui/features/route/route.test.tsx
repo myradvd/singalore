@@ -4,11 +4,13 @@ import path from 'node:path';
 import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { configureFlowRuntime, dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
-import { bindRouteStore } from '@/modules/routing/routeStore';
+import { INITIAL_ROUTE_STATE } from '@/modules/routing/RouteNavigator';
+import { bindRouteStore, useRouteStore } from '@/modules/routing/routeStore';
 import { createFlowEffectHandler } from '@/composition/flowEffects';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { HomeScreen } from '../home/HomeScreen';
+import { NavigationPanel, type NavigationPanelProps } from './NavigationPanel';
 import { estimateFromStops } from './routeEstimates';
 
 jest.mock('expo-router', () => ({
@@ -28,6 +30,37 @@ describe('estimateFromStops', () =>
     expect(estimate.stops).toBe(2);
     expect(estimate.totalSeconds).toBe(estimate.walkSeconds + 180);
     expect(estimate.approximate).toBe(true);
+  });
+});
+
+describe('route line wording (UC 1.5.4 step 2)', () =>
+{
+  const panelProps: NavigationPanelProps = { progress: null, approximate: false, unit: 'metric', remainingSeconds: null, nextStopName: null, nextStopDistanceM: null, visitedCount: 0, stopCount: 2, onPause: jest.fn(), onExit: jest.fn(), onEditRoute: jest.fn() };
+
+  beforeEach(() => useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, screen: 'navigation', base: 'inProgress' } }));
+  afterEach(() => useRouteStore.setState(INITIAL_ROUTE_STATE));
+
+  it('off route modal says highlighted path and keeps the three exact SRS strings (UC 1.5.4.3)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useRouteStore.setState({ offRoute: true });
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    expect(screen.getByText('Return to the highlighted path, or recalculate a new route from here through your remaining stops.')).toBeTruthy();
+    expect(screen.getByText('You are off the route')).toBeTruthy();
+    expect(screen.getByText('Return to path')).toBeTruthy();
+    expect(screen.getByText('Recalculate')).toBeTruthy();
+  });
+
+  it('panel with no step and no next stop says follow the highlighted line', async () =>
+  {
+    await renderWithServices(await createTestServices(), <NavigationPanel {...panelProps} />);
+    expect(screen.getByTestId('turn-instruction').props.children).toBe('Follow the highlighted line');
+  });
+
+  it('panel with no step and a next stop still names the stop', async () =>
+  {
+    await renderWithServices(await createTestServices(), <NavigationPanel {...panelProps} nextStopName="CHIJMES" />);
+    expect(screen.getByTestId('turn-instruction').props.children).toBe('Continue to CHIJMES');
   });
 });
 
