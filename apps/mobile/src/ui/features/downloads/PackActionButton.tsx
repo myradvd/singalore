@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppServices } from '@/composition/AppServicesContext';
+import type { AppServices } from '@/composition/container';
 import { ensureNotificationPermission } from '@/core/notifications';
 import type { DownloadRecord } from '@/modules/offline/DownloadsRepository';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
@@ -34,19 +35,22 @@ export function downloadProgressFraction(doneBytes: number, totalBytes: number):
   return totalBytes > 0 ? Math.min(1, doneBytes / totalBytes) : 0;
 }
 
+// Asks for notification permission, starts the park download and toasts any refusal.
+export async function startParkDownload(services: AppServices, parkId: string): Promise<void>
+{
+  await ensureNotificationPermission(services.notifier);
+  const outcome = await services.downloads.download(parkId);
+  if (outcome.kind !== 'downloaded')
+  {
+    showToast(outcome.message, outcome.kind === 'paused' ? 'info' : 'error');
+  }
+}
+
 export function PackActionButton({ parkId, estimatedBytes }: { parkId: string; estimatedBytes: number })
 {
   const services = useAppServices();
   const record = useDownloadsStore((state) => state.records[parkId]);
-  const start = async () =>
-  {
-    await ensureNotificationPermission(services.notifier);
-    const outcome = await services.downloads.download(parkId);
-    if (outcome.kind !== 'downloaded')
-    {
-      showToast(outcome.message, outcome.kind === 'paused' ? 'info' : 'error');
-    }
-  };
+  const start = () => startParkDownload(services, parkId);
   const state = record?.state ?? 'not_downloaded';
   const progress = record === undefined ? 0 : downloadProgressFraction(record.doneBytes, record.totalBytes);
   return (

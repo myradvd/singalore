@@ -29,7 +29,15 @@ export const COPY = {
   historyRetry: 'Retry',
   noPodcast: 'No podcast for this site yet',
   noPodcastShort: 'No podcast yet',
+  resumeDownload: 'Resume download',
+  downloadingShort: 'Downloading...',
 } as const;
+
+// Builds the label of the site card button that downloads the site's park.
+export function siteDownloadLabel(parkName: string): string
+{
+  return `Download ${parkName}`;
+}
 
 // Builds the section title for a location the user picked.
 export function nearestToLocationTitle(locationName: string): string

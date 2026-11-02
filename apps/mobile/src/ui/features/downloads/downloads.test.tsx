@@ -12,6 +12,7 @@ import { HomeScreen } from '../home/HomeScreen';
 import { DownloadsScreen } from './DownloadsScreen';
 import { formatMegabytes } from '../explore/formatBytes';
 import { downloadProgressFraction, PackActionButton, packStatusLabel } from './PackActionButton';
+import { SiteDownloadButton } from './SiteDownloadButton';
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
@@ -307,6 +308,72 @@ describe('ensureNotificationPermission (UC 1.4.1 step 7, UC 1.3.2.3)', () =>
     const notifier = notifierWithStatus('undetermined');
     notifier.requestPermission.mockRejectedValue(new Error('no activity'));
     await expect(ensureNotificationPermission(notifier)).resolves.toBeUndefined();
+  });
+});
+
+describe('SiteDownloadButton on the site card (UC 1.4.1.6)', () =>
+{
+  // Renders the button with the park in the given state, or no record when state is null.
+  async function renderSite(state: 'not_downloaded' | 'failed' | 'update_available' | 'paused' | 'downloading' | 'downloaded' | null)
+  {
+    const services = await createTestServices();
+    const download = jest.spyOn(services.downloads, 'download').mockResolvedValue({ kind: 'downloaded' });
+    await renderWithServices(services, <SiteDownloadButton parkId={PARK_CIVIC} parkName="Civic Park" />);
+    if (state !== null)
+    {
+      await act(async () => useDownloadsStore.setState({ records: { [PARK_CIVIC]: { parkId: PARK_CIVIC, state, packEtag: null, totalBytes: 1000, doneBytes: 0, errorCode: null, completedAt: null } } }));
+    }
+    return download;
+  }
+
+  afterEach(async () =>
+  {
+    await act(async () => useDownloadsStore.setState({ records: {} }));
+  });
+
+  it.each([
+    ['no record', null, 'Download Civic Park'],
+    ['not_downloaded', 'not_downloaded', 'Download Civic Park'],
+    ['failed', 'failed', 'Download Civic Park'],
+    ['update_available', 'update_available', 'Download Civic Park'],
+    ['paused', 'paused', 'Resume download'],
+  ] as const)('%s shows an enabled "%s" button', async (_name, state, label) =>
+  {
+    await renderSite(state);
+    expect(screen.getByTestId('site-download').props.accessibilityLabel).toBe(label);
+    expect(screen.getByTestId('site-download').props.accessibilityState.disabled).toBe(false);
+  });
+
+  it('downloading shows a disabled "Downloading..." button', async () =>
+  {
+    await renderSite('downloading');
+    expect(screen.getByTestId('site-download').props.accessibilityLabel).toBe('Downloading...');
+    expect(screen.getByTestId('site-download').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('downloaded renders nothing', async () =>
+  {
+    await renderSite('downloaded');
+    expect(screen.queryByTestId('site-download')).toBeNull();
+  });
+
+  it('pressing starts the park download once', async () =>
+  {
+    const download = await renderSite('not_downloaded');
+    await fireEvent.press(screen.getByTestId('site-download'));
+    await act(async () => undefined);
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(download).toHaveBeenCalledWith(PARK_CIVIC);
+  });
+
+  it('a refused download shows its message as an error toast', async () =>
+  {
+    const services = await createTestServices();
+    jest.spyOn(services.downloads, 'download').mockResolvedValue({ kind: 'failed', message: 'Not enough storage. Free up 5 MB and try again.' });
+    await renderWithServices(services, <SiteDownloadButton parkId={PARK_CIVIC} parkName="Civic Park" />);
+    await fireEvent.press(screen.getByTestId('site-download'));
+    await act(async () => undefined);
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Not enough storage. Free up 5 MB and try again.']);
   });
 });
 
