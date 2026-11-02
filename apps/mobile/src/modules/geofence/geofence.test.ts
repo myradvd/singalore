@@ -1,4 +1,4 @@
-import { destinationPoint } from '@singalore/shared';
+import { destinationPoint, haversineDistanceMeters } from '@singalore/shared';
 import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import type { GeofenceTarget, LocationFix } from '@/core/location';
@@ -102,6 +102,88 @@ describe('GeofenceEvaluator (UC 1.3.1)', () =>
       evaluator.evaluate({ latitude: 1.29 + index * 0.00001, longitude: 103.85, accuracyMeters: 8, timestamp: index * 1000, source: 'device' }, targets);
     }
     expect((performance.now() - started) / 1000).toBeLessThan(2);
+  });
+});
+
+describe('GeofenceEvaluator boundary values (N-1, N-3)', () =>
+{
+  const boundaryFix = fixAt(40, 1000);
+  const boundaryDistance = haversineDistanceMeters(boundaryFix.latitude, boundaryFix.longitude, CENTER.lat, CENTER.lng);
+
+  // Returns the test target with the given radius.
+  function targetWithRadius(radiusMeters: number): GeofenceTarget
+  {
+    return { ...chijmes, radiusMeters };
+  }
+
+  // Enters the target, then returns the transitions from two fixes at the boundary distance.
+  function transitionsFromTwoOutsideFixes(radiusMeters: number): ReturnType<GeofenceEvaluator['evaluate']>[]
+  {
+    const evaluator = new GeofenceEvaluator();
+    const target = targetWithRadius(radiusMeters);
+    expect(evaluator.evaluate(fixAt(0, 0), [target])).toHaveLength(1);
+    return [evaluator.evaluate({ ...boundaryFix, timestamp: 1000 }, [target]), evaluator.evaluate({ ...boundaryFix, timestamp: 2000 }, [target])];
+  }
+
+  it('entry, on: fix exactly at the radius enters', () =>
+  {
+    const transitions = new GeofenceEvaluator().evaluate(boundaryFix, [targetWithRadius(boundaryDistance)]);
+    expect(transitions.map((transition) => transition.type)).toEqual(['enter']);
+  });
+
+  it('entry, just inside: fix 0.5 m inside the radius enters', () =>
+  {
+    const transitions = new GeofenceEvaluator().evaluate(boundaryFix, [targetWithRadius(boundaryDistance + 0.5)]);
+    expect(transitions.map((transition) => transition.type)).toEqual(['enter']);
+  });
+
+  it('entry, just outside: fix 0.5 m outside the radius does not enter', () =>
+  {
+    expect(new GeofenceEvaluator().evaluate(boundaryFix, [targetWithRadius(boundaryDistance - 0.5)])).toEqual([]);
+  });
+
+  it('entry, accuracy just below the limit: accuracy 39 m enters', () =>
+  {
+    expect(new GeofenceEvaluator().evaluate(fixAt(5, 0, 39), [chijmes]).map((transition) => transition.type)).toEqual(['enter']);
+  });
+
+  it('exit, on: two fixes exactly at the exit radius do not exit', () =>
+  {
+    expect(exitRadiusMeters(boundaryDistance - 15)).toBe(boundaryDistance);
+    expect(transitionsFromTwoOutsideFixes(boundaryDistance - 15)).toEqual([[], []]);
+  });
+
+  it('exit, just inside: two fixes 0.5 m inside the exit radius do not exit', () =>
+  {
+    expect(transitionsFromTwoOutsideFixes(boundaryDistance - 14.5)).toEqual([[], []]);
+  });
+
+  it('exit, just outside: two fixes 0.5 m outside the exit radius exit on the second fix', () =>
+  {
+    expect(transitionsFromTwoOutsideFixes(boundaryDistance - 15.5)).toEqual([[], [{ type: 'exit', landmarkId: 'chijmes', at: 2000 }]]);
+  });
+
+  it('exit radius, lowest allowed radius: r 15 gives 30 m', () =>
+  {
+    expect(exitRadiusMeters(15)).toBe(30);
+  });
+
+  it('exit radius, just below the margin crossover: r 29 gives 44 m', () =>
+  {
+    expect(exitRadiusMeters(29)).toBe(44);
+  });
+
+  it('exit radius, just above the margin crossover: r 31 gives 46.5 m', () =>
+  {
+    expect(exitRadiusMeters(31)).toBe(46.5);
+  });
+
+  it('exit timing today: outside fixes at 1000 ms and 1001 ms exit on the second fix', () =>
+  {
+    const evaluator = new GeofenceEvaluator();
+    evaluator.evaluate(fixAt(0, 0), [chijmes]);
+    expect(evaluator.evaluate(fixAt(60, 1000), [chijmes])).toEqual([]);
+    expect(evaluator.evaluate(fixAt(60, 1001), [chijmes])).toEqual([{ type: 'exit', landmarkId: 'chijmes', at: 1001 }]);
   });
 });
 
@@ -389,7 +471,7 @@ describe('GeofenceEngine', () =>
     expect(engine.getState().prompt).toMatchObject({ landmarkId: 'raffles', forced: false, openedFromNotification: true });
   });
 
-  it('never prompts for landmarks without a podcast (UC 1.3.2.2)', () =>
+  it('never prompts for landmarks without a podcast (UC 1.3.2.4)', () =>
   {
     const { engine, events } = createEngine();
     events.emit('location/fix', { latitude: quiet.latitude, longitude: quiet.longitude, accuracyMeters: 5, timestamp: 1, source: 'device' });
