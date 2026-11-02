@@ -1,5 +1,8 @@
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAppServices } from '@/composition/AppServicesContext';
 import type { AudioControllerState } from '@/modules/audio/AudioController';
+import { useAudioStore } from '@/modules/audio/audioStore';
 import { IconButton } from '../../primitives/IconButton';
 import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 import { isActivelyPlaying } from './playerLabels';
@@ -42,6 +45,15 @@ export function MiniPlayer({ audio, onTogglePlay, onOpen, onClose }: MiniPlayerP
       </View>
     </View>
   );
+}
+
+// Reads the audio store here so position updates re-render only the mini player.
+export function MiniPlayerHost()
+{
+  const services = useAppServices();
+  const router = useRouter();
+  const audio = useAudioStore();
+  return <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push('/player')} onClose={() => void services.audio.stopAndClear()} />;
 }
 
 const styles = StyleSheet.create({

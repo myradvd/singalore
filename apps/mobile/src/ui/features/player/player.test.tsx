@@ -148,7 +148,7 @@ describe('screens show the episode that plays, and follow preference changes', (
 
   it('park detail row shows 5 min for American, then 3 min after switching to British', async () =>
   {
-    await render(<ParkDetailScreen parkId={PARK_CIVIC} />);
+    await renderWithServices(await createTestServices(), <ParkDetailScreen parkId={PARK_CIVIC} />);
     const chijmesRow = within(screen.getByTestId('park-landmark-chijmes'));
     expect(chijmesRow.getByText('Podcast 5 min')).toBeTruthy();
     await act(async () => setPreferredAccent('British'));
