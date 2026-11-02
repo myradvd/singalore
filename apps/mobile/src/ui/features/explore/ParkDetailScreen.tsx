@@ -12,19 +12,22 @@ import { IconButton } from '../../primitives/IconButton';
 import { ErrorState } from '../../primitives/States';
 import { colors, radii, spacing, typography } from '../../theme/tokens';
 import { RemoteImage } from '../../primitives/RemoteImage';
+import { useLandmarkDetail } from '../summaryCard/useLandmarkDetail';
 
 function LandmarkRow({ landmark, podcastSeconds, onSeeOnMap, trailing }: { landmark: CatalogLandmark; podcastSeconds: number | null; onSeeOnMap: () => void; trailing?: ReactNode })
 {
   const [expanded, setExpanded] = useState(false);
-  const description = landmark.shortDescription.trim().length > 0 ? landmark.shortDescription : COPY.descriptionUnavailable;
+  const detail = useLandmarkDetail(landmark.id);
+  const fullText = (detail.description ?? landmark.shortDescription).trim();
+  const description = fullText.length > 0 ? fullText : COPY.descriptionUnavailable;
   return (
     <View testID={`park-landmark-${landmark.slug}`} style={styles.landmark}>
-      <RemoteImage uri={landmark.thumbnailUrl} style={styles.landmarkImage} accessibilityLabel={`Photo of ${landmark.name}`} />
+      <RemoteImage testID={`park-landmark-image-${landmark.slug}`} uri={detail.imageUri ?? landmark.thumbnailUrl} style={styles.landmarkImage} accessibilityLabel={`Photo of ${landmark.name}`} />
       <View style={styles.landmarkText}>
         <Text style={[typography.eyebrow, { color: colors.primary }]}>{categoryLabel(landmark.category).toUpperCase()}</Text>
         <Text style={[typography.heading, { color: colors.text }]}>{landmark.name}</Text>
         <Text style={[typography.caption, { color: colors.textMuted }]}>{podcastSeconds === null ? COPY.noPodcast : `Podcast ${formatEpisodeLength(podcastSeconds) ?? ''}`.trim()}</Text>
-        <Text style={[typography.body, { color: colors.text }]} numberOfLines={expanded ? undefined : 2}>{description}</Text>
+        <Text testID={`park-landmark-description-${landmark.slug}`} style={[typography.body, { color: colors.text }]} numberOfLines={expanded ? undefined : 2}>{description}</Text>
         <View style={styles.rowActions}>
           <TextButton label={expanded ? 'Show less' : 'Read more'} onPress={() => setExpanded((value) => !value)} />
           <TextButton testID={`see-on-map-${landmark.slug}`} label="See on map" onPress={onSeeOnMap} />
