@@ -50,6 +50,7 @@ export class GeofenceEngine
   private readonly evaluator = new GeofenceEvaluator();
   private readonly dismissedAt = new Map<string, number>();
   private readonly playedInTour = new Set<string>();
+  private tourActive = false;
   private readonly listeners = new Set<(state: GeofenceState) => void>();
   private unsubscribers: (() => void)[] = [];
   private windowCenter: { latitude: number; longitude: number } | null = null;
@@ -67,6 +68,7 @@ export class GeofenceEngine
       events.on('location/fix', (fix) => this.handleFix(fix)),
       events.on('audio/started', ({ landmarkId }) => this.handlePlaybackStarted(landmarkId)),
       events.on('audio/ended', () => this.handlePlaybackEnded()),
+      events.on('tour/trackingChanged', ({ active }) => this.handleTourTrackingChanged(active)),
     ];
   }
 
@@ -229,9 +231,22 @@ export class GeofenceEngine
     this.update(changes);
   }
 
+  // Tracks whether a tour is active, and forgets played sites when it ends.
+  private handleTourTrackingChanged(active: boolean): void
+  {
+    this.tourActive = active;
+    if (!active)
+    {
+      this.playedInTour.clear();
+    }
+  }
+
   private handlePlaybackStarted(landmarkId: string): void
   {
-    this.playedInTour.add(landmarkId);
+    if (this.tourActive)
+    {
+      this.playedInTour.add(landmarkId);
+    }
     const changes: Partial<GeofenceState> = { outOfRange: null };
     if (this.state.nextUpLandmarkId === landmarkId)
     {
