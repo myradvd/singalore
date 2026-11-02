@@ -23,6 +23,7 @@ export interface ActivePrompt
   landmarkId: string;
   triggeredAt: number;
   forced: boolean;
+  openedFromNotification?: true;
 }
 
 export interface GeofenceState
@@ -43,6 +44,7 @@ export interface GeofenceEngineDependencies
   settings: () => GeofenceSettings;
   playback: PlaybackStatusProvider;
   osGeofencer: OsGeofencer;
+  isAppActive: () => boolean;
 }
 /**
  * Control class for geofencing (GeofenceMonitor in the design).
@@ -127,7 +129,25 @@ export class GeofenceEngine
 
   presentPrompt(landmarkId: string): void
   {
-    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false } });
+    if (this.state.prompt?.landmarkId === landmarkId)
+    {
+      return;
+    }
+    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false, openedFromNotification: true } });
+  }
+
+  // Handles a tapped arrival notification: autoplay requests play once, otherwise the prompt shows.
+  openArrivalNotification(landmarkId: string): void
+  {
+    if (this.dependencies.settings().autoplayEnabled)
+    {
+      this.update({ prompt: null });
+      this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
+    }
+    else
+    {
+      this.presentPrompt(landmarkId);
+    }
   }
 
   targetName(landmarkId: string): string
@@ -206,6 +226,11 @@ export class GeofenceEngine
         this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
         return;
       case 'autoplay':
+        if (!this.dependencies.isAppActive())
+        {
+          this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
+          return;
+        }
         this.update({ prompt: null });
         this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
         return;
@@ -265,7 +290,7 @@ export class GeofenceEngine
     {
       return;
     }
-    if (this.dependencies.settings().autoplayEnabled)
+    if (this.dependencies.settings().autoplayEnabled && this.dependencies.isAppActive())
     {
       this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: nextUp, reason: 'queued' });
     }
