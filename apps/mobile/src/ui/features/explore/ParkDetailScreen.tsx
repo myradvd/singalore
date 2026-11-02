@@ -14,6 +14,8 @@ import { colors, radii, spacing, typography } from '../../theme/tokens';
 import { RemoteImage } from '../../primitives/RemoteImage';
 import { useLandmarkDetail } from '../summaryCard/useLandmarkDetail';
 
+const ROW_FITS_CHARACTERS = 80;
+
 function LandmarkRow({ landmark, podcastSeconds, onSeeOnMap, trailing }: { landmark: CatalogLandmark; podcastSeconds: number | null; onSeeOnMap: () => void; trailing?: ReactNode })
 {
   const [expanded, setExpanded] = useState(false);
@@ -29,7 +31,7 @@ function LandmarkRow({ landmark, podcastSeconds, onSeeOnMap, trailing }: { landm
         <Text style={[typography.caption, { color: colors.textMuted }]}>{podcastSeconds === null ? COPY.noPodcast : `Podcast ${formatEpisodeLength(podcastSeconds) ?? ''}`.trim()}</Text>
         <Text testID={`park-landmark-description-${landmark.slug}`} style={[typography.body, { color: colors.text }]} numberOfLines={expanded ? undefined : 2}>{description}</Text>
         <View style={styles.rowActions}>
-          <TextButton label={expanded ? 'Show less' : 'Read more'} onPress={() => setExpanded((value) => !value)} />
+          {fullText.length > ROW_FITS_CHARACTERS && <TextButton testID={`read-more-${landmark.slug}`} label={expanded ? 'Show less' : 'Read more'} onPress={() => setExpanded((value) => !value)} />}
           <TextButton testID={`see-on-map-${landmark.slug}`} label="See on map" onPress={onSeeOnMap} />
         </View>
       </View>

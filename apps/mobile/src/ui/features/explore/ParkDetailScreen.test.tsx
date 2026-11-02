@@ -75,6 +75,36 @@ describe('ParkDetailScreen', () =>
     expect(screen.getByTestId('park-landmark-description-tiong-bahru-air-raid-shelter').props.children).toBe(COPY.descriptionUnavailable);
   });
 
+  it.each([[79, false], [80, false], [81, true]])('Read more with a %i character description: shown is %s (UC 1.2.2)', async (length, shown) =>
+  {
+    const services = await createTestServices();
+    await storeDetail(services, LANDMARK_CHIJMES, 'x'.repeat(length), null);
+    await renderWithServices(services, <ParkDetailScreen parkId={PARK_CIVIC} />);
+    await act(async () => undefined);
+    expect(screen.queryByTestId('read-more-chijmes') !== null).toBe(shown);
+  });
+
+  it('Read more above the limit expands to the full text and toggles to "Show less"', async () =>
+  {
+    const services = await createTestServices();
+    await storeDetail(services, LANDMARK_CHIJMES, 'x'.repeat(81), null);
+    await renderWithServices(services, <ParkDetailScreen parkId={PARK_CIVIC} />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('park-landmark-description-chijmes').props.numberOfLines).toBe(2);
+    expect(screen.getByText('Read more')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('read-more-chijmes'));
+    expect(screen.getByTestId('park-landmark-description-chijmes').props.numberOfLines).toBeUndefined();
+    expect(screen.getByText('Show less')).toBeTruthy();
+  });
+
+  it('no text: "Description unavailable." shows without Read more', async () =>
+  {
+    await renderWithServices(await createTestServices(), <ParkDetailScreen parkId={PARK_TIONG_BAHRU} />);
+    await act(async () => undefined);
+    expect(screen.getByTestId('park-landmark-description-tiong-bahru-air-raid-shelter').props.children).toBe(COPY.descriptionUnavailable);
+    expect(screen.queryByTestId('read-more-tiong-bahru-air-raid-shelter')).toBeNull();
+  });
+
   it('sends See on map requests to the home map', async () =>
   {
     await renderWithServices(await createTestServices(), <ParkDetailScreen parkId={PARK_TIONG_BAHRU} />);
