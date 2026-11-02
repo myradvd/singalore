@@ -447,3 +447,63 @@ describe('prepared audio stays apart from the current track (UC 1.3.2.1, NFR 2.3
     expect(controller.getState().track?.podcastId).toBe(PODCAST_CHIJMES_US);
   });
 });
+
+describe('currentLandmarkId reports only live audio (UC 1.3.2.1)', () =>
+{
+  it('returns the landmark id while playing', async () =>
+  {
+    const { controller } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns the landmark id while buffering', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.buffer();
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns the landmark id while paused', async () =>
+  {
+    const { controller } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    controller.togglePlay();
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns null when the engine is idle with a track still set (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.stop();
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null when the episode has ended (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null after a playback error (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    engine.failNextLoad = true;
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null with no track', async () =>
+  {
+    const { controller } = await setup();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+});
