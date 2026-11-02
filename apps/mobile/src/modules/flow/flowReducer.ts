@@ -1,8 +1,12 @@
+import { MAX_ROUTE_COORDINATES } from '@singalore/shared';
 import type { FlowCachePayload, FlowEffect, FlowEvent, FlowOverlay, FlowState, FlowTransition } from './flowTypes';
 
 export const DUPLICATE_STOP_MESSAGE = 'Landmark is already in your route.';
 export const TOUR_ACTIVE_MESSAGE = 'Exit your current tour before opening another route.';
 export const EMPTY_ROUTE_MESSAGE = 'Add at least one site to continue.';
+export const ROUTE_STOP_LIMIT_MESSAGE = 'A route can have at most 11 stops.';
+
+const MAX_ROUTE_STOPS = MAX_ROUTE_COORDINATES - 1;
 
 export const INITIAL_FLOW_STATE: FlowState = {
   base: 'empty',
@@ -65,6 +69,7 @@ function addStops(state: FlowState, landmarkIds: readonly string[]): FlowTransit
 {
   const effects: FlowEffect[] = [];
   const itinerary = [...state.itinerary];
+  let reachedStopLimit = false;
   for (const landmarkId of landmarkIds)
   {
     if (itinerary.includes(landmarkId))
@@ -72,7 +77,16 @@ function addStops(state: FlowState, landmarkIds: readonly string[]): FlowTransit
       effects.push({ type: 'toast', message: DUPLICATE_STOP_MESSAGE });
       continue;
     }
+    if (itinerary.length >= MAX_ROUTE_STOPS)
+    {
+      reachedStopLimit = true;
+      continue;
+    }
     itinerary.push(landmarkId);
+  }
+  if (reachedStopLimit)
+  {
+    effects.push({ type: 'toast', message: ROUTE_STOP_LIMIT_MESSAGE });
   }
   const base = state.base === 'inProgress' ? 'inProgress' : baseForIdleItinerary(itinerary);
   return { state: { ...state, itinerary, base }, effects };
@@ -178,12 +192,14 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowTransition
       {
         return { state, effects: [{ type: 'toast', message: TOUR_ACTIVE_MESSAGE }] };
       }
-      const itinerary = [...new Set(event.landmarkIds)];
-      if (itinerary.length === 0)
+      const distinctStops = [...new Set(event.landmarkIds)];
+      if (distinctStops.length === 0)
       {
         return { state, effects: [{ type: 'toast', message: EMPTY_ROUTE_MESSAGE }] };
       }
-      return { state: { ...state, base: 'draft', screen: 'routeEditor', overlays: [], modal: null, itinerary, restorePoint: state.itinerary.length > 0 ? [...state.itinerary] : null }, effects: [] };
+      const itinerary = distinctStops.slice(0, MAX_ROUTE_STOPS);
+      const effects: FlowEffect[] = distinctStops.length > MAX_ROUTE_STOPS ? [{ type: 'toast', message: ROUTE_STOP_LIMIT_MESSAGE }] : [];
+      return { state: { ...state, base: 'draft', screen: 'routeEditor', overlays: [], modal: null, itinerary, restorePoint: state.itinerary.length > 0 ? [...state.itinerary] : null }, effects };
     }
     case 'clearAll':
       if (state.itinerary.length === 0)
