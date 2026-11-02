@@ -76,6 +76,8 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
   }), [flow.itinerary, catalog.landmarksById]);
   const routeStops: RouteStop[] = stops.map((stop) => ({ landmarkId: stop.id, position: stop.position }));
   const podcastSeconds = stops.map((stop) => shownEpisodeSeconds(catalog, stop.id, preferences) ?? 0);
+  const routeIsStale = route.route !== null && route.route.stopIds.join(',') !== routeStops.map((stop) => stop.landmarkId).join(',');
+  const confirmStatus = route.status === 'ready' && routeIsStale ? 'idle' : route.status;
 
   // Starts the tour from the confirmation panel, by button or by autodetect.
   const startTour = useCallback(async () =>
@@ -107,11 +109,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
 
   useEffect(() =>
   {
-    if (flow.screen === 'routeConfirm' && route.status === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
+    if (flow.screen === 'routeConfirm' && confirmStatus === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
     {
       void startTour();
     }
-  }, [flow.screen, route.status, userPosition, stops, autodetect, startTour]);
+  }, [flow.screen, confirmStatus, userPosition, stops, autodetect, startTour]);
 
   const autoOrder = async () =>
   {
@@ -144,7 +146,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       return;
     }
     const remaining = routeStops.filter((stop) => !flow.visitedLandmarkIds.includes(stop.landmarkId));
-    void services.routes.plan(userPosition, remaining, false).then(() => services.routes.setNavigating(true));
+    services.routes.returnToPath();
+    if (remaining.length > 0)
+    {
+      void services.routes.plan(userPosition, remaining, false);
+    }
   };
 
   const nextStopId = nextUnvisitedStop(flow);
@@ -175,8 +181,8 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       )}
       {flow.screen === 'routeConfirm' && (
         <RouteConfirmPanel
-          status={route.status}
-          estimate={routeEstimate}
+          status={confirmStatus}
+          estimate={routeIsStale ? null : routeEstimate}
           unit={preferences.distanceUnit}
           failureMessage={route.failureMessage}
           hasFallback={route.fallback !== null}
@@ -206,6 +212,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
           nextStopDistanceM={nextStop === undefined || userPosition === null ? null : distanceBetween(userPosition, nextStop.position)}
           visitedCount={flow.visitedLandmarkIds.length}
           stopCount={flow.itinerary.length}
+          status={route.status}
+          failureMessage={route.failureMessage}
+          hasFallback={route.fallback !== null}
+          onRetry={recalculate}
+          onUseFallback={() => void services.routes.useFallback()}
           onPause={() => dispatchFlow({ type: 'pauseNavigation' })}
           onExit={() => dispatchFlow({ type: 'requestExitNavigation' })}
           onEditRoute={() => dispatchFlow({ type: 'openRouteEditor' })}
@@ -236,7 +247,7 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       />
       <AppModal
         testID="off-route-modal"
-        visible={route.offRoute && flow.screen === 'navigation'}
+        visible={route.offRoute && flow.screen === 'navigation' && route.status === 'ready'}
         title="You are off the route"
         message="Return to the gold path, or recalculate a new route from here through your remaining stops."
         onRequestClose={() => services.routes.returnToPath()}
