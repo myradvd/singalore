@@ -239,7 +239,7 @@ export function HomeScreen(props: HomeScreenProps)
 
   const recenter = () =>
   {
-    if (userLocation === null)
+    if (userLocation === null || locationState.status === 'waiting_for_signal')
     {
       showToast(COPY.waitingForGps);
       return;

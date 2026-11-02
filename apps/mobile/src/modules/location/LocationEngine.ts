@@ -73,7 +73,7 @@ export class LocationEngine
     }
     if (permission === 'services_off')
     {
-      await this.dependencies.diagnostics.record('warn', 'location_services_disabled');
+      await this.dependencies.diagnostics.record('error', 'location_services_disabled');
     }
     await this.restart();
   }
