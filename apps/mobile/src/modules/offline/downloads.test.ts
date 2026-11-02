@@ -166,7 +166,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
     expect((await (await setup({ wifi: false, wifiOnly: false })).manager.download(parkId)).kind).toBe('downloaded');
   });
 
-  it('cancels and asks to free space when storage is short (UC 1.4.1.2)', async () =>
+  it('cancels and asks to free space when storage is short (UC 1.4.1.4)', async () =>
   {
     const { manager, transport, repository } = await setup();
     transport.free = 1500 + STORAGE_MARGIN_BYTES - 2 * 1024 * 1024;
@@ -176,7 +176,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
     expect((await repository.get(parkId))?.errorCode).toBe('insufficient_storage');
   });
 
-  it('pauses on a dropped connection and resumes from where it stopped (UC 1.4.1.1)', async () =>
+  it('pauses on a dropped connection and resumes from where it stopped (UC 1.4.1.3)', async () =>
   {
     const { manager, repository, transport } = await setup();
     transport.script = [() => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];

@@ -81,7 +81,7 @@ describe('RoutePlanner (UC 1.5.2)', () =>
     expect(result.kind === 'planned' && result.route.stopIds).toEqual(['b', 'a']);
   });
 
-  it('fails with the SRS message and offers an approximate straight line (UC 1.5.2.1)', async () =>
+  it('fails with the SRS message and offers an approximate straight line (UC 1.5.2.4)', async () =>
   {
     const { planner: routePlanner } = planner(() => new Response(JSON.stringify({ error: { code: 'upstream_timeout', message: 'x' } }), { status: 504 }));
     const result = await routePlanner.plan(origin, stops, { autoOrder: false });

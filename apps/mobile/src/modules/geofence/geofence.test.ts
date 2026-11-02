@@ -383,7 +383,7 @@ describe('GeofenceEngine', () =>
     expect(second.engine.getState().nextUpLandmarkId).toBeNull();
   });
 
-  it('never prompts for landmarks without a podcast (UC 1.3.2.2)', () =>
+  it('never prompts for landmarks without a podcast (UC 1.3.2.4)', () =>
   {
     const { engine, events } = createEngine();
     events.emit('location/fix', { latitude: quiet.latitude, longitude: quiet.longitude, accuracyMeters: 5, timestamp: 1, source: 'device' });
