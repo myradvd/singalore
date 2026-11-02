@@ -78,13 +78,3 @@ export function landmarksForPark(state: CatalogState, parkId: string): CatalogLa
 {
   return state.snapshot.landmarks.filter((landmark) => landmark.parkId === parkId).sort((a, b) => a.sortOrder - b.sortOrder);
 }
-
-export function totalPodcastSeconds(state: CatalogState, landmarkId: string): number | null
-{
-  const podcasts = state.podcastsByLandmarkId.get(landmarkId);
-  if (podcasts === undefined || podcasts.length === 0)
-  {
-    return null;
-  }
-  return Math.min(...podcasts.map((podcast) => podcast.durationSeconds));
-}
