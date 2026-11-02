@@ -1,10 +1,13 @@
 import type { PackResponse } from '@singalore/shared';
+import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import { migrate } from '@/core/db/migrations';
+import { ApiClient } from '@/core/http/ApiClient';
 import { createMemoryDb } from '@test/support/betterSqliteAdapter';
 import { DownloadedMediaResolver } from './DownloadedMediaResolver';
 import { DOWNLOAD_MESSAGES, DownloadManager, STORAGE_MARGIN_BYTES } from './DownloadManager';
-import { DownloadsRepository } from './DownloadsRepository';
+import { DownloadsRepository, type DownloadRecord } from './DownloadsRepository';
+import { PackDetailsRepository } from './PackDetailsRepository';
 import type { FileTransport, TransferResult } from './FileTransport';
 import { isOfflineReady, nextPackState } from './packStateMachine';
 
@@ -35,6 +38,8 @@ class FakeTransport implements FileTransport
   files = new Map<string, { size: number; md5: string | null }>();
   free = 1_000_000_000;
   script: ((url: string, resumeData: string | null) => TransferResult | 'corrupt')[] = [];
+  progressScript: ((tick: (bytes: number) => void) => void)[] = [];
+  expectedFiles = pack().files;
   calls: { url: string; resumeData: string | null }[] = [];
   deletedDirectories: string[] = [];
 
@@ -46,9 +51,10 @@ class FakeTransport implements FileTransport
   async download(url: string, localPath: string, resumeData: string | null, onProgress: (bytes: number) => void): Promise<TransferResult>
   {
     this.calls.push({ url, resumeData });
+    this.progressScript.shift()?.(onProgress);
     const step = this.script.shift();
     const outcome = step === undefined ? { kind: 'done' as const } : step(url, resumeData);
-    const expected = pack().files.find((file) => file.url === url);
+    const expected = this.expectedFiles.find((file) => file.url === url);
     if (outcome === 'corrupt')
     {
       this.files.set(localPath, { size: expected?.bytes ?? 0, md5: 'f'.repeat(32) });
@@ -103,6 +109,7 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
   const images = new Map<string, string | null>();
   let currentPack = pack();
   const network = { online: options.online ?? true, wifi: options.wifi ?? true };
+  const clock = new ManualClock(0);
   const manager = new DownloadManager({
     repository,
     transport,
@@ -119,11 +126,11 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
       notifications.push(body);
       return true;
     } },
-    clock: new ManualClock(0),
+    clock,
     diagnostics: { record: async () => undefined },
   });
   const resolver = new DownloadedMediaResolver(db, { size: (path) => transport.files.get(path)?.size ?? null });
-  return { manager, repository, transport, notifications, images, resolver, network, setPack: (next: PackResponse) =>
+  return { manager, repository, transport, notifications, images, resolver, network, clock, setPack: (next: PackResponse) =>
   {
     currentPack = next;
   } };
@@ -142,6 +149,310 @@ describe('packStateMachine', () =>
     expect(nextPackState('not_downloaded', 'complete')).toBeNull();
     expect(isOfflineReady('update_available')).toBe(true);
     expect(isOfflineReady('paused')).toBe(false);
+  });
+});
+
+describe('DownloadManager live progress (UC 1.4.1, SRS line 748)', () =>
+{
+  const MEGABYTE = 1024 * 1024;
+
+  // Collects every doneBytes the listener receives for the park, with its state.
+  function recordPublishes(manager: DownloadManager)
+  {
+    const published: { state: string; doneBytes: number }[] = [];
+    manager.subscribe((records) =>
+    {
+      const record = records.find((candidate) => candidate.parkId === parkId);
+      if (record !== undefined)
+      {
+        published.push({ state: record.state, doneBytes: record.doneBytes });
+      }
+    });
+    return published;
+  }
+
+  it.each([
+    ['below throttle', 499, 1],
+    ['on throttle', 500, 2],
+    ['above throttle', 501, 2],
+  ])('%s: ticks %d ms apart give %d publishes', async (_name, gapMilliseconds, expectedPublishes) =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    let publishesFromTicks = -1;
+    transport.progressScript = [(tick) =>
+    {
+      const before = published.length;
+      tick(100);
+      clock.advance(gapMilliseconds);
+      tick(200);
+      publishesFromTicks = published.length - before;
+    }];
+    await manager.download(parkId);
+    expect(publishesFromTicks).toBe(expectedPublishes);
+  });
+
+  it('100 ticks run no repository reads and deliver increasing doneBytes', async () =>
+  {
+    const { manager, repository, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    const repositoryReads = jest.spyOn(repository, 'all');
+    let readsDuringTicks = -1;
+    let bytesFromTicks: number[] = [];
+    transport.progressScript = [(tick) =>
+    {
+      const readsBefore = repositoryReads.mock.calls.length;
+      const publishesBefore = published.length;
+      for (let written = 1; written <= 100; written += 1)
+      {
+        tick(written);
+        clock.advance(500);
+      }
+      readsDuringTicks = repositoryReads.mock.calls.length - readsBefore;
+      bytesFromTicks = published.slice(publishesBefore).map((publish) => publish.doneBytes);
+    }];
+    await manager.download(parkId);
+    expect(readsDuringTicks).toBe(0);
+    expect(bytesFromTicks).toEqual(Array.from({ length: 100 }, (_unused, index) => index + 1));
+  });
+
+  it('resume: done 5 MB and written 1 MB publishes 6 MB', async () =>
+  {
+    const { manager, transport, clock, setPack } = await setup();
+    const files = pack().files.map((file) => ({ ...file, bytes: (file.kind === 'audio' ? 5 : 2) * MEGABYTE }));
+    setPack({ ...pack(), totalBytes: 7 * MEGABYTE, files });
+    transport.expectedFiles = files;
+    transport.script = [() => ({ kind: 'done' }), () => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];
+    await manager.download(parkId);
+    clock.advance(500);
+    const published = recordPublishes(manager);
+    let publishedDuringTick: { state: string; doneBytes: number } | undefined;
+    transport.progressScript = [(tick) =>
+    {
+      tick(MEGABYTE);
+      publishedDuringTick = published.at(-1);
+    }];
+    await manager.download(parkId);
+    expect(publishedDuringTick).toEqual({ state: 'downloading', doneBytes: 6 * MEGABYTE });
+  });
+
+  it('retry: a failed attempt resets written and never goes above total', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    const fromTicks: number[] = [];
+    transport.script = [() => ({ kind: 'failed', reason: 'reset' })];
+    transport.progressScript = [(tick) =>
+    {
+      tick(900);
+      fromTicks.push(published.at(-1)?.doneBytes ?? -1);
+      clock.advance(500);
+    }, (tick) =>
+    {
+      tick(100);
+      fromTicks.push(published.at(-1)?.doneBytes ?? -1);
+      clock.advance(500);
+    }];
+    expect(await manager.download(parkId)).toEqual({ kind: 'downloaded' });
+    expect(fromTicks).toEqual([900, 100]);
+    expect(Math.max(...published.map((publish) => publish.doneBytes))).toBe(1500);
+  });
+
+  it('written above the pack total publishes the total', async () =>
+  {
+    const { manager, transport } = await setup();
+    const published = recordPublishes(manager);
+    let doneBytesFromTick = -1;
+    transport.progressScript = [(tick) =>
+    {
+      tick(1501);
+      doneBytesFromTick = published.at(-1)?.doneBytes ?? -1;
+    }];
+    await manager.download(parkId);
+    expect(doneBytesFromTick).toBe(1500);
+  });
+
+  it('pause: state becomes paused and saved doneBytes is unchanged, and a late tick publishes nothing', async () =>
+  {
+    const { manager, repository, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    let lateTick: (bytes: number) => void = () => undefined;
+    transport.script = [() => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];
+    transport.progressScript = [(tick) =>
+    {
+      tick(300);
+      lateTick = tick;
+      void manager.pause(parkId);
+    }];
+    expect(await manager.download(parkId)).toEqual({ kind: 'paused', message: 'Download paused.' });
+    expect(await repository.get(parkId)).toMatchObject({ state: 'paused', doneBytes: 0 });
+    expect(published.at(-1)).toEqual({ state: 'paused', doneBytes: 0 });
+    const publishesBefore = published.length;
+    clock.advance(500);
+    lateTick(400);
+    expect(published.length).toBe(publishesBefore);
+    expect((await repository.get(parkId))?.doneBytes).toBe(0);
+  });
+
+  it('a last tick swallowed by the throttle does not lose the bytes', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    transport.progressScript = [(tick) =>
+    {
+      tick(1);
+      clock.advance(1);
+    }];
+    await manager.download(parkId);
+    expect(published).toContainEqual({ state: 'downloading', doneBytes: 1000 });
+    expect(published.at(-1)).toEqual({ state: 'downloaded', doneBytes: 1500 });
+  });
+
+  it('a listener that joins mid file with no cached records gets no empty list', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const received: DownloadRecord[][] = [];
+    let receivedFromTick = -1;
+    transport.progressScript = [(tick) =>
+    {
+      manager.subscribe((records) => received.push(records));
+      clock.advance(500);
+      tick(100);
+      receivedFromTick = received.length;
+    }];
+    await manager.download(parkId);
+    expect(receivedFromTick).toBe(0);
+    expect(received.length).toBeGreaterThan(0);
+  });
+});
+
+describe('DownloadManager.checkForUpdates callback results (UC 1.4.1.2)', () =>
+{
+  it('changed: callback returns a new etag, state becomes update_available', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => '"p2"');
+    expect((await repository.get(parkId))?.state).toBe('update_available');
+  });
+
+  it('same etag: callback returns the stored etag, state stays downloaded', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => '"p1"');
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('no answer: callback returns null, state stays downloaded', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await manager.checkForUpdates(async () => null);
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('exception flow: callback rejects, state stays downloaded and nothing throws', async () =>
+  {
+    const { manager, repository } = await setup();
+    await manager.download(parkId);
+    await expect(manager.checkForUpdates(async () =>
+    {
+      throw new Error('network');
+    })).resolves.toBeUndefined();
+    expect((await repository.get(parkId))?.state).toBe('downloaded');
+  });
+
+  it('paused pack: callback is not called, state stays paused', async () =>
+  {
+    const { manager, repository, transport } = await setup();
+    transport.script = [() => ({ kind: 'interrupted', resumeData: null })];
+    await manager.download(parkId);
+    const fetchEtag = jest.fn(async () => '"p2"');
+    await manager.checkForUpdates(fetchEtag);
+    expect(fetchEtag).not.toHaveBeenCalled();
+    expect((await repository.get(parkId))?.state).toBe('paused');
+  });
+
+  it('no packs: callback is not called', async () =>
+  {
+    const { manager } = await setup();
+    const fetchEtag = jest.fn(async () => '"p2"');
+    await manager.checkForUpdates(fetchEtag);
+    expect(fetchEtag).not.toHaveBeenCalled();
+  });
+});
+
+// Runs one update check against a scripted server and records what it was sent.
+async function checkAgainstServer(respond: () => Response, storedEtag: string | null = '"p1"')
+{
+  const { manager, repository } = await setup();
+  await manager.download(parkId);
+  const record = await repository.get(parkId);
+  await repository.upsert({ ...record!, packEtag: storedEtag }, '2026-11-02T00:00:00.000Z');
+  const sentEtags: (string | undefined)[] = [];
+  const jsonBodiesParsed = { count: 0 };
+  const api = new ApiClient({
+    baseUrl: () => 'https://api.test',
+    fetchImplementation: async (_url, init) =>
+    {
+      sentEtags.push((init?.headers as Record<string, string>)['If-None-Match']);
+      const response = respond();
+      const parseJson = response.json.bind(response);
+      response.json = async () =>
+      {
+        jsonBodiesParsed.count += 1;
+        return parseJson();
+      };
+      return response;
+    },
+    clock: new ManualClock(0),
+    events: createAppEventBus(),
+  });
+  const packDetails = new PackDetailsRepository(createMemoryDb(), api);
+  await manager.checkForUpdates((id, knownEtag) => packDetails.latestPackEtag(id, knownEtag));
+  return { sentEtags, jsonBodiesParsed: jsonBodiesParsed.count, state: (await repository.get(parkId))?.state };
+}
+
+describe('pack update check over HTTP (UC 1.4.1.2)', () =>
+{
+  it('unchanged: 304 parses 0 JSON bodies and stays downloaded', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(null, { status: 304 }));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 0, state: 'downloaded' });
+  });
+
+  it('changed: 200 with a new etag sends the stored etag and becomes update_available', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p2"'))));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 1, state: 'update_available' });
+  });
+
+  it('same etag: 200 with the stored etag stays downloaded', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p1"'))));
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 1, state: 'downloaded' });
+  });
+
+  it('null etag: packEtag null sends no header and a 200 becomes update_available', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify(pack('"p2"'))), null);
+    expect(result).toEqual({ sentEtags: [undefined], jsonBodiesParsed: 1, state: 'update_available' });
+  });
+
+  it('exception flow: a network error stays downloaded and nothing throws', async () =>
+  {
+    const result = await checkAgainstServer(() =>
+    {
+      throw new TypeError('Network request failed');
+    });
+    expect(result).toEqual({ sentEtags: ['"p1"'], jsonBodiesParsed: 0, state: 'downloaded' });
+  });
+
+  it('exception flow: a 503 stays downloaded and nothing throws', async () =>
+  {
+    const result = await checkAgainstServer(() => new Response(JSON.stringify({ error: { code: 'internal', message: 'Down' } }), { status: 503 }));
+    expect(result.state).toBe('downloaded');
   });
 });
 
@@ -166,7 +477,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
     expect((await (await setup({ wifi: false, wifiOnly: false })).manager.download(parkId)).kind).toBe('downloaded');
   });
 
-  it('cancels and asks to free space when storage is short (UC 1.4.1.2)', async () =>
+  it('cancels and asks to free space when storage is short (UC 1.4.1.4)', async () =>
   {
     const { manager, transport, repository } = await setup();
     transport.free = 1500 + STORAGE_MARGIN_BYTES - 2 * 1024 * 1024;
@@ -176,7 +487,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
     expect((await repository.get(parkId))?.errorCode).toBe('insufficient_storage');
   });
 
-  it('pauses on a dropped connection and resumes from where it stopped (UC 1.4.1.1)', async () =>
+  it('pauses on a dropped connection and resumes from where it stopped (UC 1.4.1.3)', async () =>
   {
     const { manager, repository, transport } = await setup();
     transport.script = [() => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];

@@ -1,8 +1,10 @@
+import { PODCAST_LENGTH_CLASSES } from '@singalore/shared';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { useAppServices } from '@/composition/AppServicesContext';
+import { availableVariantOptions } from '@/modules/audio/pickPodcast';
 import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import type { Preferences } from '@/modules/prefs/preferencesSchema';
 import { resetPreferences, updatePreferences, usePreferencesStore } from '@/modules/prefs/preferencesStore';
@@ -14,7 +16,7 @@ import { Toggle } from '../../primitives/Toggle';
 import { colors, spacing, typography } from '../../theme/tokens';
 import { showToast } from '../../toastStore';
 import { ScreenScaffold, SectionTitle } from '../shell/ScreenScaffold';
-import { NOT_AVAILABLE_RECOMMENDATIONS, PREFERENCE_SECTIONS, isDirty, type ChoiceOption, type PreferenceField, type PreferenceSection } from './preferenceSections';
+import { NOT_AVAILABLE_RECOMMENDATIONS, PREFERENCE_SECTIONS, capitalise, isDirty, type ChoiceOption, type PreferenceField, type PreferenceSection } from './preferenceSections';
 
 export function PreferencesIndexScreen()
 {
@@ -77,10 +79,11 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
   const [confirmLeave, setConfirmLeave] = useState(false);
   const dirty = isDirty(section, saved, draft);
 
-  const catalogOptions = useMemo(() => ({
-    voice: [...new Set(podcasts.flatMap((podcast) => (podcast.voice === null ? [] : [podcast.voice])))].sort(),
-    accent: [...new Set(podcasts.flatMap((podcast) => (podcast.accent === null ? [] : [podcast.accent])))].sort(),
-  }), [podcasts]);
+  const catalogOptions = useMemo(() =>
+  {
+    const available = availableVariantOptions(podcasts);
+    return { voice: available.voices, accent: available.accents, length: PODCAST_LENGTH_CLASSES.filter((value) => available.lengths.includes(value)) };
+  }, [podcasts]);
 
   const requestBack = () =>
   {
@@ -158,6 +161,10 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
         );
       case 'catalogChoice':
       {
+        if (field.source === 'length')
+        {
+          return renderChoice(field.key, field.label, [{ label: 'Any', value: null }, ...catalogOptions.length.map((value) => ({ label: capitalise(value), value }))]);
+        }
         const values = catalogOptions[field.source];
         return renderChoice(field.key, field.label, [{ label: 'Any', value: null }, ...values.map((value) => ({ label: value, value }))]);
       }
@@ -169,8 +176,6 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
           case 'distanceUnit':
             return renderChoice(field.key, field.label, field.options);
           case 'playbackRate':
-            return renderChoice(field.key, field.label, field.options);
-          case 'preferredLength':
             return renderChoice(field.key, field.label, field.options);
         }
     }

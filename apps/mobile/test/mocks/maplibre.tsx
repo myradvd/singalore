@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, type ReactNode } from 'react';
+import { forwardRef, memo, useEffect, useImperativeHandle, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 interface ChildrenProps
@@ -43,11 +43,22 @@ export const Camera = forwardRef(function Camera(_props: unknown, ref)
   return null;
 });
 
-export const GeoJSONSource = forwardRef(function GeoJSONSource({ children, id }: ChildrenProps & { id?: string }, ref)
+interface SourceMockProps extends ChildrenProps
 {
+  id?: string;
+  data?: unknown;
+  onPress?: (event: unknown) => void;
+}
+
+export const sourceRenders: SourceMockProps[] = [];
+
+// Wrapped in memo like the real source, and each logged render stands for one JSON.stringify of its data.
+export const GeoJSONSource = memo(forwardRef(function GeoJSONSource(props: SourceMockProps, ref)
+{
+  sourceRenders.push(props);
   useImperativeHandle(ref, () => ({ getClusterExpansionZoom: async () => 16 }));
-  return <View testID={`source-${id ?? 'unknown'}`}>{children}</View>;
-});
+  return <View testID={`source-${props.id ?? 'unknown'}`}>{props.children}</View>;
+}));
 
 export function RasterSource({ children }: ChildrenProps)
 {

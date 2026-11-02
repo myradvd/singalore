@@ -1,8 +1,9 @@
 import { buildManeuverWithDistance, formatDistance, formatDurationShort, maneuverArrow, type DistanceUnit, type ManeuverArrow } from '@singalore/shared';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProgress } from '@/modules/routing/progress';
-import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
+import { COPY } from '../../copy';
+import { PrimaryButton, SecondaryButton, TextButton } from '../../primitives/Buttons';
 import { Card } from '../../primitives/Card';
 import { Icon, type IconName } from '../../primitives/Icon';
 import { StatTile } from '../../primitives/StatTile';
@@ -31,6 +32,11 @@ export interface NavigationPanelProps
   nextStopDistanceM: number | null;
   visitedCount: number;
   stopCount: number;
+  status: 'idle' | 'planning' | 'ready' | 'failed';
+  failureMessage: string | null;
+  hasFallback: boolean;
+  onRetry: () => void;
+  onUseFallback: () => void;
   onPause: () => void;
   onExit: () => void;
   onEditRoute: () => void;
@@ -43,7 +49,7 @@ export function NavigationPanel(props: NavigationPanelProps)
   const instruction = props.approximate
     ? `Head towards ${props.nextStopName ?? 'your next stop'}. Approximate guide, no turn by turn directions.`
     : step === null
-      ? (props.nextStopName === null ? 'Follow the gold line' : `Continue to ${props.nextStopName}`)
+      ? (props.nextStopName === null ? COPY.followRouteLine : `Continue to ${props.nextStopName}`)
       : buildManeuverWithDistance({ type: step.maneuver.type, modifier: step.maneuver.modifier, name: step.name, exit: step.maneuver.exit }, props.progress?.distanceToNextManeuverM ?? 0, props.unit);
   const arrow: ManeuverArrow = step === null || props.approximate ? 'straight' : maneuverArrow({ type: step.maneuver.type, modifier: step.maneuver.modifier, name: step.name });
   return (
@@ -54,6 +60,21 @@ export function NavigationPanel(props: NavigationPanelProps)
             <Icon name={ARROW_ICONS[arrow]} size={36} color={colors.accent} />
             <Text testID="turn-instruction" style={[typography.heading, { color: colors.text, flex: 1 }]} accessibilityLiveRegion="polite">{instruction}</Text>
           </View>
+          {props.status === 'planning' && (
+            <View style={styles.statusRow}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[typography.body, { color: colors.textMuted }]}>Calculating walking route...</Text>
+            </View>
+          )}
+          {props.status === 'failed' && (
+            <View style={{ gap: spacing.xs }}>
+              <Text testID="route-error" style={[typography.body, { color: colors.danger }]} accessibilityLiveRegion="polite">{props.failureMessage}</Text>
+              <View style={styles.statusRow}>
+                <TextButton testID="route-retry" label="Try again" onPress={props.onRetry} />
+                {props.hasFallback && <TextButton testID="route-fallback" label="Use approximate straight line guide" onPress={props.onUseFallback} />}
+              </View>
+            </View>
+          )}
           <View style={styles.stats}>
             <StatTile value={props.remainingSeconds === null ? '--' : formatDurationShort(props.remainingSeconds)} label="Remaining" />
             <StatTile value={props.nextStopDistanceM === null ? '--' : formatDistance(props.nextStopDistanceM, props.unit)} label="Next stop" />
@@ -80,6 +101,7 @@ const styles = StyleSheet.create({
   top: { position: 'absolute', left: spacing.md, right: spacing.md },
   turnCard: { gap: spacing.md },
   turnRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   stats: { flexDirection: 'row' },
   buttons: { flexDirection: 'row', gap: spacing.sm },
   bottom: { position: 'absolute', left: spacing.md, right: spacing.md },

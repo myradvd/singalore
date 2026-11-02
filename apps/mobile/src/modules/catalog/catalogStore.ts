@@ -9,14 +9,12 @@ export type CatalogStatus = 'loading' | 'ready' | 'unavailable';
 export interface CatalogState
 {
   status: CatalogStatus;
-  syncing: boolean;
   snapshot: CatalogSnapshot;
   searchIndex: SearchIndex;
   parksById: Map<string, CatalogPark>;
   landmarksById: Map<string, CatalogLandmark>;
   podcastsByLandmarkId: Map<string, CatalogPodcast[]>;
   podcastLandmarkIds: Set<string>;
-  lastOutcome: CatalogSyncOutcome['kind'] | null;
 }
 
 function indexSnapshot(snapshot: CatalogSnapshot): Pick<CatalogState, 'snapshot' | 'searchIndex' | 'parksById' | 'landmarksById' | 'podcastsByLandmarkId' | 'podcastLandmarkIds'>
@@ -40,8 +38,6 @@ function indexSnapshot(snapshot: CatalogSnapshot): Pick<CatalogState, 'snapshot'
 
 export const useCatalogStore = create<CatalogState>(() => ({
   status: 'loading',
-  syncing: false,
-  lastOutcome: null,
   ...indexSnapshot(EMPTY_CATALOG),
 }));
 
@@ -62,29 +58,17 @@ export async function initializeCatalog(sync: CatalogSync): Promise<CatalogSyncO
 
 export async function refreshCatalog(sync: CatalogSync): Promise<CatalogSyncOutcome>
 {
-  useCatalogStore.setState({ syncing: true });
   const outcome = await sync.sync();
   if (outcome.kind === 'failed_no_cache')
   {
-    useCatalogStore.setState({ syncing: false, lastOutcome: outcome.kind, status: useCatalogStore.getState().status === 'ready' ? 'ready' : 'unavailable' });
+    useCatalogStore.setState({ status: useCatalogStore.getState().status === 'ready' ? 'ready' : 'unavailable' });
     return outcome;
   }
   applyCatalogSnapshot(outcome.snapshot);
-  useCatalogStore.setState({ syncing: false, lastOutcome: outcome.kind });
   return outcome;
 }
 
 export function landmarksForPark(state: CatalogState, parkId: string): CatalogLandmark[]
 {
   return state.snapshot.landmarks.filter((landmark) => landmark.parkId === parkId).sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-export function totalPodcastSeconds(state: CatalogState, landmarkId: string): number | null
-{
-  const podcasts = state.podcastsByLandmarkId.get(landmarkId);
-  if (podcasts === undefined || podcasts.length === 0)
-  {
-    return null;
-  }
-  return Math.min(...podcasts.map((podcast) => podcast.durationSeconds));
 }

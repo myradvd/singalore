@@ -1,5 +1,6 @@
 import type { GeofenceTarget } from '@/core/location';
 import Constants from 'expo-constants';
+import { AppState } from 'react-native';
 import { createAppEventBus, type AppEventBus } from '@/core/appEvents';
 import { systemClock, type Clock } from '@/core/clock';
 import { parseAppConfig, type AppConfig } from '@/core/config';
@@ -40,6 +41,7 @@ import { PackDetailsRepository } from '@/modules/offline/PackDetailsRepository';
 import { PreferencesRepository } from '@/modules/prefs/PreferencesRepository';
 import { getPreferences } from '@/modules/prefs/preferencesStore';
 import { DATABASE_NAME } from './databaseName';
+import { toGeofenceTargets } from './geofenceTargets';
 import { createMutablePlaybackStatus, type MutablePlaybackStatus } from './playbackStatus';
 
 export interface AppServices
@@ -80,14 +82,7 @@ export function geofenceTargetsFromCatalog(): GeofenceTarget[]
   {
     return cachedTargets.targets;
   }
-  const targets = state.snapshot.landmarks.map((landmark) => ({
-    landmarkId: landmark.id,
-    name: landmark.name,
-    latitude: landmark.position.lat,
-    longitude: landmark.position.lng,
-    radiusMeters: landmark.geofenceRadiusM,
-    hasPodcast: state.podcastLandmarkIds.has(landmark.id),
-  }));
+  const targets = toGeofenceTargets(state.snapshot.landmarks, state.podcastLandmarkIds);
   cachedTargets = { snapshot: state.snapshot, targets };
   return targets;
 }
@@ -106,7 +101,7 @@ export async function createAppServices(): Promise<AppServices>
   const db = await openExpoSqliteAdapter(DATABASE_NAME);
   await migrate(db);
   const diagnostics = new DiagnosticsLog(db, clock, events);
-  const api = new ApiClient({ baseUrl: () => effectiveApiBaseUrl(config), fetchImplementation: fetch, clock, events });
+  const api = new ApiClient({ baseUrl: () => effectiveApiBaseUrl(config), fetchImplementation: fetch, clock, events, diagnostics });
   const catalogRepository = new CatalogRepository(db);
   const catalogSync = new CatalogSync(api, catalogRepository, clock, events, diagnostics);
   const spoofSource = new SpoofLocationSource(clock);
@@ -132,6 +127,7 @@ export async function createAppServices(): Promise<AppServices>
     },
     playback,
     osGeofencer: createExpoOsGeofencer(() => location.getState().permission === 'always'),
+    isAppActive: () => AppState.currentState === 'active',
   });
   const notifier = createExpoLocalNotifier((category) =>
   {

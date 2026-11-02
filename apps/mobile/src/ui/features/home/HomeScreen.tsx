@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { circlePolygonRing } from '@singalore/shared';
@@ -9,11 +9,14 @@ import { useDebugStore, toggleDebugMode } from '@/modules/debug/debugStore';
 import { exitRadiusMeters } from '@/modules/geofence/GeofenceEvaluator';
 import { useGeofenceStore } from '@/modules/geofence/geofenceStore';
 import { useLocationStore } from '@/modules/location/locationStore';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
+import { clearRecentSites, recordRecentSites } from '@/modules/prefs/recentSites';
 import { useAudioStore } from '@/modules/audio/audioStore';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { useRouteStore } from '@/modules/routing/routeStore';
+import { SiteDownloadButton } from '../downloads/SiteDownloadButton';
 import { RouteExperience, RouteStripHost } from '../route/RouteExperience';
-import { refreshCatalog, totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { buildLandmarkPins, buildParkBoundaries, buildParkCenterMarkers } from '@/modules/catalog/mapFeatures';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import { COPY } from '../../copy';
@@ -25,6 +28,7 @@ import { EmptyState } from '../../primitives/States';
 import { IconButton } from '../../primitives/IconButton';
 import { EASE_OUT } from '../../primitives/motion';
 import { colors, fill, radii, shadows, spacing } from '../../theme/tokens';
+import { retryCatalogSync } from '../../retryCatalogSync';
 import { showToast } from '../../toastStore';
 import { LayerPicker } from '../layers/LayerPicker';
 import { SearchOverlay } from '../search/SearchOverlay';
@@ -33,13 +37,16 @@ import { DebugOverlay } from '../debug/DebugOverlay';
 import { NextUpChip, OutOfRangeNotice, PodcastPrompt } from '../prompt/PodcastPrompt';
 import { Banner } from '../../primitives/Banner';
 import { GpsStatusButton, gpsStatusLabel } from './GpsStatusButton';
-import { MiniPlayer } from '../player/MiniPlayer';
+import { shownEpisodeSeconds } from '../player/playerLabels';
 import { ResumeCard } from '../player/ResumeCard';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
 import { SummaryCard } from '../summaryCard/SummaryCard';
+import { useLandmarkDetail } from '../summaryCard/useLandmarkDetail';
 import { BottomBar } from './BottomBar';
+import { useHomeBackHandler } from './homeBack';
 import { HomeHeader } from './HomeHeader';
 import { MapControls } from './MapControls';
+import { useMapFocus } from './useMapFocus';
 import { SearchBarButton } from './SearchBarButton';
 import { ZOOM_CONTROLS_HEIGHT, ZoomControls } from './ZoomControls';
 
@@ -76,15 +83,18 @@ export function HomeScreen(props: HomeScreenProps)
   const flow = useFlowStore((store) => store.state);
   const layers = useMapUiStore((store) => store.layers);
   const setLayers = useMapUiStore((store) => store.setLayers);
-  const pendingFocus = useMapUiStore((store) => store.pendingFocus);
   const locationState = useLocationStore();
   const geofence = useGeofenceStore();
   const debug = useDebugStore();
-  const audio = useAudioStore();
+  const audioError = useAudioStore((state) => state.lastError);
+  const resumeOffer = useAudioStore((state) => state.resumeOffer);
+  const noAudioTrack = useAudioStore((state) => state.track === null);
+  const preferences = usePreferencesStore((state) => state.preferences);
   const bannerVisible = useDownloadsStore((state) => state.connectivity.bannerVisible);
   const plannedRoute = useRouteStore((state) => state.route);
   const reducedMotion = useReducedMotion();
   const [savedLandmarkIds, setSavedLandmarkIds] = useState<string[]>([]);
+  const recentLandmarkIds = usePreferencesStore((state) => state.preferences.recentSiteIds);
 
   useFocusEffect(useCallback(() =>
   {
@@ -93,12 +103,12 @@ export function HomeScreen(props: HomeScreenProps)
 
   useEffect(() =>
   {
-    if (audio.lastError !== null)
+    if (audioError !== null)
     {
-      showToast(audio.lastError, 'error');
+      showToast(audioError, 'error');
       services.audio.clearError();
     }
-  }, [audio.lastError, services]);
+  }, [audioError, services]);
   const storeLocation = useMemo<UserLocationFix | null>(() => (locationState.lastFix === null
     ? null
     : { latitude: locationState.lastFix.latitude, longitude: locationState.lastFix.longitude, accuracyMeters: locationState.lastFix.accuracyMeters }), [locationState.lastFix]);
@@ -162,83 +172,13 @@ export function HomeScreen(props: HomeScreenProps)
   const boundaries = useMemo(() => buildParkBoundaries(catalog.snapshot.parks), [catalog.snapshot.parks]);
   const parkMarkers = useMemo(() => buildParkCenterMarkers(catalog.snapshot.parks), [catalog.snapshot.parks]);
 
-  const focusLandmark = useCallback((landmarkId: string) =>
-  {
-    const landmark = catalog.landmarksById.get(landmarkId);
-    if (landmark === undefined)
-    {
-      return;
-    }
-    dispatchFlow({ type: 'selectLandmark', landmarkId });
-    mapRef.current?.centerOn(landmark.position.lat, landmark.position.lng, 16.5);
-  }, [catalog.landmarksById]);
+  const { focusLandmark, focusPark } = useMapFocus(mapRef);
 
-  const focusPark = useCallback((parkId: string) =>
-  {
-    const parkLandmarks = catalog.snapshot.landmarks.filter((landmark) => landmark.parkId === parkId);
-    const park = catalog.parksById.get(parkId);
-    dispatchFlow({ type: 'selectLandmark', landmarkId: null });
-    if (parkLandmarks.length > 0)
-    {
-      mapRef.current?.fitTo(parkLandmarks.map((landmark) => ({ latitude: landmark.position.lat, longitude: landmark.position.lng })));
-    }
-    else if (park !== undefined)
-    {
-      mapRef.current?.centerOn(park.center.lat, park.center.lng, 15.5);
-    }
-  }, [catalog.snapshot.landmarks, catalog.parksById]);
-
-  useEffect(() =>
-  {
-    if (pendingFocus === null || catalog.status !== 'ready')
-    {
-      return;
-    }
-    const request = useMapUiStore.getState().consumeFocus();
-    if (request?.kind === 'landmark')
-    {
-      focusLandmark(request.landmarkId);
-    }
-    else if (request?.kind === 'park')
-    {
-      focusPark(request.parkId);
-    }
-  }, [pendingFocus, catalog.status, focusLandmark, focusPark]);
-
-  useEffect(() =>
-  {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () =>
-    {
-      const state = useFlowStore.getState().state;
-      const top = state.overlays[state.overlays.length - 1];
-      if (top === 'search')
-      {
-        dispatchFlow({ type: 'closeSearch' });
-        return true;
-      }
-      if (top === 'sidebar')
-      {
-        dispatchFlow({ type: 'closeSidebar' });
-        return true;
-      }
-      if (state.screen === 'expandedMap')
-      {
-        dispatchFlow({ type: 'closeExpandedMap' });
-        return true;
-      }
-      if (state.selectedLandmarkId !== null)
-      {
-        dispatchFlow({ type: 'selectLandmark', landmarkId: null });
-        return true;
-      }
-      return false;
-    });
-    return () => subscription.remove();
-  }, []);
+  useHomeBackHandler();
 
   const recenter = () =>
   {
-    if (userLocation === null)
+    if (userLocation === null || locationState.status === 'waiting_for_signal')
     {
       showToast(COPY.waitingForGps);
       return;
@@ -247,6 +187,7 @@ export function HomeScreen(props: HomeScreenProps)
   };
 
   const selected = flow.selectedLandmarkId === null ? undefined : catalog.landmarksById.get(flow.selectedLandmarkId);
+  const selectedDetail = useLandmarkDetail(selected?.id ?? null);
   const expanded = flow.screen === 'expandedMap';
   const showRoute = plannedRoute !== null && (flow.base === 'inProgress' || flow.screen === 'routeConfirm');
   const routeLine = useMemo<GeoJSON.FeatureCollection<GeoJSON.LineString> | null>(() => (!showRoute || plannedRoute === null
@@ -267,9 +208,15 @@ export function HomeScreen(props: HomeScreenProps)
     setSavedLandmarkIds(await services.saved.savedLandmarkIds());
     showToast(saved ? 'Saved to Saved Routes and Sites.' : 'Removed from saved sites.');
   };
+  // Runs a recent sites write and logs a failure, because a failed write must not interrupt the user.
+  const logRecentSitesFailure = (write: Promise<void>) =>
+  {
+    void write.catch((error: unknown) => services.diagnostics.record('warn', 'recent_sites_write_failed', error instanceof Error ? error.message : 'unknown'));
+  };
   const topOverlay = flow.overlays[flow.overlays.length - 1];
   const headerHeight = insets.top + 112;
   const showEmptyCatalog = catalog.status === 'unavailable' && catalog.snapshot.landmarks.length === 0;
+  const showCatalogLoading = catalog.status === 'loading' && catalog.snapshot.landmarks.length === 0;
   const zoomTop = controlsSpan === null ? null : controlsSpan.top + controlsSpan.height + spacing.sm;
   const zoomObstacleTop = homeChrome ? cardHostTop : screenHeight === null ? null : screenHeight - insets.bottom - spacing.lg;
   const showZoom = (homeChrome || expanded) && zoomTop !== null && zoomObstacleTop !== null
@@ -316,6 +263,7 @@ export function HomeScreen(props: HomeScreenProps)
         <MapControls
           onLayersPress={() => setLayerPickerOpen(true)}
           onRecenterPress={recenter}
+          onPodcastPreferencesPress={() => router.push('/preferences/audio')}
           showCompass={mapRotated}
           onCompassPress={() => mapRef.current?.resetNorth()}
         />
@@ -329,6 +277,11 @@ export function HomeScreen(props: HomeScreenProps)
       )}
 
       <View style={[styles.notices, { top: (expanded ? insets.top : headerHeight) + spacing.sm }]} pointerEvents="box-none">
+        {showCatalogLoading && (
+          <View testID="catalog-loading-notice" pointerEvents="none">
+            <Banner icon="map-search-outline" tone="info" message={COPY.catalogLoading} />
+          </View>
+        )}
         {bannerVisible && (
           <Banner
             testID="connectivity-banner"
@@ -367,7 +320,7 @@ export function HomeScreen(props: HomeScreenProps)
         {geofence.prompt !== null && (
           <PodcastPrompt
             landmarkName={catalog.landmarksById.get(geofence.prompt.landmarkId)?.name ?? 'a heritage site'}
-            podcastSeconds={totalPodcastSeconds(catalog, geofence.prompt.landmarkId)}
+            podcastSeconds={shownEpisodeSeconds(catalog, geofence.prompt.landmarkId, preferences)}
             onListen={() => services.geofence.acceptPrompt()}
             onDismiss={() => services.geofence.dismissPrompt()}
           />
@@ -382,13 +335,7 @@ export function HomeScreen(props: HomeScreenProps)
             title={COPY.emptyCatalogTitle}
             message={COPY.emptyCatalogMessage}
             actionLabel={COPY.emptyCatalogRetry}
-            onAction={() => void refreshCatalog(services.catalogSync).then((outcome) =>
-            {
-              if (outcome.kind === 'failed_no_cache')
-              {
-                showToast(COPY.catalogFetchFailed, 'error');
-              }
-            })}
+            onAction={() => retryCatalogSync(services.catalogSync)}
           />
         </View>
       )}
@@ -407,10 +354,12 @@ export function HomeScreen(props: HomeScreenProps)
               exiting={reducedMotion ? FadeOut.duration(150) : FadeOutDown.duration(160).easing(EASE_OUT)}
             >
               <SummaryCard
+                key={selected.id}
                 landmark={selected}
                 parkName={catalog.parksById.get(selected.parkId)?.name ?? null}
-                podcastSeconds={totalPodcastSeconds(catalog, selected.id)}
-                description={null}
+                podcastSeconds={shownEpisodeSeconds(catalog, selected.id, preferences)}
+                description={selectedDetail.description}
+                imageUri={selectedDetail.imageUri}
                 onClose={() => dispatchFlow({ type: 'selectLandmark', landmarkId: null })}
                 headerActions={(
                   <>
@@ -431,22 +380,22 @@ export function HomeScreen(props: HomeScreenProps)
                       ? <PrimaryButton testID="summary-listen" label="Listen" icon="headphones" pressScale onPress={() => void services.audio.playLandmark(selected.id)} />
                       : <SecondaryButton testID="summary-listen-unavailable" label={COPY.noPodcastShort} icon="headphones-off" accessibilityHint="Listen is unavailable for this site" disabled onPress={() => undefined} />}
                     <SecondaryButton testID="summary-add-route" label="Route" icon="plus" pressScale onPress={() => dispatchFlow({ type: 'addToItinerary', landmarkId: selected.id })} />
+                    {catalog.parksById.get(selected.parkId) !== undefined && <SiteDownloadButton parkId={selected.parkId} parkName={catalog.parksById.get(selected.parkId)?.name ?? ''} />}
                     <SecondaryButton testID="summary-start-tour" label="Start Tour" icon="walk" pressScale onPress={() => dispatchFlow({ type: 'startTourFromSite', landmarkId: selected.id })} />
                   </>
                 )}
               />
             </Animated.View>
           )}
-          {audio.resumeOffer !== null && audio.track === null && (
+          {resumeOffer !== null && noAudioTrack && (
             <ResumeCard
-              title={audio.resumeOffer.title}
-              landmarkName={audio.resumeOffer.landmarkName}
-              positionMs={audio.resumeOffer.positionMs}
+              title={resumeOffer.title}
+              landmarkName={resumeOffer.landmarkName}
+              positionMs={resumeOffer.positionMs}
               onResume={() => void services.audio.resumeOffered()}
               onDismiss={() => void services.audio.dismissResumeOffer()}
             />
           )}
-          <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push('/player')} onClose={() => void services.audio.stopAndClear()} />
         </View>
       )}
 
@@ -482,7 +431,6 @@ export function HomeScreen(props: HomeScreenProps)
             { key: 'preferences', label: 'Tour Preferences', icon: 'cog-outline', onPress: () => openFromSidebar('/preferences') },
             { key: 'help', label: 'Help Centre', icon: 'help-circle-outline', onPress: () => openFromSidebar('/help') },
           ]}
-          footer={[]}
         />
       )}
 
@@ -492,9 +440,19 @@ export function HomeScreen(props: HomeScreenProps)
           parksById={catalog.parksById}
           purpose={flow.searchPurpose}
           itineraryIds={flow.itinerary}
-          onClose={(addLandmarkIds) => dispatchFlow({ type: 'closeSearch', addLandmarkIds })}
+          landmarksById={catalog.landmarksById}
+          recentLandmarkIds={recentLandmarkIds}
+          userPosition={userPosition}
+          onClearRecent={() => logRecentSitesFailure(clearRecentSites(services.preferences))}
+          onClose={(addLandmarkIds) =>
+          {
+            dispatchFlow({ type: 'closeSearch', addLandmarkIds });
+            const itinerary = useFlowStore.getState().state.itinerary;
+            logRecentSitesFailure(recordRecentSites(services.preferences, addLandmarkIds.filter((landmarkId) => itinerary.includes(landmarkId))));
+          }}
           onSelectLandmark={(landmarkId) =>
           {
+            logRecentSitesFailure(recordRecentSites(services.preferences, [landmarkId]));
             dispatchFlow({ type: 'closeSearch' });
             focusLandmark(landmarkId);
           }}

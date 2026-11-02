@@ -5,7 +5,6 @@ import { AppState } from 'react-native';
 import { bindAudioStore } from '@/modules/audio/audioStore';
 import { bindDownloadsStore } from '@/modules/offline/downloadsStore';
 import { bindRouteStore } from '@/modules/routing/routeStore';
-import { API_PATHS, PackResponse } from '@singalore/shared';
 import { initializeCatalog, refreshCatalog } from '@/modules/catalog/catalogStore';
 import type { CatalogSyncOutcome } from '@/modules/catalog/CatalogSync';
 import { bindNetworkLog } from '@/modules/debug/debugStore';
@@ -13,13 +12,17 @@ import { configureFlowRuntime, dispatchFlow, useFlowStore } from '@/modules/flow
 import { bindGeofenceStore } from '@/modules/geofence/geofenceStore';
 import { bindLocationStore } from '@/modules/location/locationStore';
 import { resolvePermissionState } from '@/modules/location/permissions';
-import { getPreferences, loadPreferences } from '@/modules/prefs/preferencesStore';
+import { loadPreferences } from '@/modules/prefs/preferencesStore';
 import { COPY } from '@/ui/copy';
 import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
+import { wireArrivalNotifications } from './arrivalNotifyWiring';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
+import { bindLateBackgroundGrant } from './tourTracking';
 import { createAppServices, type AppServices } from './container';
+import { startServicesRecheck } from './servicesRecheck';
 import { createFlowEffectHandler } from './flowEffects';
+import { wirePromptAudio } from './promptAudioWiring';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 {
@@ -34,29 +37,13 @@ export async function refreshLocationPermission(services: AppServices): Promise<
   await services.location.setPermission(resolvePermissionState(await services.permissions.snapshot()));
 }
 
-function handleArrivalNotification(services: AppServices, landmarkId: string): void
-{
-  if (getPreferences().autoplayEnabled)
-  {
-    services.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
-  }
-  else
-  {
-    services.geofence.presentPrompt(landmarkId);
-  }
-}
-
 async function checkPackUpdates(services: AppServices): Promise<void>
 {
   if (!services.connectivity.isOnline())
   {
     return;
   }
-  await services.downloads.checkForUpdates(async (parkId) =>
-  {
-    const result = await services.api.get(API_PATHS.pack(parkId), PackResponse);
-    return result.status === 'ok' ? result.data.etag : null;
-  });
+  await services.downloads.checkForUpdates((parkId, knownEtag) => services.packDetails.latestPackEtag(parkId, knownEtag));
 }
 
 export type BootstrapState =
@@ -100,14 +87,9 @@ export function useAppBootstrap(): BootstrapState
           void services.notifier.notify('route_updates', 'You are off the route', 'Open Singalore to return to the path or recalculate.');
         }
       });
+      bindLateBackgroundGrant(services);
       services.audio.start();
-      services.geofence.subscribe((geofence) =>
-      {
-        if (geofence.prompt !== null)
-        {
-          void services.audio.prepare(geofence.prompt.landmarkId);
-        }
-      });
+      wirePromptAudio(services.geofence, services.audio);
       registerLiveBackgroundRuntime({
         acceptBackgroundFixes: (fixes) =>
         {
@@ -137,7 +119,7 @@ export function useAppBootstrap(): BootstrapState
       const landmarkId = lastResponse?.notification.request.content.data?.landmarkId;
       if (typeof landmarkId === 'string')
       {
-        handleArrivalNotification(services, landmarkId);
+        services.geofence.openArrivalNotification(landmarkId);
       }
       reportSyncOutcome(await initializeCatalog(services.catalogSync));
       await services.audio.restoreSession();
@@ -162,6 +144,11 @@ export function useAppBootstrap(): BootstrapState
       return undefined;
     }
     const services = state.services;
+    const stopServicesRecheck = startServicesRecheck({
+      appState: () => AppState.currentState,
+      locationState: () => services.location.getState(),
+      refreshPermission: () => refreshLocationPermission(services),
+    });
     const appStateSubscription = AppState.addEventListener('change', (next) =>
     {
       if (next === 'active')
@@ -178,25 +165,19 @@ export function useAppBootstrap(): BootstrapState
         void services.location.stop();
       }
     });
-    const promptSubscription = services.geofence.subscribe((geofence) =>
-    {
-      if (geofence.prompt !== null && !geofence.prompt.forced && AppState.currentState !== 'active')
-      {
-        const name = services.geofence.targetName(geofence.prompt.landmarkId);
-        void services.notifier.notify('arrivals', `You have reached ${name}`, 'A podcast about this site is available. Tap to listen.', { landmarkId: geofence.prompt.landmarkId });
-      }
-    });
+    const promptSubscription = wireArrivalNotifications({ geofence: services.geofence, notifier: services.notifier, isAppActive: () => AppState.currentState === 'active' });
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) =>
     {
       const landmarkId = response.notification.request.content.data?.landmarkId;
       if (typeof landmarkId === 'string')
       {
-        handleArrivalNotification(services, landmarkId);
+        services.geofence.openArrivalNotification(landmarkId);
       }
     });
     return () =>
     {
       appStateSubscription.remove();
+      stopServicesRecheck();
       promptSubscription();
       responseSubscription.remove();
     };

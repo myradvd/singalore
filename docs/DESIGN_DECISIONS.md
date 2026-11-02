@@ -42,7 +42,7 @@ Definition of done for the whole build:
 
 **Tier 2, build.** These appear in the SRS Data Dictionary, the mockups, or Appendix A, so the team clearly expects them.
 
-- Explore menu: browse heritage parks by name or district, independent of proximity.
+- Explore menu: browse heritage parks by name or district, with a "Nearby" section listing the 5 nearest sites by straight line distance, a park or site picker that sets the reference point, and "Read more" on long text (D40).
 - Search with debounced autocomplete, tolerant of misspellings and aliases (A1).
 - Preferences screens: Podcast and Audio, Route Preferences, Recommendations, Notifications, Manage Downloads, Help Centre link (A3, A-FR8).
 - Saved Routes and Sites, including bookmarking from the site summary card (A4).
@@ -208,7 +208,7 @@ Three separate switches, all easy to confuse, so name them exactly:
 - First launch with no network and no cache shows a clear empty state, not a spinner.
 - "Nearby landmarks" (FR 2.1) is a local query over the cached catalog. Map pins come from a GeoJSON source with clustering. Do not render one React view per landmark.
 - Search: Fuse.js over name, aliases, category, park name, district. 300 ms debounce. Results grouped into parks and landmarks. Empty state text from A1.
-- Explore: parks list filterable by name and district, park detail with landmarks, "Read more" expansion, "See on map", "+" to add to the itinerary, and the Download prompt with estimated size.
+- Explore: parks list filterable by name and district, park detail with landmarks, "Read more" expansion, "See on map", "+" button to add a stop to the itinerary (present on every park landmark row; the app caps a route at 11 stops), and the Download prompt with estimated size.
 - Layers: Standard and Heritage boundaries always. Satellite only if `EXPO_PUBLIC_SATELLITE_TILE_URL` is set, otherwise hidden.
 - Show map attribution (OpenStreetMap contributors, OpenFreeMap). It is a licence requirement.
 
@@ -236,7 +236,7 @@ Pipeline: selected stops, optional Auto-Order, route request, decode, metrics, r
 - **Modify route (UC 1.5.5).** Add or remove stops, then recalculate. The editor shows the previous route until the new one arrives. Clear All is undoable with Restore.
 - **Persist the planned route** (polyline, stops, progress index) in `flow_cache` so an active tour survives a restart and keeps working offline (NFR 2.1, 2.3).
 - **Preferences that cannot be honoured.** The routing provider has no elevation or covered walkway data. Show "Avoid steep inclines" and "Prefer covered routes" as persisted but disabled with the caption "Not available yet". Walking pace and distance units are real.
-- **Server proxy.** `POST /api/v1/route` and `/route/table`. Validate that every coordinate is inside the allowed region (Singapore bounding box plus margin), cap at 12 coordinates, rate limit per IP, 8 s upstream timeout, one retry. Use POST so coordinates never appear in URLs. Do not log request bodies. Log status and latency only.
+- **Server proxy.** `POST /api/v1/route` and `/route/table`. Validate that every coordinate is inside the allowed region (Singapore bounding box plus margin), cap at 12 coordinates (the app itself caps a route at 11 stops), rate limit per IP, 8 s upstream timeout, one retry. Use POST so coordinates never appear in URLs. Do not log request bodies. Log status and latency only.
 
 ### 6.7 Exit navigation
 
@@ -350,7 +350,7 @@ IconButton (minimum 48 dp, player controls 56 dp or more, NFR 4.3), PrimaryButto
 | --- | --- | --- | --- |
 | Home with map, search bar, pins, boundaries, recenter, layers, headphones shortcut, GPS status icon | 01, 03 | Home_Empty | 1.1.1 to 1.1.3, 1.2.1, 1.2.2 |
 | Site summary card, with bookmark and Read more | 01, 02 | Home_Empty | 1.2.2, A4 |
-| Podcast prompt and mini player | 02, 04 | Home_RIP or Home_Empty | 1.3.2, 1.3.4 |
+| Podcast prompt and mini player (the mini player shows on every screen except the full player) | 02, 04 | Home_RIP or Home_Empty | 1.3.2, 1.3.4 |
 | Full audio player with transcript | 02, 09 | MainNav | 1.3.4, A5 |
 | Route editor strip and expanded editor | 02, 05 | Home_REO, RouteEd | 1.5.1, 1.5.5 |
 | Route confirmation with autodetect toggle | 08 | RouteConfirm | 1.5.2 to 1.5.4, A2 |

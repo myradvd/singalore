@@ -1,16 +1,21 @@
 import { distanceBetween, type GeoPoint } from '@singalore/shared';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAppServices } from '@/composition/AppServicesContext';
 import { routeTitle } from '@/composition/flowEffects';
-import { totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { ensureNotificationPermission } from '@/core/notifications';
+import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { nextUnvisitedStop } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import { shouldOfferBackgroundRationale } from '@/modules/location/permissions';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { shouldAutoStart } from '@/modules/routing/progress';
 import { useRouteStore } from '@/modules/routing/routeStore';
 import type { RouteStop } from '@/modules/routing/routeTypes';
+import { COPY } from '../../copy';
 import { AppModal } from '../../primitives/AppModal';
+import { shownEpisodeSeconds } from '../player/playerLabels';
 
 import { showToast } from '../../toastStore';
 import { NavigationPanel } from './NavigationPanel';
@@ -26,6 +31,14 @@ export const EXIT_MODAL_COPY = {
   discard: 'Discard & Exit',
   cancel: 'Cancel',
 } as const;
+
+let backgroundRationaleOffered = false;
+
+// Lets tests start from a fresh app run.
+export function resetBackgroundRationaleOfferForTests(): void
+{
+  backgroundRationaleOffered = false;
+}
 
 export function RouteStripHost({ onOpen }: { onOpen: () => void })
 {
@@ -48,6 +61,7 @@ export function RouteStripHost({ onOpen }: { onOpen: () => void })
 export function RouteExperience({ userPosition }: { userPosition: GeoPoint | null })
 {
   const services = useAppServices();
+  const router = useRouter();
   const flow = useFlowStore((store) => store.state);
   const catalog = useCatalogStore();
   const route = useRouteStore();
@@ -62,7 +76,21 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
     return landmark === undefined ? [] : [landmark];
   }), [flow.itinerary, catalog.landmarksById]);
   const routeStops: RouteStop[] = stops.map((stop) => ({ landmarkId: stop.id, position: stop.position }));
-  const podcastSeconds = stops.map((stop) => totalPodcastSeconds(catalog, stop.id) ?? 0);
+  const podcastSeconds = stops.map((stop) => shownEpisodeSeconds(catalog, stop.id, preferences) ?? 0);
+  const routeIsStale = route.route !== null && route.route.stopIds.join(',') !== routeStops.map((stop) => stop.landmarkId).join(',');
+  const confirmStatus = route.status === 'ready' && routeIsStale ? 'idle' : route.status;
+
+  // Starts the tour from the confirmation panel, by button or by autodetect.
+  const startTour = useCallback(async () =>
+  {
+    await ensureNotificationPermission(services.notifier);
+    dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
+    if (useFlowStore.getState().state.screen === 'navigation' && shouldOfferBackgroundRationale(services.location.getState().permission, backgroundRationaleOffered))
+    {
+      backgroundRationaleOffered = true;
+      router.push('/background-rationale');
+    }
+  }, [services, router]);
 
   useEffect(() =>
   {
@@ -82,11 +110,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
 
   useEffect(() =>
   {
-    if (flow.screen === 'routeConfirm' && route.status === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
+    if (flow.screen === 'routeConfirm' && confirmStatus === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
     {
-      dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
+      void startTour();
     }
-  }, [flow.screen, route.status, userPosition, stops, autodetect, services]);
+  }, [flow.screen, confirmStatus, userPosition, stops, autodetect, startTour]);
 
   const autoOrder = async () =>
   {
@@ -119,7 +147,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       return;
     }
     const remaining = routeStops.filter((stop) => !flow.visitedLandmarkIds.includes(stop.landmarkId));
-    void services.routes.plan(userPosition, remaining, false).then(() => services.routes.setNavigating(true));
+    services.routes.returnToPath();
+    if (remaining.length > 0)
+    {
+      void services.routes.plan(userPosition, remaining, false);
+    }
   };
 
   const nextStopId = nextUnvisitedStop(flow);
@@ -150,15 +182,15 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       )}
       {flow.screen === 'routeConfirm' && (
         <RouteConfirmPanel
-          status={route.status}
-          estimate={routeEstimate}
+          status={confirmStatus}
+          estimate={routeIsStale ? null : routeEstimate}
           unit={preferences.distanceUnit}
           failureMessage={route.failureMessage}
           hasFallback={route.fallback !== null}
           waitingForGps={userPosition === null}
           autodetect={autodetect}
           onAutodetectChange={setAutodetect}
-          onStart={() => dispatchFlow({ type: 'startNavigation', at: services.clock.now() })}
+          onStart={() => void startTour()}
           onBack={() => dispatchFlow({ type: 'backFromConfirmation' })}
           onRetry={() =>
           {
@@ -181,6 +213,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
           nextStopDistanceM={nextStop === undefined || userPosition === null ? null : distanceBetween(userPosition, nextStop.position)}
           visitedCount={flow.visitedLandmarkIds.length}
           stopCount={flow.itinerary.length}
+          status={route.status}
+          failureMessage={route.failureMessage}
+          hasFallback={route.fallback !== null}
+          onRetry={recalculate}
+          onUseFallback={() => void services.routes.useFallback()}
           onPause={() => dispatchFlow({ type: 'pauseNavigation' })}
           onExit={() => dispatchFlow({ type: 'requestExitNavigation' })}
           onEditRoute={() => dispatchFlow({ type: 'openRouteEditor' })}
@@ -211,9 +248,9 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       />
       <AppModal
         testID="off-route-modal"
-        visible={route.offRoute && flow.screen === 'navigation'}
+        visible={route.offRoute && flow.screen === 'navigation' && route.status === 'ready'}
         title="You are off the route"
-        message="Return to the gold path, or recalculate a new route from here through your remaining stops."
+        message={COPY.offRouteMessage}
         onRequestClose={() => services.routes.returnToPath()}
         actions={[
           { label: 'Return to path', kind: 'secondary', testID: 'off-route-return', onPress: () => services.routes.returnToPath() },

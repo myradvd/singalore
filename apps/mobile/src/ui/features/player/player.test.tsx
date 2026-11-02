@@ -1,17 +1,44 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { formatDurationShort, type CatalogResponse } from '@singalore/shared';
+import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { bindAudioStore } from '@/modules/audio/audioStore';
-import { catalogFixture, LANDMARK_CHIJMES } from '@test/support/catalogFixture';
+import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
+import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import { bindGeofenceStore } from '@/modules/geofence/geofenceStore';
+import { DEFAULT_PREFERENCES } from '@/modules/prefs/preferencesSchema';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
+import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES, PARK_CIVIC, PODCAST_CHIJMES_GB, PODCAST_CHIJMES_US } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { seekFraction } from '../../primitives/SeekBar';
+import { ParkDetailScreen } from '../explore/ParkDetailScreen';
+import { HomeScreen } from '../home/HomeScreen';
+import { estimateFromStops } from '../route/routeEstimates';
 import { FullPlayerScreen } from './FullPlayerScreen';
 import { MiniPlayer } from './MiniPlayer';
-import { formatRate, nextPlaybackRate } from './playerLabels';
+import { formatRate, nextPlaybackRate, shownEpisodeSeconds } from './playerLabels';
 import { TRANSCRIPT_UNAVAILABLE, TranscriptScreen } from './TranscriptScreen';
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, back: mockBack, dismissTo: jest.fn() }) }));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush, back: mockBack, dismissTo: jest.fn() }),
+  useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
+}));
+
+// Builds a catalog where CHIJMES has a 200 s British and a 300 s American episode.
+function catalogWithDurationVariants(): CatalogResponse
+{
+  const catalog = catalogFixture();
+  const durations = new Map([[PODCAST_CHIJMES_GB, 200], [PODCAST_CHIJMES_US, 300]]);
+  catalog.podcasts = catalog.podcasts.map((podcast) => ({ ...podcast, durationSeconds: durations.get(podcast.id) ?? podcast.durationSeconds }));
+  return catalog;
+}
+
+// Sets the preferred accent in the real preferences store.
+function setPreferredAccent(preferredAccent: string | null): void
+{
+  usePreferencesStore.setState({ preferences: { ...DEFAULT_PREFERENCES, preferredAccent } });
+}
 
 describe('player helpers', () =>
 {
@@ -24,6 +51,108 @@ describe('player helpers', () =>
     expect(seekFraction(-5, 200)).toBe(0);
     expect(seekFraction(500, 200)).toBe(1);
     expect(seekFraction(5, 0)).toBe(0);
+  });
+});
+
+describe('shownEpisodeSeconds (UC 1.2.2, UC 1.3.2, UC 1.5.3)', () =>
+{
+  const noPreference = { preferredVoice: null, preferredAccent: null, preferredLength: null };
+
+  beforeEach(() => applyCatalogSnapshot(catalogWithDurationVariants()));
+
+  it('returns 300 when the preferred accent matches the 300 s variant', () =>
+  {
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), LANDMARK_CHIJMES, { ...noPreference, preferredAccent: 'American' })).toBe(300);
+  });
+
+  it('returns the first variant by order when there is no preference', () =>
+  {
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), LANDMARK_CHIJMES, noPreference)).toBe(200);
+  });
+
+  it('returns the first variant, not the shortest, when the longer one comes first', () =>
+  {
+    const catalog = catalogWithDurationVariants();
+    catalog.podcasts.reverse();
+    applyCatalogSnapshot(catalog);
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), LANDMARK_CHIJMES, noPreference)).toBe(300);
+  });
+
+  it('returns the first variant when the preferred accent matches no variant', () =>
+  {
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), LANDMARK_CHIJMES, { ...noPreference, preferredAccent: 'Australian' })).toBe(200);
+  });
+
+  it('returns the only variant even when the preference does not match it', () =>
+  {
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), LANDMARK_RAFFLES, { ...noPreference, preferredAccent: 'American' })).toBe(180);
+  });
+
+  it('returns null for a landmark with no podcast (valid EC, no duration)', () =>
+  {
+    expect(shownEpisodeSeconds(useCatalogStore.getState(), 'landmark-without-podcast', noPreference)).toBeNull();
+  });
+});
+
+describe('screens show the episode that plays, and follow preference changes', () =>
+{
+  beforeEach(() =>
+  {
+    applyCatalogSnapshot(catalogWithDurationVariants());
+    useFlowStore.setState({ state: INITIAL_FLOW_STATE });
+    setPreferredAccent('American');
+  });
+
+  afterEach(() => setPreferredAccent(null));
+
+  it('summary card shows 5 min for American, then 3 min after switching to British', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await act(async () => dispatchFlow({ type: 'selectLandmark', landmarkId: LANDMARK_CHIJMES }));
+    expect(screen.getByTestId('summary-caption').props.children).toContain('Podcast 5 min');
+    await act(async () => setPreferredAccent('British'));
+    expect(screen.getByTestId('summary-caption').props.children).toContain('Podcast 3 min');
+  });
+
+  it('prompt shows 5 min for American, then 3 min after switching to British', async () =>
+  {
+    const services = await createTestServices();
+    bindGeofenceStore(services.geofence);
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await act(async () => services.geofence.presentPrompt(LANDMARK_CHIJMES));
+    expect(screen.getByText('Episode length 5 min')).toBeTruthy();
+    await act(async () => setPreferredAccent('British'));
+    expect(screen.getByText('Episode length 3 min')).toBeTruthy();
+  });
+
+  it('route total sums the picked variants of 2 stops, and follows a preference change', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    await act(async () => dispatchFlow({ type: 'addToItinerary', landmarkId: LANDMARK_CHIJMES }));
+    await act(async () => dispatchFlow({ type: 'addToItinerary', landmarkId: LANDMARK_RAFFLES }));
+    await fireEvent.press(screen.getByTestId('route-strip'));
+    const landmarksById = useCatalogStore.getState().landmarksById;
+    const positions = [LANDMARK_CHIJMES, LANDMARK_RAFFLES].flatMap((id) =>
+    {
+      const landmark = landmarksById.get(id);
+      return landmark === undefined ? [] : [landmark.position];
+    });
+    const expectedTotal = (podcastSeconds: number[]) => formatDurationShort(estimateFromStops(null, positions, podcastSeconds, DEFAULT_PREFERENCES.walkingPace).totalSeconds);
+    expect(expectedTotal([300, 180])).not.toBe(expectedTotal([200, 180]));
+    expect(screen.getByLabelText(`Total: ${expectedTotal([300, 180])}`)).toBeTruthy();
+    await act(async () => setPreferredAccent('British'));
+    expect(screen.getByLabelText(`Total: ${expectedTotal([200, 180])}`)).toBeTruthy();
+  });
+
+  it('park detail row shows 5 min for American, then 3 min after switching to British', async () =>
+  {
+    await renderWithServices(await createTestServices(), <ParkDetailScreen parkId={PARK_CIVIC} />);
+    const chijmesRow = within(screen.getByTestId('park-landmark-chijmes'));
+    expect(chijmesRow.getByText('Podcast 5 min')).toBeTruthy();
+    await act(async () => setPreferredAccent('British'));
+    expect(chijmesRow.getByText('Podcast 3 min')).toBeTruthy();
   });
 });
 

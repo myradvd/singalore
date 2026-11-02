@@ -1,6 +1,6 @@
 import { formatEpisodeLength, type CatalogLandmark } from '@singalore/shared';
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { COPY, categoryLabel } from '../../copy';
 import { TextButton } from '../../primitives/Buttons';
 import { Card } from '../../primitives/Card';
@@ -14,16 +14,19 @@ export interface SummaryCardProps
   parkName: string | null;
   podcastSeconds: number | null;
   description: string | null;
+  imageUri?: string | null;
   onClose: () => void;
   actions?: ReactNode;
   headerActions?: ReactNode;
 }
 
 const COLLAPSED_LINES = 3;
+const EXPANDED_TEXT_WINDOW_FRACTION = 0.2;
 
-export function SummaryCard({ landmark, parkName, podcastSeconds, description, onClose, actions, headerActions }: SummaryCardProps)
+export function SummaryCard({ landmark, parkName, podcastSeconds, description, imageUri, onClose, actions, headerActions }: SummaryCardProps)
 {
   const [expanded, setExpanded] = useState(false);
+  const windowHeight = useWindowDimensions().height;
   const fullText = (description ?? landmark.shortDescription).trim();
   const text = fullText.length > 0 ? fullText : COPY.descriptionUnavailable;
   const canExpand = fullText.length > 140;
@@ -32,7 +35,7 @@ export function SummaryCard({ landmark, parkName, podcastSeconds, description, o
   return (
     <Card testID="summary-card" style={styles.card}>
       <View style={styles.top}>
-        <RemoteImage testID="summary-thumbnail" uri={landmark.thumbnailUrl} style={styles.thumbnail} accessibilityLabel={`Photo of ${landmark.name}`} />
+        <RemoteImage testID="summary-thumbnail" uri={imageUri ?? landmark.thumbnailUrl} style={styles.thumbnail} accessibilityLabel={`Photo of ${landmark.name}`} />
         <View style={styles.titleBlock}>
           <Text style={[typography.eyebrow, { color: colors.primary }]}>{categoryLabel(landmark.category).toUpperCase()}</Text>
           <Text style={[typography.title, { color: colors.text }]} accessibilityRole="header">{landmark.name}</Text>
@@ -43,7 +46,13 @@ export function SummaryCard({ landmark, parkName, podcastSeconds, description, o
           <IconButton testID="close-summary" icon="close" accessibilityLabel="Close site summary" onPress={onClose} variant="plain" />
         </View>
       </View>
-      <Text testID="summary-description" style={[typography.body, { color: colors.text }]} numberOfLines={expanded ? undefined : COLLAPSED_LINES}>{text}</Text>
+      {expanded
+        ? (
+          <ScrollView testID="summary-description-scroll" style={{ maxHeight: windowHeight * EXPANDED_TEXT_WINDOW_FRACTION }}>
+            <Text testID="summary-description" style={[typography.body, { color: colors.text }]}>{text}</Text>
+          </ScrollView>
+        )
+        : <Text testID="summary-description" style={[typography.body, { color: colors.text }]} numberOfLines={COLLAPSED_LINES}>{text}</Text>}
       {canExpand && <TextButton testID="summary-read-more" label={expanded ? 'Show less' : 'Read more'} onPress={() => setExpanded((value) => !value)} />}
       {actions !== undefined && <View style={styles.actions}>{actions}</View>}
     </Card>

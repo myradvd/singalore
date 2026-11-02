@@ -1,4 +1,4 @@
-import { destinationPoint } from '@singalore/shared';
+import { destinationPoint, distanceBetween } from '@singalore/shared';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createAppEventBus } from '@/core/appEvents';
@@ -81,7 +81,7 @@ describe('RoutePlanner (UC 1.5.2)', () =>
     expect(result.kind === 'planned' && result.route.stopIds).toEqual(['b', 'a']);
   });
 
-  it('fails with the SRS message and offers an approximate straight line (UC 1.5.2.1)', async () =>
+  it('fails with the SRS message and offers an approximate straight line (UC 1.5.2.4)', async () =>
   {
     const { planner: routePlanner } = planner(() => new Response(JSON.stringify({ error: { code: 'upstream_timeout', message: 'x' } }), { status: 504 }));
     const result = await routePlanner.plan(origin, stops, { autoOrder: false });
@@ -147,5 +147,32 @@ describe('progress and off-route (UC 1.5.4, 1.5.4.1)', () =>
     expect(shouldAutoStart(near, origin, false)).toBe(false);
     expect(shouldAutoStart(destinationPoint(origin, 0, 80), origin, true)).toBe(false);
     expect(shouldAutoStart(null, origin, true)).toBe(false);
+  });
+
+  it('Autodetect radius is 50 m (UC 1.5.2.2)', () =>
+  {
+    expect(AUTODETECT_RADIUS_M).toBe(50);
+  });
+
+  it('auto-starts when the distance is exactly the radius (UC 1.5.2.2, on)', () =>
+  {
+    const position = destinationPoint(origin, 0, 50);
+    expect(shouldAutoStart(position, origin, true, distanceBetween(position, origin))).toBe(true);
+  });
+
+  it('does not auto-start when the distance is 1 m above the radius (UC 1.5.2.2, above)', () =>
+  {
+    const position = destinationPoint(origin, 0, 50);
+    expect(shouldAutoStart(position, origin, true, distanceBetween(position, origin) - 1)).toBe(false);
+  });
+
+  it('auto-starts at the exact first stop position (0 m)', () =>
+  {
+    expect(shouldAutoStart(origin, origin, true)).toBe(true);
+  });
+
+  it('does not auto-start with a null first stop (invalid EC)', () =>
+  {
+    expect(shouldAutoStart(destinationPoint(origin, 0, 10), null, true)).toBe(false);
   });
 });

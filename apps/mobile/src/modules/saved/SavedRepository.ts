@@ -59,6 +59,12 @@ export class SavedRepository
     return true;
   }
 
+  // Deletes a saved landmark, and does nothing if it is not saved.
+  async removeLandmark(landmarkId: string): Promise<void>
+  {
+    await this.db.run("delete from saved_items where item_type = 'landmark' and reference_id = ?", [landmarkId]);
+  }
+
   /** Saves a route ("Save and Exit"). @returns The new itinerary's id. */
   async saveItinerary(title: string, landmarkIds: string[]): Promise<string>
   {

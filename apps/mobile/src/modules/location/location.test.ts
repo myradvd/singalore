@@ -3,7 +3,7 @@ import { ManualClock } from '@/core/clock';
 import type { LocationFix } from '@/core/location';
 import { LocationEngine, NO_FIX_TIMEOUT_MS } from './LocationEngine';
 import { MODE_SETTINGS, type LocationSource } from './LocationSource';
-import { canTrackLocation, resolvePermissionState } from './permissions';
+import { canTrackLocation, resolvePermissionState, shouldOfferBackgroundRationale } from './permissions';
 import { interpolatePath, SpoofLocationSource, type Scheduler } from './SpoofLocationSource';
 
 class FakeScheduler implements Scheduler
@@ -163,7 +163,7 @@ describe('LocationEngine', () =>
     expect(engine.refreshRateHz()).toBeCloseTo(1);
   });
 
-  it('raises waiting_for_signal after 10 s without a fix and logs it once (NFR 6.2, UC 1.1.2.1)', async () =>
+  it('raises waiting_for_signal after 10 s without a fix and logs it once (NFR 6.2, UC 1.1.1.2)', async () =>
   {
     const { engine, device, advance, diagnostics, statuses } = createEngine();
     await engine.setPermission('foreground');
@@ -249,5 +249,23 @@ describe('MODE_SETTINGS', () =>
     const settings = MODE_SETTINGS[mode];
     expect(settings.distanceIntervalMeters).toBe(0);
     expect(settings.timeIntervalMs).toBeLessThan(NO_FIX_TIMEOUT_MS);
+  });
+});
+
+describe('shouldOfferBackgroundRationale (UC 1.3.2.3)', () =>
+{
+  it('foreground, not offered yet: offers', () =>
+  {
+    expect(shouldOfferBackgroundRationale('foreground', false)).toBe(true);
+  });
+
+  it('foreground, already offered: does not repeat', () =>
+  {
+    expect(shouldOfferBackgroundRationale('foreground', true)).toBe(false);
+  });
+
+  it.each(['always', 'undetermined', 'denied', 'services_off'] as const)('valid EC, no action: %s, not offered yet: does not offer', (permission) =>
+  {
+    expect(shouldOfferBackgroundRationale(permission, false)).toBe(false);
   });
 });

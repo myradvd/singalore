@@ -2,7 +2,6 @@ import Fuse, { type IFuseOptions } from 'fuse.js';
 import type { CatalogLandmark, CatalogPark } from '@singalore/shared';
 import type { CatalogSnapshot } from './types';
 
-export const SEARCH_EMPTY_MESSAGE = 'No matching locations found. Try a different search.';
 export const SEARCH_MINIMUM_QUERY_LENGTH = 2;
 
 interface SearchDocument

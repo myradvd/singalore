@@ -23,6 +23,7 @@ export interface ActivePrompt
   landmarkId: string;
   triggeredAt: number;
   forced: boolean;
+  openedFromNotification?: true;
 }
 
 export interface GeofenceState
@@ -43,6 +44,7 @@ export interface GeofenceEngineDependencies
   settings: () => GeofenceSettings;
   playback: PlaybackStatusProvider;
   osGeofencer: OsGeofencer;
+  isAppActive: () => boolean;
 }
 /**
  * Control class for geofencing (GeofenceMonitor in the design).
@@ -55,6 +57,7 @@ export class GeofenceEngine
   private readonly evaluator = new GeofenceEvaluator();
   private readonly dismissedAt = new Map<string, number>();
   private readonly playedInTour = new Set<string>();
+  private tourActive = false;
   private readonly listeners = new Set<(state: GeofenceState) => void>();
   private unsubscribers: (() => void)[] = [];
   private windowCenter: { latitude: number; longitude: number } | null = null;
@@ -72,6 +75,7 @@ export class GeofenceEngine
       events.on('location/fix', (fix) => this.handleFix(fix)),
       events.on('audio/started', ({ landmarkId }) => this.handlePlaybackStarted(landmarkId)),
       events.on('audio/ended', () => this.handlePlaybackEnded()),
+      events.on('tour/trackingChanged', ({ active }) => this.handleTourTrackingChanged(active)),
     ];
   }
 
@@ -115,7 +119,12 @@ export class GeofenceEngine
         this.handleExit(transition.landmarkId, transition.at);
       }
     }
-    this.update({ insideLandmarkIds: this.evaluator.insideLandmarkIds() });
+    const insideLandmarkIds = this.evaluator.insideLandmarkIds();
+    // A pending prompt keeps waking listeners: a prompt raised in the foreground only notifies on a fix after the app is backgrounded.
+    if (this.state.prompt !== null || !sameIdsInOrder(insideLandmarkIds, this.state.insideLandmarkIds))
+    {
+      this.update({ insideLandmarkIds });
+    }
     void this.refreshOsWindow(fix, targets);
   }
   /** Debug tool: shows the podcast prompt for a landmark without checking distance. */
@@ -127,7 +136,25 @@ export class GeofenceEngine
 
   presentPrompt(landmarkId: string): void
   {
-    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false } });
+    if (this.state.prompt?.landmarkId === landmarkId)
+    {
+      return;
+    }
+    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false, openedFromNotification: true } });
+  }
+
+  // Handles a tapped arrival notification: autoplay requests play once, otherwise the prompt shows.
+  openArrivalNotification(landmarkId: string): void
+  {
+    if (this.dependencies.settings().autoplayEnabled)
+    {
+      this.update({ prompt: null });
+      this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
+    }
+    else
+    {
+      this.presentPrompt(landmarkId);
+    }
   }
 
   targetName(landmarkId: string): string
@@ -147,8 +174,8 @@ export class GeofenceEngine
     {
       return;
     }
-    this.update({ prompt: null });
     this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: prompt.landmarkId, reason: 'prompt_accepted' });
+    this.update({ prompt: null });
   }
   /** Walker dismissed the prompt: that landmark will not prompt again for 10 minutes unless they leave and re-enter. */
   dismissPrompt(): void
@@ -206,6 +233,11 @@ export class GeofenceEngine
         this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
         return;
       case 'autoplay':
+        if (!this.dependencies.isAppActive())
+        {
+          this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
+          return;
+        }
         this.update({ prompt: null });
         this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
         return;
@@ -237,9 +269,22 @@ export class GeofenceEngine
     this.update(changes);
   }
 
+  // Tracks whether a tour is active, and forgets played sites when it ends.
+  private handleTourTrackingChanged(active: boolean): void
+  {
+    this.tourActive = active;
+    if (!active)
+    {
+      this.playedInTour.clear();
+    }
+  }
+
   private handlePlaybackStarted(landmarkId: string): void
   {
-    this.playedInTour.add(landmarkId);
+    if (this.tourActive)
+    {
+      this.playedInTour.add(landmarkId);
+    }
     const changes: Partial<GeofenceState> = { outOfRange: null };
     if (this.state.nextUpLandmarkId === landmarkId)
     {
@@ -265,7 +310,7 @@ export class GeofenceEngine
     {
       return;
     }
-    if (this.dependencies.settings().autoplayEnabled)
+    if (this.dependencies.settings().autoplayEnabled && this.dependencies.isAppActive())
     {
       this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: nextUp, reason: 'queued' });
     }
@@ -319,4 +364,10 @@ export class GeofenceEngine
       listener(this.state);
     }
   }
+}
+
+// Checks that two id lists hold the same ids in the same order.
+function sameIdsInOrder(first: readonly string[], second: readonly string[]): boolean
+{
+  return first.length === second.length && first.every((id, index) => id === second[index]);
 }

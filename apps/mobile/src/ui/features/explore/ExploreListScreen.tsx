@@ -8,9 +8,10 @@ import { COPY } from '../../copy';
 import { Chip } from '../../primitives/Chip';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
-import { EmptyState } from '../../primitives/States';
 import { colors, radii, shadows, spacing, touchTargets, typography } from '../../theme/tokens';
+import { CatalogEmptyState } from './CatalogEmptyState';
 import { formatBytes } from './formatBytes';
+import { NearbySitesSection, type LocationChoice } from './NearbySitesSection';
 import { RemoteImage } from '../../primitives/RemoteImage';
 
 export function filterParks(parks: readonly CatalogPark[], query: string, district: string | null): CatalogPark[]
@@ -33,6 +34,8 @@ export function ExploreListScreen()
   const [district, setDistrict] = useState<string | null>(null);
   const districts = useMemo(() => [...new Set(parks.map((park) => park.district))].sort(), [parks]);
   const visible = useMemo(() => filterParks(parks, query, district), [parks, query, district]);
+  const [locationChoice, setLocationChoice] = useState<LocationChoice | null>(null);
+  const filtering = query.trim().length > 0 || district !== null;
 
   return (
     <View testID="explore-screen" style={[styles.screen, { paddingTop: insets.top }]}>
@@ -60,8 +63,9 @@ export function ExploreListScreen()
         data={visible}
         keyExtractor={(park) => park.id}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + spacing.xl }}
+        ListHeaderComponent={filtering ? null : <NearbySitesSection choice={locationChoice} onChoiceChange={setLocationChoice} />}
         ListEmptyComponent={parks.length === 0
-          ? <EmptyState icon="cloud-off-outline" title={COPY.emptyCatalogTitle} message={COPY.emptyCatalogMessage} />
+          ? <CatalogEmptyState />
           : <Text testID="explore-empty" style={[typography.body, { color: colors.textMuted, textAlign: 'center' }]}>{COPY.searchEmpty}</Text>}
         renderItem={({ item }) => (
           <Pressable testID={`explore-park-${item.slug}`} accessibilityRole="button" accessibilityLabel={`${item.name}, ${item.district}, ${item.landmarkCount} sites`} onPress={() => router.push(`/explore/${item.id}`)} style={styles.parkCard}>
