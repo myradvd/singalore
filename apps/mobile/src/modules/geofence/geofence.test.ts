@@ -172,6 +172,8 @@ describe('OS geofence window', () =>
   });
 });
 
+let diagnosticMessages: string[] = [];
+
 function createEngine(settings: Partial<GeofenceSettings> = {})
 {
   const clock = new ManualClock(0);
@@ -182,6 +184,7 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
   events.on('geofence/enter', (event) => enters.push(`${event.landmarkId}:${event.source}`));
   const playback = { playing: false, landmarkId: null as string | null };
   const registered: string[][] = [];
+  diagnosticMessages = [];
   const osGeofencer: OsGeofencer = {
     setRegions: async (regions) =>
     {
@@ -197,7 +200,10 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
   const engine = new GeofenceEngine({
     events,
     clock,
-    diagnostics: { record: async () => undefined },
+    diagnostics: { record: async (_level, message) =>
+    {
+      diagnosticMessages.push(message);
+    } },
     targets: () => [chijmes, quiet, { ...chijmes, landmarkId: 'raffles', latitude: destinationPoint(CENTER, 90, 250).lat, longitude: destinationPoint(CENTER, 90, 250).lng }],
     settings: () => currentSettings,
     playback: { isPlaying: () => playback.playing, currentLandmarkId: () => playback.landmarkId },
@@ -207,6 +213,67 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
   engine.start();
   return { engine, events, clock, playRequests, enters, playback, registered, settings: currentSettings, appState };
 }
+
+// Plays the chijmes podcast to its end, then walks out of its geofence and back in.
+function playThenExitAndReenter(events: ReturnType<typeof createEngine>['events']): void
+{
+  events.emit('audio/started', { landmarkId: 'chijmes', podcastId: 'p1' });
+  events.emit('audio/ended', { landmarkId: 'chijmes', podcastId: 'p1' });
+  events.emit('location/fix', fixAt(80, 2000));
+  events.emit('location/fix', fixAt(80, 3000));
+  events.emit('location/fix', fixAt(5, 4000));
+}
+
+describe('played sites rule applies only during the current tour (UC 1.3.2 notes)', () =>
+{
+  it('in a tour: played, exit and re-enter is suppressed as already played', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('tour/trackingChanged', { active: true });
+    events.emit('location/fix', fixAt(5, 1000));
+    playThenExitAndReenter(events);
+    expect(engine.getState().prompt).toBeNull();
+    expect(diagnosticMessages).toEqual(['prompt_suppressed_already_played']);
+  });
+
+  it('browsing, no tour ever started: played, exit and re-enter prompts again', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    playThenExitAndReenter(events);
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', forced: false, triggeredAt: 4000 });
+    expect(diagnosticMessages).toEqual([]);
+  });
+
+  it('tour ends: played in the tour, tour stops, re-enter prompts again', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('tour/trackingChanged', { active: true });
+    events.emit('audio/started', { landmarkId: 'chijmes', podcastId: 'p1' });
+    events.emit('tour/trackingChanged', { active: false });
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', triggeredAt: 1000 });
+  });
+
+  it('played after the tour stopped: browsing rule applies, re-enter prompts again', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('tour/trackingChanged', { active: true });
+    events.emit('tour/trackingChanged', { active: false });
+    events.emit('location/fix', fixAt(5, 1000));
+    playThenExitAndReenter(events);
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', triggeredAt: 4000 });
+  });
+
+  it('played while browsing, then a tour starts: re-enter during the tour prompts', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('audio/started', { landmarkId: 'chijmes', podcastId: 'p1' });
+    events.emit('tour/trackingChanged', { active: true });
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', triggeredAt: 1000 });
+  });
+});
 
 describe('GeofenceEngine', () =>
 {
@@ -243,6 +310,7 @@ describe('GeofenceEngine', () =>
   it('never prompts for a landmark already played in this tour', () =>
   {
     const { engine, events } = createEngine();
+    events.emit('tour/trackingChanged', { active: true });
     events.emit('audio/started', { landmarkId: 'chijmes', podcastId: 'p1' });
     events.emit('audio/ended', { landmarkId: 'chijmes', podcastId: 'p1' });
     events.emit('location/fix', fixAt(5, 1000));
