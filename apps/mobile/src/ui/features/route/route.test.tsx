@@ -1,14 +1,18 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
+import type { GeoPoint } from '@singalore/shared';
+import type { AppServices } from '@/composition/container';
+import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { configureFlowRuntime, dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import { bindRouteStore } from '@/modules/routing/routeStore';
+import type { PlannedRoute } from '@/modules/routing/routeTypes';
 import { createFlowEffectHandler } from '@/composition/flowEffects';
-import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
+import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_MARKET, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { HomeScreen } from '../home/HomeScreen';
+import { RouteExperience } from './RouteExperience';
 import { estimateFromStops } from './routeEstimates';
 
 jest.mock('expo-router', () => ({
@@ -28,6 +32,117 @@ describe('estimateFromStops', () =>
     expect(estimate.stops).toBe(2);
     expect(estimate.totalSeconds).toBe(estimate.walkSeconds + 180);
     expect(estimate.approximate).toBe(true);
+  });
+});
+
+// Builds a walking route over the given stops that runs along a known line.
+function plannedRouteFor(stopIds: string[]): PlannedRoute
+{
+  return { stopIds, line: [{ lat: 1.29, lng: 103.85 }, { lat: 1.3, lng: 103.85 }], distanceM: 1100, providerDurationS: 800, steps: [], approximate: false, plannedAt: 0 };
+}
+
+// Waits for a route request and the writes that follow it to finish.
+async function flushRouteWork(): Promise<void>
+{
+  await act(async () => undefined);
+  await act(async () => undefined);
+  await act(async () => undefined);
+}
+
+// Returns a fetch that never answers, so a route request stays in flight.
+function pendingFetch(): Promise<Response>
+{
+  return new Promise<Response>(() => undefined);
+}
+
+// Returns the map position of a landmark in the test catalog.
+function landmarkPosition(landmarkId: string): GeoPoint
+{
+  const landmark = useCatalogStore.getState().landmarksById.get(landmarkId);
+  if (landmark === undefined)
+  {
+    throw new Error(`Unknown landmark ${landmarkId}`);
+  }
+  return landmark.position;
+}
+
+describe('confirm panel with a route planned for other stops (UC 1.5.2.5)', () =>
+{
+  // Opens the confirm panel with a ready route and the given itinerary.
+  async function renderConfirm(routeStopIds: string[], itinerary: string[], userPosition: GeoPoint | null, fetchImplementation: typeof fetch = pendingFetch): Promise<{ services: AppServices; view: Awaited<ReturnType<typeof renderWithServices>> }>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices(fetchImplementation);
+    bindRouteStore(services.routes);
+    configureFlowRuntime({ onEffect: () => undefined, persist: () => undefined });
+    await services.routes.setRoute(plannedRouteFor(routeStopIds));
+    useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, base: 'draft', screen: 'routeConfirm', itinerary } });
+    const view = await renderWithServices(services, <RouteExperience userPosition={userPosition} />);
+    return { services, view };
+  }
+
+  it('stale no fix: route A,B and itinerary A,C disables start, hides the stats and shows the wait text', async () =>
+  {
+    await renderConfirm([LANDMARK_CHIJMES, LANDMARK_RAFFLES], [LANDMARK_CHIJMES, LANDMARK_MARKET], null);
+    expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(true);
+    expect(screen.queryByTestId('confirm-distance')).toBeNull();
+    expect(screen.getByText('Waiting for GPS signal... The route starts from your location.')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('confirm-start'));
+    expect(useFlowStore.getState().state.screen).toBe('routeConfirm');
+  });
+
+  it('matching: route A,B and itinerary A,B enables start and shows the stats', async () =>
+  {
+    await renderConfirm([LANDMARK_CHIJMES, LANDMARK_RAFFLES], [LANDMARK_CHIJMES, LANDMARK_RAFFLES], null);
+    expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(false);
+    expect(screen.getByTestId('confirm-distance')).toBeTruthy();
+  });
+
+  it('reordered: route A,B and itinerary B,A disables start', async () =>
+  {
+    await renderConfirm([LANDMARK_CHIJMES, LANDMARK_RAFFLES], [LANDMARK_RAFFLES, LANDMARK_CHIJMES], null);
+    expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it('removed landmark: route A and itinerary A,X with X not in the catalog enables start', async () =>
+  {
+    await renderConfirm([LANDMARK_CHIJMES], [LANDMARK_CHIJMES, 'landmark-not-in-catalog'], null);
+    expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(false);
+  });
+
+  it('autostart stale: within 50 m with Autodetect on and a stale route does not start navigation', async () =>
+  {
+    const { view } = await renderConfirm([LANDMARK_RAFFLES], [LANDMARK_CHIJMES], null);
+    await fireEvent(screen.getByTestId('confirm-autodetect'), 'valueChange', true);
+    await view.rerender(<RouteExperience userPosition={landmarkPosition(LANDMARK_CHIJMES)} />);
+    await flushRouteWork();
+    expect(useFlowStore.getState().state.screen).toBe('routeConfirm');
+  });
+
+  it('autostart matching: within 50 m with Autodetect on and a matching route starts navigation', async () =>
+  {
+    const { view } = await renderConfirm([LANDMARK_CHIJMES], [LANDMARK_CHIJMES], null);
+    await fireEvent(screen.getByTestId('confirm-autodetect'), 'valueChange', true);
+    await view.rerender(<RouteExperience userPosition={landmarkPosition(LANDMARK_CHIJMES)} />);
+    await flushRouteWork();
+    expect(useFlowStore.getState().state.screen).toBe('navigation');
+  });
+
+  it('stale planning: a request in flight keeps the calculating text', async () =>
+  {
+    await renderConfirm([LANDMARK_RAFFLES], [LANDMARK_CHIJMES], landmarkPosition(LANDMARK_MARKET));
+    await flushRouteWork();
+    expect(screen.getByText('Calculating walking route...')).toBeTruthy();
+    expect(screen.queryByTestId('confirm-distance')).toBeNull();
+  });
+
+  it('stale failed: a failed request keeps the error and hides the old stats', async () =>
+  {
+    await renderConfirm([LANDMARK_RAFFLES], [LANDMARK_CHIJMES], landmarkPosition(LANDMARK_MARKET), async () => new Response(null, { status: 502 }));
+    await flushRouteWork();
+    expect(screen.getByTestId('route-error').props.children).toBe('Unable to calculate route. Please try again later.');
+    expect(screen.queryByTestId('confirm-distance')).toBeNull();
+    expect(screen.getByTestId('confirm-start').props.accessibilityState?.disabled).toBe(true);
   });
 });
 

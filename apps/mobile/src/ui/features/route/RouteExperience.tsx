@@ -63,6 +63,8 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
   }), [flow.itinerary, catalog.landmarksById]);
   const routeStops: RouteStop[] = stops.map((stop) => ({ landmarkId: stop.id, position: stop.position }));
   const podcastSeconds = stops.map((stop) => totalPodcastSeconds(catalog, stop.id) ?? 0);
+  const routeIsStale = route.route !== null && route.route.stopIds.join(',') !== routeStops.map((stop) => stop.landmarkId).join(',');
+  const confirmStatus = route.status === 'ready' && routeIsStale ? 'idle' : route.status;
 
   useEffect(() =>
   {
@@ -82,11 +84,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
 
   useEffect(() =>
   {
-    if (flow.screen === 'routeConfirm' && route.status === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
+    if (flow.screen === 'routeConfirm' && confirmStatus === 'ready' && shouldAutoStart(userPosition, stops[0]?.position ?? null, autodetect))
     {
       dispatchFlow({ type: 'startNavigation', at: services.clock.now() });
     }
-  }, [flow.screen, route.status, userPosition, stops, autodetect, services]);
+  }, [flow.screen, confirmStatus, userPosition, stops, autodetect, services]);
 
   const autoOrder = async () =>
   {
@@ -150,8 +152,8 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       )}
       {flow.screen === 'routeConfirm' && (
         <RouteConfirmPanel
-          status={route.status}
-          estimate={routeEstimate}
+          status={confirmStatus}
+          estimate={routeIsStale ? null : routeEstimate}
           unit={preferences.distanceUnit}
           failureMessage={route.failureMessage}
           hasFallback={route.fallback !== null}
