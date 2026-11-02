@@ -6,7 +6,7 @@ import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { useLocationStore } from '@/modules/location/locationStore';
 import { DEFAULT_PREFERENCES } from '@/modules/prefs/preferencesSchema';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
-import { catalogFixture, PARK_CIVIC, PARK_TIONG_BAHRU } from '@test/support/catalogFixture';
+import { catalogFixture, LANDMARK_MARKET, PARK_CIVIC, PARK_TIONG_BAHRU } from '@test/support/catalogFixture';
 import { COPY } from '../../copy';
 import { nearestSites } from './nearestSites';
 import { ExploreListScreen, filterParks } from './ExploreListScreen';
@@ -144,7 +144,7 @@ describe('ExploreListScreen nearest to you section', () =>
     expect(nearbyRowIds()).toHaveLength(rowCount);
   });
 
-  it('tapping a row opens the park detail that holds the site, and sends nothing off the device', async () =>
+  it('tapping a row opens the park detail at that site, and sends nothing off the device', async () =>
   {
     const fetchSpy = jest.fn();
     const originalFetch = globalThis.fetch;
@@ -155,7 +155,7 @@ describe('ExploreListScreen nearest to you section', () =>
     await fireEvent.press(screen.getByTestId('nearby-site-tiong-bahru-market'));
     globalThis.fetch = originalFetch;
     expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith(`/explore/${PARK_TIONG_BAHRU}`);
+    expect(mockPush).toHaveBeenCalledWith(`/explore/${PARK_TIONG_BAHRU}?site=${LANDMARK_MARKET}`);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
