@@ -9,7 +9,7 @@ import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_SHELTER, PARK_CIVIC } from '
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
-import { useMapUiStore } from '../../mapCommandStore';
+import { useMapUiStore, type MapFocusRequest } from '../../mapCommandStore';
 import { useToastStore } from '../../toastStore';
 import { HomeScreen } from './HomeScreen';
 
@@ -266,6 +266,110 @@ describe('HomeScreen', () =>
     await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
     expect(useMapUiStore.getState().pendingFocus).toBeNull();
     expect(cameraCalls.some((call) => call.method === 'fitBounds')).toBe(true);
+  });
+
+  describe('map focus', () =>
+  {
+    const realConsumeFocus = useMapUiStore.getState().consumeFocus;
+    let consumeFocusSpy: jest.Mock<MapFocusRequest | null, []>;
+
+    beforeEach(() =>
+    {
+      consumeFocusSpy = jest.fn(realConsumeFocus);
+      useMapUiStore.setState({ pendingFocus: null, consumeFocus: consumeFocusSpy });
+    });
+
+    afterEach(() =>
+    {
+      useMapUiStore.setState({ pendingFocus: null, consumeFocus: realConsumeFocus });
+    });
+
+    // Renders Home with a landmark already selected so a cleared selection can be seen.
+    async function renderHomeWithSelection()
+    {
+      useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, selectedLandmarkId: LANDMARK_SHELTER } });
+      await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    }
+
+    it('known landmark selects it and centres at zoom 16.5', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      useMapUiStore.getState().requestFocus({ kind: 'landmark', landmarkId: LANDMARK_CHIJMES });
+      await renderHomeWithSelection();
+      expect(useMapUiStore.getState().pendingFocus).toBeNull();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBe(LANDMARK_CHIJMES);
+      expect(cameraCalls).toHaveLength(1);
+      expect(cameraCalls[0]).toMatchObject({ method: 'easeTo', args: [{ center: [103.85193, 1.29516], zoom: 16.5 }] });
+    });
+
+    it('unknown landmark keeps the selection and makes no camera call', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      useMapUiStore.getState().requestFocus({ kind: 'landmark', landmarkId: 'no-such-landmark' });
+      await renderHomeWithSelection();
+      expect(useMapUiStore.getState().pendingFocus).toBeNull();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBe(LANDMARK_SHELTER);
+      expect(cameraCalls).toEqual([]);
+    });
+
+    it('park with sites clears the selection and fits all of its sites', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      useMapUiStore.getState().requestFocus({ kind: 'park', parkId: PARK_CIVIC });
+      await renderHomeWithSelection();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBeNull();
+      expect(cameraCalls).toHaveLength(1);
+      expect(cameraCalls[0]).toMatchObject({ method: 'fitBounds', args: [[103.85193, 1.29486, 103.85441, 1.29516], {}] });
+    });
+
+    it('park with no sites clears the selection and centres at zoom 15.5', async () =>
+    {
+      const fixture = catalogFixture();
+      applyCatalogSnapshot({ ...fixture, landmarks: fixture.landmarks.filter((landmark) => landmark.parkId !== PARK_CIVIC) });
+      useMapUiStore.getState().requestFocus({ kind: 'park', parkId: PARK_CIVIC });
+      await renderHomeWithSelection();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBeNull();
+      expect(cameraCalls).toHaveLength(1);
+      expect(cameraCalls[0]).toMatchObject({ method: 'easeTo', args: [{ center: [103.851, 1.2925], zoom: 15.5 }] });
+    });
+
+    it('unknown park clears the selection and makes no camera call', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      useMapUiStore.getState().requestFocus({ kind: 'park', parkId: 'no-such-park' });
+      await renderHomeWithSelection();
+      expect(useMapUiStore.getState().pendingFocus).toBeNull();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBeNull();
+      expect(cameraCalls).toEqual([]);
+    });
+
+    it('pending focus waits for a ready catalog and is consumed once', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      useCatalogStore.setState({ status: 'loading' });
+      useMapUiStore.getState().requestFocus({ kind: 'landmark', landmarkId: LANDMARK_CHIJMES });
+      await renderHomeWithSelection();
+      expect(consumeFocusSpy).not.toHaveBeenCalled();
+      expect(useMapUiStore.getState().pendingFocus).toEqual({ kind: 'landmark', landmarkId: LANDMARK_CHIJMES });
+      expect(cameraCalls).toEqual([]);
+      await act(async () => applyCatalogSnapshot(catalogFixture()));
+      expect(consumeFocusSpy).toHaveBeenCalledTimes(1);
+      expect(useMapUiStore.getState().pendingFocus).toBeNull();
+      expect(cameraCalls).toHaveLength(1);
+      await act(async () => applyCatalogSnapshot(catalogFixture('"v2"')));
+      expect(consumeFocusSpy).toHaveBeenCalledTimes(1);
+      expect(cameraCalls).toHaveLength(1);
+    });
+
+    it('no pending focus on a ready catalog does not call consumeFocus', async () =>
+    {
+      applyCatalogSnapshot(catalogFixture());
+      await renderHomeWithSelection();
+      expect(useMapUiStore.getState().pendingFocus).toBeNull();
+      expect(consumeFocusSpy).not.toHaveBeenCalled();
+      expect(useFlowStore.getState().state.selectedLandmarkId).toBe(LANDMARK_SHELTER);
+      expect(cameraCalls).toEqual([]);
+    });
   });
 
   it('toggles heritage boundaries in the layer picker', async () =>
