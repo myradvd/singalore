@@ -8,7 +8,9 @@ import { DEFAULT_PREFERENCES } from '@/modules/prefs/preferencesSchema';
 import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
+import { cameraCalls } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
+import { useToastStore } from '../../toastStore';
 import { HistoryScreen } from '../history/HistoryScreen';
 import { HomeScreen } from '../home/HomeScreen';
 import { NOT_AVAILABLE_ROUTING, PREFERENCE_SECTIONS } from '../preferences/preferenceSections';
@@ -91,6 +93,92 @@ describe('Saved Routes and Sites (A4)', () =>
     await fireEvent.press(screen.getByTestId(`saved-route-delete-${routeId}`));
     expect(await screen.findByTestId('saved-empty')).toBeTruthy();
     expect(await services.saved.savedItineraries()).toEqual([]);
+  });
+});
+
+describe('Saved sites open and remove (D5)', () =>
+{
+  const removedToast = 'Removed from saved sites.';
+
+  // Reads the messages of the toasts now on screen.
+  const toastMessages = () => useToastStore.getState().toasts.map((toast) => toast.message);
+
+  beforeEach(() =>
+  {
+    useToastStore.setState({ toasts: [] });
+    cameraCalls.length = 0;
+  });
+
+  it('open: tapping a saved site moves the camera once at zoom 16.5 and shows the card', async () =>
+  {
+    const services = await createTestServices();
+    await services.saved.toggleLandmark(LANDMARK_RAFFLES);
+    await renderWithServices(services, (
+      <>
+        <HomeScreen userLocation={null} />
+        <SavedScreen />
+      </>
+    ));
+    const row = await screen.findByTestId(`saved-site-${LANDMARK_RAFFLES}`);
+    cameraCalls.length = 0;
+
+    await fireEvent.press(row);
+
+    expect(cameraCalls).toHaveLength(1);
+    expect(cameraCalls[0]).toMatchObject({ method: 'easeTo', args: [{ center: [103.85441, 1.29486], zoom: 16.5 }] });
+    expect(useFlowStore.getState().state.selectedLandmarkId).toBe(LANDMARK_RAFFLES);
+    expect(screen.getByTestId('summary-card')).toBeTruthy();
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('remove: tapping remove on a saved site shows the toast and removes the row', async () =>
+  {
+    const services = await createTestServices();
+    await services.saved.toggleLandmark(LANDMARK_RAFFLES);
+    await renderWithServices(services, <SavedScreen />);
+
+    await fireEvent.press(await screen.findByTestId(`saved-site-remove-${LANDMARK_RAFFLES}`));
+
+    expect(await screen.findByTestId('saved-empty')).toBeTruthy();
+    expect(screen.queryByTestId(`saved-site-${LANDMARK_RAFFLES}`)).toBeNull();
+    expect(toastMessages()).toEqual([removedToast]);
+    expect(await services.saved.savedLandmarkIds()).toEqual([]);
+  });
+
+  it('double tap: two presses on remove while the refresh is still running leave the site not saved', async () =>
+  {
+    const services = await createTestServices();
+    await services.saved.toggleLandmark(LANDMARK_RAFFLES);
+    await renderWithServices(services, <SavedScreen />);
+    const removeButton = await screen.findByTestId(`saved-site-remove-${LANDMARK_RAFFLES}`);
+    let finishRefresh: (routes: never[]) => void = () => undefined;
+    const heldRefresh = jest.spyOn(services.saved, 'savedItineraries').mockImplementation(() => new Promise((resolve) =>
+    {
+      finishRefresh = resolve;
+    }));
+
+    await fireEvent.press(removeButton);
+    await fireEvent.press(removeButton);
+    heldRefresh.mockRestore();
+    await act(async () => finishRefresh([]));
+
+    expect(await services.saved.savedLandmarkIds()).toEqual([]);
+    expect(toastMessages()).toEqual([removedToast]);
+    expect(await screen.findByTestId('saved-empty')).toBeTruthy();
+  });
+
+  it('exception flow, missing site: an id not in the catalog shows the placeholder and can be removed with the toast', async () =>
+  {
+    const services = await createTestServices();
+    await services.saved.toggleLandmark('landmark-not-in-catalog');
+    await renderWithServices(services, <SavedScreen />);
+    expect(await screen.findByText('Site no longer available')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Remove unavailable site'));
+
+    expect(await screen.findByTestId('saved-empty')).toBeTruthy();
+    expect(toastMessages()).toEqual([removedToast]);
+    expect(await services.saved.savedLandmarkIds()).toEqual([]);
   });
 });
 

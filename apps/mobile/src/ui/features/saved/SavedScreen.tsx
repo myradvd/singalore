@@ -5,6 +5,7 @@ import { useAppServices } from '@/composition/AppServicesContext';
 import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { dispatchFlow } from '@/modules/flow/flowStore';
 import type { SavedItinerary, SavedRepository } from '@/modules/saved/SavedRepository';
+import { useMapUiStore } from '../../mapCommandStore';
 import { IconButton } from '../../primitives/IconButton';
 import { ListRow } from '../../primitives/ListRow';
 import { EmptyState, ErrorState } from '../../primitives/States';
@@ -36,6 +37,7 @@ export function SavedScreen()
   const services = useAppServices();
   const landmarksById = useCatalogStore((state) => state.landmarksById);
   const parksById = useCatalogStore((state) => state.parksById);
+  const requestFocus = useMapUiStore((state) => state.requestFocus);
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
 
   const refresh = useCallback(async () => setLoad(await loadSaved(services.saved)), [services]);
@@ -65,13 +67,14 @@ export function SavedScreen()
 
   const showSite = (landmarkId: string) =>
   {
-    dispatchFlow({ type: 'selectLandmark', landmarkId });
+    requestFocus({ kind: 'landmark', landmarkId });
     router.back();
   };
 
   const removeSite = async (landmarkId: string) =>
   {
-    await services.saved.toggleLandmark(landmarkId);
+    await services.saved.removeLandmark(landmarkId);
+    showToast('Removed from saved sites.');
     await refresh();
   };
 
