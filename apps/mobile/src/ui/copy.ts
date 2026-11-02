@@ -7,6 +7,10 @@ export const COPY = {
   emptyCatalogTitle: 'No heritage map yet',
   emptyCatalogMessage: 'Connect to the internet once so Singalore can download the heritage map. After that it keeps working offline.',
   emptyCatalogRetry: 'Try again',
+  historyLoading: 'Loading...',
+  historyLoadFailedTitle: 'Could not load tour history',
+  historyLoadFailedMessage: 'Please try again.',
+  historyRetry: 'Retry',
   noPodcast: 'No podcast for this site yet',
   noPodcastShort: 'No podcast yet',
 } as const;
