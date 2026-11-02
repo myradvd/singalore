@@ -17,19 +17,22 @@ function fixAt(metersNorth: number, timestamp: number): LocationFix
 }
 
 // Builds a real engine with a fake notifier wired to a switchable app state.
-function createWiredEngine(targets: readonly GeofenceTarget[] = [chijmes])
+function createWiredEngine(targets: readonly GeofenceTarget[] = [chijmes], autoplayEnabled = false)
 {
   const events = createAppEventBus();
   const notifications: { title: string; body: string; data: Record<string, string> | undefined }[] = [];
   const appState = { active: false };
+  const playRequests: string[] = [];
+  events.on('audio/playLandmarkRequested', ({ landmarkId }) => playRequests.push(landmarkId));
   const engine = new GeofenceEngine({
     events,
     clock: new ManualClock(0),
     diagnostics: { record: async () => undefined },
     targets: () => targets,
-    settings: () => ({ geofenceTriggersEnabled: true, autoplayEnabled: false }),
+    settings: () => ({ geofenceTriggersEnabled: true, autoplayEnabled }),
     playback: { isPlaying: () => false, currentLandmarkId: () => null },
     osGeofencer: { setRegions: async () => undefined, clear: async () => undefined },
+    isAppActive: () => appState.active,
   });
   engine.start();
   const unsubscribe = wireArrivalNotifications({
@@ -45,7 +48,7 @@ function createWiredEngine(targets: readonly GeofenceTarget[] = [chijmes])
     },
     isAppActive: () => appState.active,
   });
-  return { engine, events, notifications, appState, unsubscribe };
+  return { engine, events, notifications, appState, playRequests, unsubscribe };
 }
 
 describe('wireArrivalNotifications (UC 1.3.2.3)', () =>
@@ -124,5 +127,32 @@ describe('wireArrivalNotifications (UC 1.3.2.3)', () =>
     unsubscribe();
     events.emit('location/fix', fixAt(5, 1000));
     expect(notifications).toEqual([]);
+  });
+
+  it('autoplay on, 10 fixes while inactive, then a tap: 1 notification and play requested once', () =>
+  {
+    const { engine, events, notifications, playRequests } = createWiredEngine([chijmes], true);
+    for (let second = 1; second <= 10; second += 1)
+    {
+      events.emit('location/fix', fixAt(5, second * 1000));
+    }
+    expect(notifications).toHaveLength(1);
+    expect(playRequests).toEqual([]);
+    engine.openArrivalNotification('chijmes');
+    expect(notifications).toHaveLength(1);
+    expect(playRequests).toEqual(['chijmes']);
+  });
+
+  it('autoplay off, 10 fixes while inactive, then a tap: 1 notification, prompt kept, no play', () =>
+  {
+    const { engine, events, notifications, playRequests } = createWiredEngine();
+    for (let second = 1; second <= 10; second += 1)
+    {
+      events.emit('location/fix', fixAt(5, second * 1000));
+    }
+    engine.openArrivalNotification('chijmes');
+    expect(notifications).toHaveLength(1);
+    expect(engine.getState().prompt?.landmarkId).toBe('chijmes');
+    expect(playRequests).toEqual([]);
   });
 });

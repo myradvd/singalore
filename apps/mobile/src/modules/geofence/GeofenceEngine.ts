@@ -44,6 +44,7 @@ export interface GeofenceEngineDependencies
   settings: () => GeofenceSettings;
   playback: PlaybackStatusProvider;
   osGeofencer: OsGeofencer;
+  isAppActive: () => boolean;
 }
 
 export class GeofenceEngine
@@ -127,6 +128,20 @@ export class GeofenceEngine
     this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false, openedFromNotification: true } });
   }
 
+  // Handles a tapped arrival notification: autoplay requests play once, otherwise the prompt shows.
+  openArrivalNotification(landmarkId: string): void
+  {
+    if (this.dependencies.settings().autoplayEnabled)
+    {
+      this.update({ prompt: null });
+      this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
+    }
+    else
+    {
+      this.presentPrompt(landmarkId);
+    }
+  }
+
   targetName(landmarkId: string): string
   {
     return this.dependencies.targets().find((target) => target.landmarkId === landmarkId)?.name ?? 'a heritage site';
@@ -203,6 +218,11 @@ export class GeofenceEngine
         this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
         return;
       case 'autoplay':
+        if (!this.dependencies.isAppActive())
+        {
+          this.update({ prompt: { landmarkId, triggeredAt: at, forced: false } });
+          return;
+        }
         this.update({ prompt: null });
         this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
         return;
@@ -262,7 +282,7 @@ export class GeofenceEngine
     {
       return;
     }
-    if (this.dependencies.settings().autoplayEnabled)
+    if (this.dependencies.settings().autoplayEnabled && this.dependencies.isAppActive())
     {
       this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: nextUp, reason: 'queued' });
     }

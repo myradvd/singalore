@@ -1,5 +1,6 @@
 import type { GeofenceTarget } from '@/core/location';
 import Constants from 'expo-constants';
+import { AppState } from 'react-native';
 import { createAppEventBus, type AppEventBus } from '@/core/appEvents';
 import { systemClock, type Clock } from '@/core/clock';
 import { parseAppConfig, type AppConfig } from '@/core/config';
@@ -132,6 +133,7 @@ export async function createAppServices(): Promise<AppServices>
     },
     playback,
     osGeofencer: createExpoOsGeofencer(() => location.getState().permission === 'always'),
+    isAppActive: () => AppState.currentState === 'active',
   });
   const notifier = createExpoLocalNotifier((category) =>
   {

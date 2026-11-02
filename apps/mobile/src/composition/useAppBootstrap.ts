@@ -13,7 +13,7 @@ import { configureFlowRuntime, dispatchFlow, useFlowStore } from '@/modules/flow
 import { bindGeofenceStore } from '@/modules/geofence/geofenceStore';
 import { bindLocationStore } from '@/modules/location/locationStore';
 import { resolvePermissionState } from '@/modules/location/permissions';
-import { getPreferences, loadPreferences } from '@/modules/prefs/preferencesStore';
+import { loadPreferences } from '@/modules/prefs/preferencesStore';
 import { COPY } from '@/ui/copy';
 import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
@@ -33,18 +33,6 @@ function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 export async function refreshLocationPermission(services: AppServices): Promise<void>
 {
   await services.location.setPermission(resolvePermissionState(await services.permissions.snapshot()));
-}
-
-function handleArrivalNotification(services: AppServices, landmarkId: string): void
-{
-  if (getPreferences().autoplayEnabled)
-  {
-    services.events.emit('audio/playLandmarkRequested', { landmarkId, reason: 'autoplay' });
-  }
-  else
-  {
-    services.geofence.presentPrompt(landmarkId);
-  }
 }
 
 async function checkPackUpdates(services: AppServices): Promise<void>
@@ -138,7 +126,7 @@ export function useAppBootstrap(): BootstrapState
       const landmarkId = lastResponse?.notification.request.content.data?.landmarkId;
       if (typeof landmarkId === 'string')
       {
-        handleArrivalNotification(services, landmarkId);
+        services.geofence.openArrivalNotification(landmarkId);
       }
       reportSyncOutcome(await initializeCatalog(services.catalogSync));
       await services.audio.restoreSession();
@@ -185,7 +173,7 @@ export function useAppBootstrap(): BootstrapState
       const landmarkId = response.notification.request.content.data?.landmarkId;
       if (typeof landmarkId === 'string')
       {
-        handleArrivalNotification(services, landmarkId);
+        services.geofence.openArrivalNotification(landmarkId);
       }
     });
     return () =>
