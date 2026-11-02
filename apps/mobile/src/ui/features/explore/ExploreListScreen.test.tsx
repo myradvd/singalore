@@ -13,6 +13,11 @@ import { ExploreListScreen, filterParks } from './ExploreListScreen';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, back: jest.fn(), dismissTo: jest.fn() }) }));
+jest.mock('./nearestSites', () =>
+{
+  const actual = jest.requireActual<typeof import('./nearestSites')>('./nearestSites');
+  return { ...actual, nearestSites: jest.fn(actual.nearestSites) };
+});
 
 describe('filterParks', () =>
 {
@@ -32,7 +37,9 @@ const FIX_POINT = { lat: 1.29, lng: 103.85 };
 // Puts the user at a point, or removes their GPS fix when given null.
 function setUserFix(point: { lat: number; lng: number } | null): void
 {
-  useLocationStore.setState({ lastFix: point === null ? null : { latitude: point.lat, longitude: point.lng, accuracyMeters: 5, timestamp: 0, source: 'device' } });
+  useLocationStore.setState(point === null
+    ? { lastFix: null, status: 'idle' }
+    : { lastFix: { latitude: point.lat, longitude: point.lng, accuracyMeters: 5, timestamp: 0, source: 'device' }, status: 'ok' });
 }
 
 // Builds a catalog with one park and sites in a row, each further north of the fix than the last.
@@ -163,6 +170,53 @@ describe('ExploreListScreen nearest to you section', () =>
       const style = StyleSheet.flatten(screen.getByTestId(testId).props.style) as { minHeight?: number; height?: number };
       expect(style.minHeight ?? style.height).toBeGreaterThanOrEqual(48);
     }
+    await fireEvent.press(screen.getByTestId('nearby-option-park-civic-district'));
+    const clearStyle = StyleSheet.flatten(screen.getByTestId('nearby-clear-location').props.style) as { minHeight?: number };
+    expect(clearStyle.minHeight).toBeGreaterThanOrEqual(48);
+  });
+
+  it('signal loss hides the section and shows the prompt until the signal returns', async () =>
+  {
+    setUserFix(FIX_POINT);
+    applyCatalogSnapshot(catalogWithSites(2));
+    await render(<ExploreListScreen />);
+    await act(async () => useLocationStore.setState({ status: 'waiting_for_signal' }));
+    expect(screen.queryByTestId('nearby-section')).toBeNull();
+    expect(screen.getByText('Select a location to see nearby sites')).toBeTruthy();
+    await act(async () => useLocationStore.setState({ status: 'ok' }));
+    expect(screen.getByText('Nearest to you')).toBeTruthy();
+  });
+
+  it('signal loss leaves a chosen location showing', async () =>
+  {
+    setUserFix(FIX_POINT);
+    applyCatalogSnapshot(catalogWithSites(3));
+    await render(<ExploreListScreen />);
+    await chooseLocation('nearby-option-site-site-2');
+    await act(async () => useLocationStore.setState({ status: 'waiting_for_signal' }));
+    expect(screen.getByText('Nearest to Row site 2')).toBeTruthy();
+    expect(nearbyRowIds()).toEqual(['nearby-site-site-1', 'nearby-site-site-0']);
+    expect(screen.queryByText('Select a location to see nearby sites')).toBeNull();
+  });
+
+  it('does not work out the list again on a new fix while a location is chosen', async () =>
+  {
+    setUserFix(FIX_POINT);
+    applyCatalogSnapshot(catalogWithSites(3));
+    await render(<ExploreListScreen />);
+    await chooseLocation('nearby-option-site-site-2');
+    jest.mocked(nearestSites).mockClear();
+    await act(async () => setUserFix({ lat: 1.3, lng: 103.86 }));
+    expect(nearestSites).not.toHaveBeenCalled();
+  });
+
+  it('works out the list again when the user position moves', async () =>
+  {
+    setUserFix(FIX_POINT);
+    applyCatalogSnapshot(catalogWithSites(3));
+    await render(<ExploreListScreen />);
+    await act(async () => setUserFix({ lat: FIX_POINT.lat + 0.01, lng: FIX_POINT.lng }));
+    expect(nearbyRowIds()).toEqual(['nearby-site-site-2', 'nearby-site-site-1', 'nearby-site-site-0']);
   });
 
   it('selecting a site measures from it and leaves it out, with no fix needed', async () =>
