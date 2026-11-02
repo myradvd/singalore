@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { analyseAudio, AudioRejectedError, lengthClassFor } from '@/server/audioAnalysis';
+import { analyseAudio, AudioRejectedError, lengthClassFor, MAX_AUDIO_BYTES } from '@/server/audioAnalysis';
 import { databaseErrorMessage, firstIssue, formText, LandmarkForm, PodcastForm, slugify } from '@/server/contentForms';
 
 const PARK_ID = '0b5a2f10-0000-4000-8000-000000000001';
@@ -170,6 +170,27 @@ describe('database errors', () =>
 
 describe('audio analysis', () =>
 {
+  // Returns a stand in that reports a size without allocating that many bytes.
+  function bytesOfReportedSize(byteLength: number): Uint8Array
+  {
+    return { byteLength } as unknown as Uint8Array;
+  }
+
+  it('limit is 50 MB', () =>
+  {
+    expect(MAX_AUDIO_BYTES).toBe(52428800);
+  });
+
+  // A stand in has no audio to parse, so passing the size check gives the no playable length message.
+  it.each([
+    [MAX_AUDIO_BYTES - 1, 'The audio file has no playable length.'],
+    [MAX_AUDIO_BYTES, 'The audio file has no playable length.'],
+    [MAX_AUDIO_BYTES + 1, 'Audio files must be between 1 byte and 50 MB.'],
+  ])('audio of %i bytes is rejected with: %s', async (byteLength, expectedMessage) =>
+  {
+    await expect(analyseAudio(bytesOfReportedSize(byteLength), 'audio/mp4')).rejects.toThrow(new AudioRejectedError(expectedMessage));
+  });
+
   it('computes duration, size, SHA-256, MD5 and length class on the server', async () =>
   {
     const bytes = new Uint8Array(await readFile(path.resolve(import.meta.dirname, '../../../supabase/seed/audio/chijmes-gb.m4a')));
