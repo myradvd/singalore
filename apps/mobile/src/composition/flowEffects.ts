@@ -1,4 +1,5 @@
 import type { FlowEffect } from '@/modules/flow/flowTypes';
+import { dispatchFlow } from '@/modules/flow/flowStore';
 import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { showToast } from '@/ui/toastStore';
 import type { AppServices } from './container';
@@ -14,6 +15,15 @@ export function routeTitle(landmarkIds: readonly string[]): string
   return names.length === 1 ? (names[0] ?? 'Untitled Route') : `${names[0]} and ${names.length - 1} more`;
 }
 
+// Marks every landmark the walker is already inside as visited when a tour starts.
+function markInsideStopsVisited(services: AppServices): void
+{
+  for (const landmarkId of services.geofence.getState().insideLandmarkIds)
+  {
+    dispatchFlow({ type: 'markVisited', landmarkId, at: services.clock.now() });
+  }
+}
+
 export function createFlowEffectHandler(services: AppServices): (effect: FlowEffect) => void
 {
   return (effect) =>
@@ -26,6 +36,7 @@ export function createFlowEffectHandler(services: AppServices): (effect: FlowEff
       case 'startTourTracking':
         services.routes.setNavigating(true);
         void startTourTracking(services);
+        markInsideStopsVisited(services);
         return;
       case 'stopTourTracking':
         void services.routes.clear();
