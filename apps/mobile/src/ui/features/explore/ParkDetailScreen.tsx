@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { landmarksForPark, totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { landmarksForPark, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { usePreferencesStore } from '@/modules/prefs/preferencesStore';
 import { COPY, categoryLabel } from '../../copy';
 import { useMapUiStore } from '../../mapCommandStore';
 import { SecondaryButton, TextButton } from '../../primitives/Buttons';
@@ -12,6 +13,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { ErrorState } from '../../primitives/States';
 import { colors, radii, spacing, typography } from '../../theme/tokens';
 import { RemoteImage } from '../../primitives/RemoteImage';
+import { shownEpisodeSeconds } from '../player/playerLabels';
 
 function LandmarkRow({ landmark, podcastSeconds, onSeeOnMap, trailing }: { landmark: CatalogLandmark; podcastSeconds: number | null; onSeeOnMap: () => void; trailing?: ReactNode })
 {
@@ -40,6 +42,7 @@ export function ParkDetailScreen({ parkId, renderLandmarkTrailing, parkActions }
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const catalog = useCatalogStore();
+  const preferences = usePreferencesStore((state) => state.preferences);
   const requestFocus = useMapUiStore((state) => state.requestFocus);
   const park = catalog.parksById.get(parkId);
 
@@ -79,7 +82,7 @@ export function ParkDetailScreen({ parkId, renderLandmarkTrailing, parkActions }
             <LandmarkRow
               key={landmark.id}
               landmark={landmark}
-              podcastSeconds={totalPodcastSeconds(catalog, landmark.id)}
+              podcastSeconds={shownEpisodeSeconds(catalog, landmark.id, preferences)}
               onSeeOnMap={() => seeOnMap({ kind: 'landmark', landmarkId: landmark.id })}
               trailing={renderLandmarkTrailing?.(landmark)}
             />
