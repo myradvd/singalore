@@ -25,6 +25,7 @@ export function suggestedSites({ landmarksById, purpose, itineraryIds, userPosit
   const lastStop = addingToRoute && lastStopId !== undefined ? landmarksById.get(lastStopId) : undefined;
   const origin = lastStop?.position ?? userPosition;
   const candidates = [...landmarksById.values()].filter((site) => !addingToRoute || !itineraryIds.includes(site.id));
+  // Orders two sites by name.
   const byName = (first: CatalogLandmark, second: CatalogLandmark) => first.name.localeCompare(second.name);
   const sorted = origin === null
     ? candidates.sort(byName)
