@@ -11,6 +11,12 @@ export async function startTourTracking(services: AppServices): Promise<void>
     await services.diagnostics.record('info', 'tour_foreground_only');
     return;
   }
+  await startTourBackgroundTracking(services);
+}
+
+// Starts background location for a tour and records a warning if it fails.
+export async function startTourBackgroundTracking(services: AppServices): Promise<void>
+{
   try
   {
     await stopApproachWatch();
@@ -20,6 +26,21 @@ export async function startTourTracking(services: AppServices): Promise<void>
   {
     await services.diagnostics.record('warn', 'tour_background_start_failed', error instanceof Error ? error.message : 'unknown');
   }
+}
+
+// Starts background location when permission becomes always during a tour.
+export function bindLateBackgroundGrant(services: AppServices): () => void
+{
+  let previousPermission = services.location.getState().permission;
+  return services.location.subscribe((state) =>
+  {
+    const becameAlways = state.permission === 'always' && previousPermission !== 'always';
+    previousPermission = state.permission;
+    if (becameAlways && state.mode === 'tour')
+    {
+      void startTourBackgroundTracking(services);
+    }
+  });
 }
 
 export async function stopTourTracking(services: AppServices): Promise<void>
