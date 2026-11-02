@@ -193,6 +193,7 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
     },
   };
   const currentSettings: GeofenceSettings = { geofenceTriggersEnabled: true, autoplayEnabled: false, ...settings };
+  const appState = { active: true };
   const engine = new GeofenceEngine({
     events,
     clock,
@@ -201,9 +202,10 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
     settings: () => currentSettings,
     playback: { isPlaying: () => playback.playing, currentLandmarkId: () => playback.landmarkId },
     osGeofencer,
+    isAppActive: () => appState.active,
   });
   engine.start();
-  return { engine, events, clock, playRequests, enters, playback, registered, settings: currentSettings };
+  return { engine, events, clock, playRequests, enters, playback, registered, settings: currentSettings, appState };
 }
 
 describe('GeofenceEngine', () =>
@@ -301,6 +303,24 @@ describe('GeofenceEngine', () =>
     expect(second.engine.getState().nextUpLandmarkId).toBeNull();
   });
 
+  it('presentPrompt with the same landmark pending keeps the pending prompt', () =>
+  {
+    const { engine, events, clock } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    const pending = engine.getState().prompt;
+    clock.advance(4000);
+    engine.presentPrompt('chijmes');
+    expect(engine.getState().prompt).toBe(pending);
+  });
+
+  it('presentPrompt with another landmark pending replaces it and marks it as opened from a notification', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    engine.presentPrompt('raffles');
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'raffles', forced: false, openedFromNotification: true });
+  });
+
   it('never prompts for landmarks without a podcast (UC 1.3.2.2)', () =>
   {
     const { engine, events } = createEngine();
@@ -337,6 +357,93 @@ describe('GeofenceEngine', () =>
     const { engine, events, playRequests } = createEngine({ geofenceTriggersEnabled: false, autoplayEnabled: true });
     events.emit('location/fix', fixAt(5, 1000));
     expect(engine.getState().prompt).toBeNull();
+    expect(playRequests).toEqual([]);
+  });
+});
+
+describe('GeofenceEngine with the app not active (UC 1.3.3.1, D16)', () =>
+{
+  it('foreground autoplay: active, autoplay on, requests play and sets no prompt', () =>
+  {
+    const { engine, events, playRequests } = createEngine({ autoplayEnabled: true });
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(playRequests).toEqual([{ landmarkId: 'chijmes', reason: 'autoplay' }]);
+    expect(engine.getState().prompt).toBeNull();
+  });
+
+  it('background autoplay: inactive, autoplay on, sets a prompt and requests no play', () =>
+  {
+    const { engine, events, playRequests, appState } = createEngine({ autoplayEnabled: true });
+    appState.active = false;
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(engine.getState().prompt).toEqual({ landmarkId: 'chijmes', triggeredAt: 1000, forced: false });
+    expect(playRequests).toEqual([]);
+  });
+
+  it('background no autoplay: inactive, autoplay off, sets a prompt', () =>
+  {
+    const { engine, events, playRequests, appState } = createEngine();
+    appState.active = false;
+    events.emit('location/fix', fixAt(5, 1000));
+    expect(engine.getState().prompt?.landmarkId).toBe('chijmes');
+    expect(playRequests).toEqual([]);
+  });
+
+  it('background queued: inactive, next up inside, episode ended, sets a prompt and requests no play', () =>
+  {
+    const { engine, events, playback, playRequests, appState } = createEngine({ autoplayEnabled: true });
+    playback.playing = true;
+    playback.landmarkId = 'other';
+    events.emit('location/fix', fixAt(5, 1000));
+    appState.active = false;
+    playback.playing = false;
+    events.emit('audio/ended', { landmarkId: 'other', podcastId: 'p0' });
+    expect(engine.getState().prompt?.landmarkId).toBe('chijmes');
+    expect(engine.getState().nextUpLandmarkId).toBeNull();
+    expect(playRequests).toEqual([]);
+  });
+
+  it('background queued, walker left: inactive, next up outside, sets no prompt', () =>
+  {
+    const { engine, events, playback, playRequests, appState } = createEngine({ autoplayEnabled: true });
+    playback.playing = true;
+    playback.landmarkId = 'other';
+    events.emit('location/fix', fixAt(5, 1000));
+    events.emit('location/fix', fixAt(80, 2000));
+    events.emit('location/fix', fixAt(80, 3000));
+    appState.active = false;
+    playback.playing = false;
+    events.emit('audio/ended', { landmarkId: 'other', podcastId: 'p0' });
+    expect(engine.getState().prompt).toBeNull();
+    expect(playRequests).toEqual([]);
+  });
+
+  it('tap opens play: autoplay on, prompt pending, requests play once and clears the prompt', () =>
+  {
+    const { engine, events, playRequests, appState } = createEngine({ autoplayEnabled: true });
+    appState.active = false;
+    events.emit('location/fix', fixAt(5, 1000));
+    engine.openArrivalNotification('chijmes');
+    expect(playRequests).toEqual([{ landmarkId: 'chijmes', reason: 'autoplay' }]);
+    expect(engine.getState().prompt).toBeNull();
+    appState.active = true;
+    engine.acceptPrompt();
+    events.emit('location/fix', fixAt(5, 2000));
+    expect(playRequests).toHaveLength(1);
+  });
+
+  it('tap opens play: autoplay on, no prompt pending, requests play once', () =>
+  {
+    const { engine, playRequests } = createEngine({ autoplayEnabled: true });
+    engine.openArrivalNotification('chijmes');
+    expect(playRequests).toEqual([{ landmarkId: 'chijmes', reason: 'autoplay' }]);
+  });
+
+  it('tap shows the prompt: autoplay off, requests no play', () =>
+  {
+    const { engine, playRequests } = createEngine();
+    engine.openArrivalNotification('chijmes');
+    expect(engine.getState().prompt?.landmarkId).toBe('chijmes');
     expect(playRequests).toEqual([]);
   });
 });
