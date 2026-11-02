@@ -1,4 +1,4 @@
-import { API_PATHS, RouteResponse, TableResponse, autoOrder, decodePolyline6, distanceBetween, pathLengthMeters, projectOntoPolyline, type GeoPoint } from '@singalore/shared';
+import { API_PATHS, RouteResponse, TableResponse, autoOrder, decodePolyline6, pathLengthMeters, projectOntoPolyline, type GeoPoint } from '@singalore/shared';
 import type { Clock } from '@/core/clock';
 import { ApiRequestError, type ApiClient } from '@/core/http/ApiClient';
 import type { PlannedRoute, PlannedStep, RouteStop } from './routeTypes';
@@ -76,9 +76,4 @@ export class RoutePlanner
       return { kind: 'failed', message, fallback: straightLineRoute(origin, ordered, now) };
     }
   }
-}
-
-export function distanceToStop(origin: GeoPoint, stop: RouteStop): number
-{
-  return distanceBetween(origin, stop.position);
 }

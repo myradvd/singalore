@@ -59,7 +59,6 @@ export class AudioController
   private startedTrackId: string | null = null;
   private sessionId = '';
   private currentUri: string | null = null;
-  private unsubscribers: (() => void)[] = [];
 
   constructor(private readonly dependencies: AudioControllerDependencies)
   {
@@ -67,19 +66,8 @@ export class AudioController
 
   start(): void
   {
-    this.unsubscribers = [
-      this.dependencies.engine.subscribe((status) => this.handleStatus(status)),
-      this.dependencies.events.on('audio/playLandmarkRequested', ({ landmarkId }) => void this.playLandmark(landmarkId)),
-    ];
-  }
-
-  stopListening(): void
-  {
-    for (const unsubscribe of this.unsubscribers)
-    {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
+    this.dependencies.engine.subscribe((status) => this.handleStatus(status));
+    this.dependencies.events.on('audio/playLandmarkRequested', ({ landmarkId }) => void this.playLandmark(landmarkId));
   }
 
   getState(): AudioControllerState
