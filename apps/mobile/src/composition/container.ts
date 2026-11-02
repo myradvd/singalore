@@ -40,6 +40,7 @@ import { PackDetailsRepository } from '@/modules/offline/PackDetailsRepository';
 import { PreferencesRepository } from '@/modules/prefs/PreferencesRepository';
 import { getPreferences } from '@/modules/prefs/preferencesStore';
 import { DATABASE_NAME } from './databaseName';
+import { toGeofenceTargets } from './geofenceTargets';
 import { createMutablePlaybackStatus, type MutablePlaybackStatus } from './playbackStatus';
 
 export interface AppServices
@@ -80,14 +81,7 @@ export function geofenceTargetsFromCatalog(): GeofenceTarget[]
   {
     return cachedTargets.targets;
   }
-  const targets = state.snapshot.landmarks.map((landmark) => ({
-    landmarkId: landmark.id,
-    name: landmark.name,
-    latitude: landmark.position.lat,
-    longitude: landmark.position.lng,
-    radiusMeters: landmark.geofenceRadiusM,
-    hasPodcast: state.podcastLandmarkIds.has(landmark.id),
-  }));
+  const targets = toGeofenceTargets(state.snapshot.landmarks, state.podcastLandmarkIds);
   cachedTargets = { snapshot: state.snapshot, targets };
   return targets;
 }

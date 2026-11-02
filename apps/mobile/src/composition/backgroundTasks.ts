@@ -3,7 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import { systemClock } from '@/core/clock';
 import { openExpoSqliteAdapter } from '@/core/db/expoSqliteAdapter';
 import { migrate } from '@/core/db/migrations';
-import type { GeofenceTarget, LocationFix } from '@/core/location';
+import type { LocationFix } from '@/core/location';
 import { CatalogRepository } from '@/modules/catalog/CatalogRepository';
 import { arrivalNotificationText, evaluateBackgroundArrival } from '@/modules/geofence/backgroundArrival';
 import { GEOFENCE_TASK } from '@/modules/geofence/ExpoOsGeofencer';
@@ -12,6 +12,7 @@ import { toLocationFix } from '@/modules/location/DeviceLocationSource';
 import { createExpoLocalNotifier } from '@/modules/notifications/ExpoLocalNotifier';
 import { PreferencesRepository } from '@/modules/prefs/PreferencesRepository';
 import { DATABASE_NAME } from './databaseName';
+import { toGeofenceTargets } from './geofenceTargets';
 
 export interface LiveBackgroundRuntime
 {
@@ -35,14 +36,7 @@ async function handleHeadlessFix(fix: LocationFix, candidateLandmarkId?: string)
   const catalog = await new CatalogRepository(db).load();
   const preferences = await new PreferencesRepository(db).load();
   const withPodcast = new Set(catalog.podcasts.map((podcast) => podcast.landmarkId));
-  const targets: GeofenceTarget[] = catalog.landmarks.map((landmark) => ({
-    landmarkId: landmark.id,
-    name: landmark.name,
-    latitude: landmark.position.lat,
-    longitude: landmark.position.lng,
-    radiusMeters: landmark.geofenceRadiusM,
-    hasPodcast: withPodcast.has(landmark.id),
-  }));
+  const targets = toGeofenceTargets(catalog.landmarks, withPodcast);
   const notifiedRows = (await db.all('select key, value from meta where key like ?', [`${NOTIFIED_PREFIX}%`])) as { key: string; value: string }[];
   const lastNotifiedAt = new Map(notifiedRows.map((row) => [row.key.slice(NOTIFIED_PREFIX.length), Number(row.value)]));
   const now = systemClock.now();
