@@ -71,6 +71,28 @@ describe('HomeScreen', () =>
     expect(cameraCalls.at(-1)).toMatchObject({ method: 'easeTo' });
   });
 
+  it('shows layers, recenter and podcast preferences in order, and one press opens the audio preferences once (D10)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    const clusterButtonIds = screen.getAllByRole('button')
+      .map((button) => button.props.testID as string | undefined)
+      .filter((testID) => testID === 'open-layers' || testID === 'recenter' || testID === 'podcast-preferences');
+    expect(clusterButtonIds).toEqual(['open-layers', 'recenter', 'podcast-preferences']);
+    await fireEvent.press(screen.getByTestId('podcast-preferences'));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/preferences/audio');
+  });
+
+  it('shows podcast preferences on the navigation screen exactly when the layers button is present (D10)', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, screen: 'navigation', base: 'inProgress' } });
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    expect(screen.queryByTestId('open-layers') !== null).toBe(true);
+    expect(screen.queryByTestId('podcast-preferences') !== null).toBe(screen.queryByTestId('open-layers') !== null);
+  });
+
   it('disables Listen with a short reason when a site has no podcast', async () =>
   {
     applyCatalogSnapshot(catalogFixture());
