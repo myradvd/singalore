@@ -73,6 +73,7 @@ async function setupRealPair()
     settings: () => ({ geofenceTriggersEnabled: true, autoplayEnabled: false }),
     playback: audio,
     osGeofencer: { setRegions: async () => undefined, clear: async () => undefined },
+    isAppActive: () => true,
   });
   audio.start();
   geofence.start();
