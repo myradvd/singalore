@@ -14,6 +14,7 @@ import { clearRecentSites, recordRecentSites } from '@/modules/prefs/recentSites
 import { useAudioStore } from '@/modules/audio/audioStore';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { useRouteStore } from '@/modules/routing/routeStore';
+import { SiteDownloadButton } from '../downloads/SiteDownloadButton';
 import { RouteExperience, RouteStripHost } from '../route/RouteExperience';
 import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import { buildLandmarkPins, buildParkBoundaries, buildParkCenterMarkers } from '@/modules/catalog/mapFeatures';
@@ -379,6 +380,7 @@ export function HomeScreen(props: HomeScreenProps)
                       ? <PrimaryButton testID="summary-listen" label="Listen" icon="headphones" pressScale onPress={() => void services.audio.playLandmark(selected.id)} />
                       : <SecondaryButton testID="summary-listen-unavailable" label={COPY.noPodcastShort} icon="headphones-off" accessibilityHint="Listen is unavailable for this site" disabled onPress={() => undefined} />}
                     <SecondaryButton testID="summary-add-route" label="Route" icon="plus" pressScale onPress={() => dispatchFlow({ type: 'addToItinerary', landmarkId: selected.id })} />
+                    {catalog.parksById.get(selected.parkId) !== undefined && <SiteDownloadButton parkId={selected.parkId} parkName={catalog.parksById.get(selected.parkId)?.name ?? ''} />}
                     <SecondaryButton testID="summary-start-tour" label="Start Tour" icon="walk" pressScale onPress={() => dispatchFlow({ type: 'startTourFromSite', landmarkId: selected.id })} />
                   </>
                 )}
