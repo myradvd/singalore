@@ -134,6 +134,28 @@ describe('Saved sites open and remove (D5)', () =>
     expect(await services.saved.savedLandmarkIds()).toEqual([]);
   });
 
+  it('double tap: two presses on remove while the refresh is still running leave the site not saved', async () =>
+  {
+    const services = await createTestServices();
+    await services.saved.toggleLandmark(LANDMARK_RAFFLES);
+    await renderWithServices(services, <SavedScreen />);
+    const removeButton = await screen.findByTestId(`saved-site-remove-${LANDMARK_RAFFLES}`);
+    let finishRefresh: (routes: never[]) => void = () => undefined;
+    const heldRefresh = jest.spyOn(services.saved, 'savedItineraries').mockImplementation(() => new Promise((resolve) =>
+    {
+      finishRefresh = resolve;
+    }));
+
+    await fireEvent.press(removeButton);
+    await fireEvent.press(removeButton);
+    heldRefresh.mockRestore();
+    await act(async () => finishRefresh([]));
+
+    expect(await services.saved.savedLandmarkIds()).toEqual([]);
+    expect(toastMessages()).toEqual([removedToast]);
+    expect(await screen.findByTestId('saved-empty')).toBeTruthy();
+  });
+
   it('exception flow, missing site: an id not in the catalog shows the placeholder and can be removed with the toast', async () =>
   {
     const services = await createTestServices();
