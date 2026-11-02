@@ -1,4 +1,4 @@
-import { DISTANCE_UNITS, PODCAST_LENGTH_CLASSES, WALKING_PACES } from '@singalore/shared';
+import { DISTANCE_UNITS, WALKING_PACES } from '@singalore/shared';
 import { PLAYBACK_RATES, type Preferences } from '@/modules/prefs/preferencesSchema';
 import type { IconName } from '../../primitives/Icon';
 
@@ -15,8 +15,8 @@ export type PreferenceField =
   | { kind: 'choice'; key: 'walkingPace'; label: string; options: ChoiceOption<Preferences['walkingPace']>[] }
   | { kind: 'choice'; key: 'distanceUnit'; label: string; options: ChoiceOption<Preferences['distanceUnit']>[] }
   | { kind: 'choice'; key: 'playbackRate'; label: string; options: ChoiceOption<number>[] }
-  | { kind: 'choice'; key: 'preferredLength'; label: string; options: ChoiceOption<Preferences['preferredLength']>[] }
-  | { kind: 'catalogChoice'; key: 'preferredVoice' | 'preferredAccent'; label: string; source: 'voice' | 'accent' };
+  | { kind: 'catalogChoice'; key: 'preferredVoice' | 'preferredAccent'; label: string; source: 'voice' | 'accent' }
+  | { kind: 'catalogChoice'; key: 'preferredLength'; label: string; source: 'length' };
 
 export const SECTION_IDS = ['audio', 'route', 'notifications'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
@@ -30,7 +30,7 @@ export interface PreferenceSection
   fields: PreferenceField[];
 }
 
-const capitalise = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+export const capitalise = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
 export const NOT_AVAILABLE_ROUTING = 'Not available yet: the walking route service has no data for this.';
 export const NOT_AVAILABLE_PUSH = 'Not available yet: new episode alerts need a push service.';
@@ -47,7 +47,7 @@ export const PREFERENCE_SECTIONS: PreferenceSection[] = [
       { kind: 'toggle', key: 'autoplayEnabled', label: 'Autoplay', description: 'Start the podcast without asking when you arrive' },
       { kind: 'catalogChoice', key: 'preferredVoice', label: 'Preferred voice', source: 'voice' },
       { kind: 'catalogChoice', key: 'preferredAccent', label: 'Preferred accent', source: 'accent' },
-      { kind: 'choice', key: 'preferredLength', label: 'Preferred length', options: [{ label: 'Any', value: null }, ...PODCAST_LENGTH_CLASSES.map((value) => ({ label: capitalise(value), value }))] },
+      { kind: 'catalogChoice', key: 'preferredLength', label: 'Preferred length', source: 'length' },
       { kind: 'choice', key: 'playbackRate', label: 'Playback speed', options: PLAYBACK_RATES.map((value) => ({ label: `${value}x`, value })) },
     ],
   },

@@ -1,3 +1,4 @@
+import { PODCAST_LENGTH_CLASSES } from '@singalore/shared';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -15,7 +16,7 @@ import { Toggle } from '../../primitives/Toggle';
 import { colors, spacing, typography } from '../../theme/tokens';
 import { showToast } from '../../toastStore';
 import { ScreenScaffold, SectionTitle } from '../shell/ScreenScaffold';
-import { NOT_AVAILABLE_RECOMMENDATIONS, PREFERENCE_SECTIONS, isDirty, type ChoiceOption, type PreferenceField, type PreferenceSection } from './preferenceSections';
+import { NOT_AVAILABLE_RECOMMENDATIONS, PREFERENCE_SECTIONS, capitalise, isDirty, type ChoiceOption, type PreferenceField, type PreferenceSection } from './preferenceSections';
 
 export function PreferencesIndexScreen()
 {
@@ -81,7 +82,7 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
   const catalogOptions = useMemo(() =>
   {
     const available = availableVariantOptions(podcasts);
-    return { voice: available.voices, accent: available.accents };
+    return { voice: available.voices, accent: available.accents, length: PODCAST_LENGTH_CLASSES.filter((value) => available.lengths.includes(value)) };
   }, [podcasts]);
 
   const requestBack = () =>
@@ -160,6 +161,10 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
         );
       case 'catalogChoice':
       {
+        if (field.source === 'length')
+        {
+          return renderChoice(field.key, field.label, [{ label: 'Any', value: null }, ...catalogOptions.length.map((value) => ({ label: capitalise(value), value }))]);
+        }
         const values = catalogOptions[field.source];
         return renderChoice(field.key, field.label, [{ label: 'Any', value: null }, ...values.map((value) => ({ label: value, value }))]);
       }
@@ -171,8 +176,6 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
           case 'distanceUnit':
             return renderChoice(field.key, field.label, field.options);
           case 'playbackRate':
-            return renderChoice(field.key, field.label, field.options);
-          case 'preferredLength':
             return renderChoice(field.key, field.label, field.options);
         }
     }
