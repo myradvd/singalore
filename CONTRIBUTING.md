@@ -22,7 +22,7 @@ Everything below explains each step and why it exists.
 | # | Rule | Why |
 | --- | --- | --- |
 | R1 | Never commit directly to `main`. Every change goes through a branch and a pull request | `main` is what the live CMS and the demo app run. A PR lets the tests and a teammate check a change before it goes live |
-| R2 | Only merge when the **verify** check is green | Verify runs the type check, lint, about 390 unit tests, the CMS build and the mobile build checks. Red means something is broken |
+| R2 | Only merge when the **verify** check is green | Verify runs the type check, lint, about 1060 unit tests, the CMS build and the mobile build checks. Red means something is broken |
 | R3 | At least one teammate reviews every PR | A second pair of eyes catches mistakes the tests cannot, and reviews show everyone's participation in the history |
 | R4 | Merge with **"Create a merge commit"**, not squash or rebase | The merge commit is made by the person who merges. On the free Vercel plan, deploys from commits by people outside the Vercel account can be blocked |
 | R5 | One change per PR, with a clear title | Small PRs are easy to review, and easy to undo if something goes wrong |
