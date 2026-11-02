@@ -1,5 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { applyCatalogSnapshot, refreshCatalog, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
@@ -47,6 +47,16 @@ describe('HomeScreen', () =>
     expect(screen.getByTestId('empty-catalog')).toBeTruthy();
     await fireEvent.press(screen.getByText(COPY.emptyCatalogRetry));
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toContain(COPY.catalogFetchFailed);
+  });
+
+  it('failed catalog refresh with no cache: status unavailable and the empty state title', async () =>
+  {
+    useCatalogStore.setState({ status: 'loading', snapshot: EMPTY_CATALOG });
+    const services = await createTestServices();
+    await refreshCatalog(services.catalogSync);
+    expect(useCatalogStore.getState().status).toBe('unavailable');
+    await renderWithServices(services, <HomeScreen userLocation={null} />);
+    expect(screen.getByText('No heritage map yet')).toBeTruthy();
   });
 
   it('shows the summary card for the selected landmark and closes it', async () =>

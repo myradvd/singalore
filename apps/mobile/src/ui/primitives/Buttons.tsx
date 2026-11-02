@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { colors, radii, shadows, spacing, touchTargets, typography } from '../theme/tokens';
 import { Icon, type IconName } from './Icon';
@@ -10,7 +10,6 @@ export interface ButtonProps
   onPress: () => void;
   icon?: IconName;
   disabled?: boolean;
-  loading?: boolean;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -19,9 +18,8 @@ export interface ButtonProps
 
 const PRESS_RETENTION = { top: 16, bottom: 16, left: 16, right: 16 };
 
-export function PrimaryButton({ label, onPress, icon, disabled = false, loading = false, accessibilityHint, style, testID, pressScale = false }: ButtonProps)
+export function PrimaryButton({ label, onPress, icon, disabled = false, accessibilityHint, style, testID, pressScale = false }: ButtonProps)
 {
-  const inactive = disabled || loading;
   const press = usePressScale(pressScale);
   const button = (
     <Pressable
@@ -29,20 +27,18 @@ export function PrimaryButton({ label, onPress, icon, disabled = false, loading 
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: inactive, busy: loading }}
-      disabled={inactive}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       pressRetentionOffset={PRESS_RETENTION}
-      style={({ pressed }) => [styles.base, styles.primary, pressed && styles.primaryPressed, inactive && styles.inactive, style]}
+      style={({ pressed }) => [styles.base, styles.primary, pressed && styles.primaryPressed, disabled && styles.inactive, style]}
     >
-      {loading ? <ActivityIndicator color={colors.onAccent} /> : (
-        <View style={styles.content}>
-          {icon !== undefined && <Icon name={icon} size={20} color={colors.onAccent} />}
-          <Text style={[styles.label, { color: colors.onAccent }]} maxFontSizeMultiplier={1.6}>{label}</Text>
-        </View>
-      )}
+      <View style={styles.content}>
+        {icon !== undefined && <Icon name={icon} size={20} color={colors.onAccent} />}
+        <Text style={[styles.label, { color: colors.onAccent }]} maxFontSizeMultiplier={1.6}>{label}</Text>
+      </View>
     </Pressable>
   );
   return pressScale ? <Animated.View style={press.animatedStyle}>{button}</Animated.View> : button;

@@ -8,7 +8,7 @@ import {
   type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { SINGAPORE_CENTER, circlePolygonRing } from '@singalore/shared';
-import { forwardRef, useImperativeHandle, useMemo, useRef, type ReactNode } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View, type NativeSyntheticEvent } from 'react-native';
 import type { LandmarkPinProperties, ParkFeatureProperties } from '@/modules/catalog/mapFeatures';
 import { colors, radii, spacing, typography } from '../theme/tokens';
@@ -35,7 +35,6 @@ export interface HeritageMapProps
   onRotationChange?: (rotated: boolean) => void;
   topInset?: number;
   bottomInset?: number;
-  children?: ReactNode;
 }
 
 interface CameraChange
@@ -225,7 +224,6 @@ export const HeritageMap = forwardRef<HeritageMapHandle, HeritageMapProps>(funct
       <View pointerEvents="none" style={[styles.attribution, { bottom: (props.bottomInset ?? 0) + 2 }]}>
         <Text style={[typography.caption, styles.attributionText]} maxFontSizeMultiplier={1.2}>{MAP_ATTRIBUTION}</Text>
       </View>
-      {props.children}
     </View>
   );
 });
