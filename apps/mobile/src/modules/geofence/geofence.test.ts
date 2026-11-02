@@ -172,6 +172,8 @@ describe('OS geofence window', () =>
   });
 });
 
+let diagnosticMessages: string[] = [];
+
 function createEngine(settings: Partial<GeofenceSettings> = {})
 {
   const clock = new ManualClock(0);
@@ -182,7 +184,7 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
   events.on('geofence/enter', (event) => enters.push(`${event.landmarkId}:${event.source}`));
   const playback = { playing: false, landmarkId: null as string | null };
   const registered: string[][] = [];
-  const diagnosticMessages: string[] = [];
+  diagnosticMessages = [];
   const osGeofencer: OsGeofencer = {
     setRegions: async (regions) =>
     {
@@ -207,7 +209,7 @@ function createEngine(settings: Partial<GeofenceSettings> = {})
     osGeofencer,
   });
   engine.start();
-  return { engine, events, clock, playRequests, enters, playback, registered, diagnosticMessages, settings: currentSettings };
+  return { engine, events, clock, playRequests, enters, playback, registered, settings: currentSettings };
 }
 
 // Plays the chijmes podcast to its end, then walks out of its geofence and back in.
@@ -224,7 +226,7 @@ describe('played sites rule applies only during the current tour (UC 1.3.2 notes
 {
   it('in a tour: played, exit and re-enter is suppressed as already played', () =>
   {
-    const { engine, events, diagnosticMessages } = createEngine();
+    const { engine, events } = createEngine();
     events.emit('tour/trackingChanged', { active: true });
     events.emit('location/fix', fixAt(5, 1000));
     playThenExitAndReenter(events);
@@ -234,7 +236,7 @@ describe('played sites rule applies only during the current tour (UC 1.3.2 notes
 
   it('browsing, no tour ever started: played, exit and re-enter prompts again', () =>
   {
-    const { engine, events, diagnosticMessages } = createEngine();
+    const { engine, events } = createEngine();
     events.emit('location/fix', fixAt(5, 1000));
     playThenExitAndReenter(events);
     expect(engine.getState().prompt).toMatchObject({ landmarkId: 'chijmes', forced: false, triggeredAt: 4000 });
