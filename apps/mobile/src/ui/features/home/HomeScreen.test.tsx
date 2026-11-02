@@ -1,8 +1,10 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
+import type { FlowEvent, FlowState } from '@/modules/flow/flowTypes';
 import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_SHELTER, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
@@ -131,6 +133,130 @@ describe('HomeScreen', () =>
     expect(screen.queryByTestId('open-search')).toBeNull();
     await fireEvent.press(screen.getByTestId('compress-map'));
     expect(screen.getByTestId('open-search')).toBeTruthy();
+  });
+
+  describe('hardware back press', () =>
+  {
+    const realDispatch = useFlowStore.getState().dispatch;
+    const removeSubscription = jest.fn();
+    let backListeners: Parameters<typeof BackHandler.addEventListener>[1][] = [];
+    let addListenerSpy: jest.SpiedFunction<typeof BackHandler.addEventListener>;
+    let dispatchSpy: jest.Mock<void, [FlowEvent]>;
+
+    beforeEach(() =>
+    {
+      backListeners = [];
+      removeSubscription.mockClear();
+      addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_eventName, listener) =>
+      {
+        backListeners.push(listener);
+        return { remove: removeSubscription };
+      });
+      dispatchSpy = jest.fn(realDispatch);
+      useFlowStore.setState({ dispatch: dispatchSpy });
+    });
+
+    afterEach(() =>
+    {
+      addListenerSpy.mockRestore();
+      useFlowStore.setState({ dispatch: realDispatch });
+    });
+
+    // Renders Home, moves the flow to the given state, then clears the dispatch history.
+    async function renderHomeWithFlow(flowChanges: Partial<FlowState>)
+    {
+      applyCatalogSnapshot(catalogFixture());
+      const view = await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+      await act(async () => useFlowStore.setState({ state: { ...INITIAL_FLOW_STATE, ...flowChanges } }));
+      dispatchSpy.mockClear();
+      return view;
+    }
+
+    // Fires the listener Home registered and returns what the listener answered.
+    async function pressHardwareBack()
+    {
+      expect(backListeners).toHaveLength(1);
+      let handled: boolean | null | undefined;
+      await act(async () =>
+      {
+        handled = backListeners[0]?.({ type: 'hardwareBackPress', timeStamp: 0 });
+      });
+      return handled;
+    }
+
+    it('search on top closes search and consumes the press', async () =>
+    {
+      await renderHomeWithFlow({ overlays: ['search'] });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeSearch' }]]);
+    });
+
+    it('sidebar on top closes the sidebar and consumes the press', async () =>
+    {
+      await renderHomeWithFlow({ overlays: ['sidebar'] });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeSidebar' }]]);
+    });
+
+    it('expanded map closes the expanded map and consumes the press', async () =>
+    {
+      await renderHomeWithFlow({ screen: 'expandedMap' });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeExpandedMap' }]]);
+    });
+
+    it('selected landmark clears the selection and consumes the press', async () =>
+    {
+      await renderHomeWithFlow({ selectedLandmarkId: LANDMARK_CHIJMES });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'selectLandmark', landmarkId: null }]]);
+    });
+
+    it('plain home dispatches nothing and leaves the press to the system', async () =>
+    {
+      await renderHomeWithFlow({});
+      expect(await pressHardwareBack()).toBe(false);
+      expect(dispatchSpy).not.toHaveBeenCalled();
+    });
+
+    it('only the top overlay closes when two overlays are stacked', async () =>
+    {
+      await renderHomeWithFlow({ overlays: ['search', 'sidebar'] });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeSidebar' }]]);
+    });
+
+    it('an overlay wins over an expanded map and a selection', async () =>
+    {
+      await renderHomeWithFlow({ overlays: ['search'], screen: 'expandedMap', selectedLandmarkId: LANDMARK_CHIJMES });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeSearch' }]]);
+    });
+
+    it('an expanded map wins over a selection', async () =>
+    {
+      await renderHomeWithFlow({ screen: 'expandedMap', selectedLandmarkId: LANDMARK_CHIJMES });
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'closeExpandedMap' }]]);
+    });
+
+    it('stays active after Home pushes another screen (pins current behaviour)', async () =>
+    {
+      await renderHomeWithFlow({ selectedLandmarkId: LANDMARK_CHIJMES });
+      await fireEvent.press(screen.getByTestId('bottom-explore'));
+      expect(mockPush).toHaveBeenCalledWith('/explore');
+      expect(removeSubscription).not.toHaveBeenCalled();
+      expect(await pressHardwareBack()).toBe(true);
+      expect(dispatchSpy.mock.calls).toEqual([[{ type: 'selectLandmark', landmarkId: null }]]);
+    });
+
+    it('removes its listener when Home unmounts', async () =>
+    {
+      const view = await renderHomeWithFlow({});
+      expect(removeSubscription).not.toHaveBeenCalled();
+      await view.unmount();
+      expect(removeSubscription).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('consumes a pending "See on map" request from Explore', async () =>
