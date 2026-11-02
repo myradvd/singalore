@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { useAppServices } from '@/composition/AppServicesContext';
+import { availableVariantOptions } from '@/modules/audio/pickPodcast';
 import { useCatalogStore } from '@/modules/catalog/catalogStore';
 import type { Preferences } from '@/modules/prefs/preferencesSchema';
 import { resetPreferences, updatePreferences, usePreferencesStore } from '@/modules/prefs/preferencesStore';
@@ -77,10 +78,11 @@ export function PreferencesSectionScreen({ section }: { section: PreferenceSecti
   const [confirmLeave, setConfirmLeave] = useState(false);
   const dirty = isDirty(section, saved, draft);
 
-  const catalogOptions = useMemo(() => ({
-    voice: [...new Set(podcasts.flatMap((podcast) => (podcast.voice === null ? [] : [podcast.voice])))].sort(),
-    accent: [...new Set(podcasts.flatMap((podcast) => (podcast.accent === null ? [] : [podcast.accent])))].sort(),
-  }), [podcasts]);
+  const catalogOptions = useMemo(() =>
+  {
+    const available = availableVariantOptions(podcasts);
+    return { voice: available.voices, accent: available.accents };
+  }, [podcasts]);
 
   const requestBack = () =>
   {
