@@ -73,7 +73,7 @@ export function SavedScreen()
 
   const removeSite = async (landmarkId: string) =>
   {
-    await services.saved.toggleLandmark(landmarkId);
+    await services.saved.removeLandmark(landmarkId);
     showToast('Removed from saved sites.');
     await refresh();
   };
