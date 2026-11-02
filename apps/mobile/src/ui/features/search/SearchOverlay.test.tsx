@@ -89,3 +89,72 @@ describe('SearchOverlay (A1)', () =>
     expect(props.onClose).toHaveBeenCalledWith([]);
   });
 });
+
+describe('SearchOverlay row press (UC 1.5.1.1)', () =>
+{
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it('pick: tapping a row in route mode picks the site and shows the check', async () =>
+  {
+    const props = await renderOverlay({ purpose: 'addToRoute' });
+    await typeQuery('Raffles');
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    expect(screen.getByLabelText('Raffles Hotel is in your route')).toBeTruthy();
+    expect(screen.getByText('Add 1 to route')).toBeTruthy();
+    expect(props.onSelectLandmark).not.toHaveBeenCalled();
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it('unpick: tapping a picked row again removes the pick', async () =>
+  {
+    await renderOverlay({ purpose: 'addToRoute' });
+    await typeQuery('Raffles');
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    expect(screen.getByLabelText('Add Raffles Hotel to route')).toBeTruthy();
+    expect(screen.queryByTestId('search-add-picked')).toBeNull();
+  });
+
+  it('two rows: tapping 2 rows gives "Add 2 to route" and adds exactly those 2', async () =>
+  {
+    const props = await renderOverlay({ purpose: 'addToRoute' });
+    await typeQuery('Raffles');
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    await typeQuery('Chijmes');
+    await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
+    expect(screen.getByText('Add 2 to route')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('search-add-picked'));
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+    expect(props.onClose).toHaveBeenCalledWith([LANDMARK_RAFFLES, LANDMARK_CHIJMES]);
+  });
+
+  it('valid EC, no action: tapping a row already on the route changes nothing and does not close', async () =>
+  {
+    const props = await renderOverlay({ purpose: 'addToRoute', itineraryIds: [LANDMARK_CHIJMES] });
+    await typeQuery('Chijmes');
+    await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
+    expect(screen.queryByTestId('search-add-picked')).toBeNull();
+    expect(props.onSelectLandmark).not.toHaveBeenCalled();
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it('browse: tapping a row calls onSelectLandmark once with the id and picks nothing', async () =>
+  {
+    const props = await renderOverlay();
+    await typeQuery('Raffles');
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    expect(props.onSelectLandmark).toHaveBeenCalledTimes(1);
+    expect(props.onSelectLandmark).toHaveBeenCalledWith(LANDMARK_RAFFLES);
+    expect(screen.queryByTestId('search-add-picked')).toBeNull();
+  });
+
+  it('browse: a site already on the route still opens when its row is tapped', async () =>
+  {
+    const props = await renderOverlay({ itineraryIds: [LANDMARK_RAFFLES] });
+    await typeQuery('Raffles');
+    await fireEvent.press(screen.getByTestId('search-landmark-raffles-hotel'));
+    expect(props.onSelectLandmark).toHaveBeenCalledTimes(1);
+    expect(props.onSelectLandmark).toHaveBeenCalledWith(LANDMARK_RAFFLES);
+  });
+});

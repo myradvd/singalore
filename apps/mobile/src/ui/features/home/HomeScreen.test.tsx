@@ -9,6 +9,7 @@ import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
 import { useMapUiStore } from '../../mapCommandStore';
 import { useToastStore } from '../../toastStore';
+import { SEARCH_DEBOUNCE_MS } from '../search/SearchOverlay';
 import { HomeScreen } from './HomeScreen';
 
 const mockPush = jest.fn();
@@ -23,6 +24,27 @@ beforeEach(() =>
   useToastStore.setState({ toasts: [] });
   cameraCalls.length = 0;
   mockPush.mockClear();
+});
+
+describe('HomeScreen browse search row (UC 1.5.1.1)', () =>
+{
+  afterEach(() => jest.useRealTimers());
+
+  it('browse: tapping a result row closes search and shows that site', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    await fireEvent.press(screen.getByTestId('open-search'));
+    jest.useFakeTimers();
+    await fireEvent.changeText(screen.getByTestId('search-input'), 'Chijmes');
+    await act(() =>
+    {
+      jest.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
+    });
+    await fireEvent.press(screen.getByTestId('search-landmark-chijmes'));
+    expect(screen.queryByTestId('search-overlay')).toBeNull();
+    expect(screen.getByTestId('summary-card')).toBeTruthy();
+  });
 });
 
 describe('HomeScreen', () =>
