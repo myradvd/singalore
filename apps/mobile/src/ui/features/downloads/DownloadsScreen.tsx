@@ -19,14 +19,14 @@ export function DownloadsScreen()
   const insets = useSafeAreaInsets();
   const services = useAppServices();
   const parks = useCatalogStore((state) => state.snapshot.parks);
-  const records = useDownloadsStore((state) => state.records);
+  const storedRecordsKey = useDownloadsStore((state) => Object.values(state.records).map((record) => `${record.parkId}:${record.state}:${record.totalBytes}`).join('|'));
   const wifiOnly = usePreferencesStore((state) => state.preferences.downloadOverWifiOnly);
   const [storedBytes, setStoredBytes] = useState(0);
 
   useEffect(() =>
   {
     void services.downloads.totalStoredBytes().then(setStoredBytes);
-  }, [records, services]);
+  }, [storedRecordsKey, services]);
 
   return (
     <View testID="downloads-screen" style={[styles.screen, { paddingTop: insets.top }]}>
