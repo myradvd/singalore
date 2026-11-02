@@ -1,4 +1,8 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import type { AppServices } from '@/composition/container';
+import { IDLE_STATUS } from '@/modules/audio/AudioEngine';
+import { bindAudioStore, useAudioStore } from '@/modules/audio/audioStore';
+import { PLAYBACK_ERROR_MESSAGES } from '@/modules/audio/playbackErrors';
 import { applyCatalogSnapshot, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
@@ -21,8 +25,110 @@ beforeEach(() =>
 {
   useFlowStore.setState({ state: INITIAL_FLOW_STATE });
   useToastStore.setState({ toasts: [] });
+  useAudioStore.setState({ track: null, status: IDLE_STATUS, resumeOffer: null, lastError: null });
   cameraCalls.length = 0;
   mockPush.mockClear();
+});
+
+// Renders Home with a real audio controller bound to the audio store.
+async function renderHomeWithAudio(): Promise<AppServices>
+{
+  applyCatalogSnapshot(catalogFixture());
+  const services = await createTestServices();
+  bindAudioStore(services.audio);
+  await renderWithServices(services, <HomeScreen userLocation={null} />);
+  return services;
+}
+
+// Reads the width of the mini player progress bar.
+function miniPlayerProgressWidth(): unknown
+{
+  const progressBar = screen.getByTestId('mini-player').children[0];
+  const fill = typeof progressBar === 'string' ? undefined : progressBar?.children[0];
+  return typeof fill === 'string' ? undefined : fill?.props.style[1].width;
+}
+
+describe('HomeScreen audio', () =>
+{
+  const resumeOffer = { sessionId: 's1', podcastId: 'p1', landmarkId: LANDMARK_CHIJMES, positionMs: 30000, playbackState: 'paused' as const, rate: 1, source: 'stream' as const, updatedAt: '2026-10-12T00:00:00Z', title: 'Offered episode', landmarkName: 'CHIJMES' };
+
+  it('no track: shows no mini player', async () =>
+  {
+    await renderHomeWithAudio();
+    expect(screen.queryByTestId('mini-player')).toBeNull();
+  });
+
+  it('track starts: shows the mini player', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    expect(screen.getByTestId('mini-player')).toBeTruthy();
+  });
+
+  it('position at half the duration: progress bar width is 50%', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    await act(async () => services.audio.seekTo(60));
+    expect(miniPlayerProgressWidth()).toBe('50%');
+  });
+
+  it('toggle pressed while playing: pauses and offers Play', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    await fireEvent.press(screen.getByLabelText('Pause'));
+    expect(services.audio.getState().status.state).toBe('paused');
+    expect(screen.getByLabelText('Play')).toBeTruthy();
+  });
+
+  it('mini player text pressed: opens the player screen', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    await fireEvent.press(screen.getByTestId('mini-open'));
+    expect(mockPush).toHaveBeenCalledWith('/player');
+  });
+
+  it('close pressed: clears the track and hides the mini player', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    await fireEvent.press(screen.getByTestId('mini-close'));
+    expect(services.audio.getState().track).toBeNull();
+    expect(screen.queryByTestId('mini-player')).toBeNull();
+  });
+
+  it('resume offer with no track: shows the resume card', async () =>
+  {
+    await renderHomeWithAudio();
+    await act(async () => useAudioStore.setState({ resumeOffer }));
+    expect(screen.getByTestId('resume-card')).toBeTruthy();
+  });
+
+  it('resume offer with a track: hides the resume card', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => useAudioStore.setState({ resumeOffer }));
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    await act(async () => useAudioStore.setState({ resumeOffer }));
+    expect(screen.queryByTestId('resume-card')).toBeNull();
+    expect(screen.getByTestId('mini-player')).toBeTruthy();
+  });
+
+  it('no resume offer and no track: shows no resume card', async () =>
+  {
+    await renderHomeWithAudio();
+    expect(screen.queryByTestId('resume-card')).toBeNull();
+  });
+
+  it('audio error: shows one toast and clears the error', async () =>
+  {
+    const services = await renderHomeWithAudio();
+    await act(async () => void await services.audio.playLandmark('landmark-without-podcast'));
+    expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual([PLAYBACK_ERROR_MESSAGES.no_audio]);
+    expect(services.audio.getState().lastError).toBeNull();
+  });
 });
 
 describe('HomeScreen', () =>
