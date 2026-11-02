@@ -13,7 +13,7 @@ import { useAudioStore } from '@/modules/audio/audioStore';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { useRouteStore } from '@/modules/routing/routeStore';
 import { RouteExperience, RouteStripHost } from '../route/RouteExperience';
-import { refreshCatalog, totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
+import { totalPodcastSeconds, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { buildLandmarkPins, buildParkBoundaries, buildParkCenterMarkers } from '@/modules/catalog/mapFeatures';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import { COPY } from '../../copy';
@@ -25,6 +25,7 @@ import { EmptyState } from '../../primitives/States';
 import { IconButton } from '../../primitives/IconButton';
 import { EASE_OUT } from '../../primitives/motion';
 import { colors, fill, radii, shadows, spacing } from '../../theme/tokens';
+import { retryCatalogSync } from '../../retryCatalogSync';
 import { showToast } from '../../toastStore';
 import { LayerPicker } from '../layers/LayerPicker';
 import { SearchOverlay } from '../search/SearchOverlay';
@@ -376,13 +377,7 @@ export function HomeScreen(props: HomeScreenProps)
             title={COPY.emptyCatalogTitle}
             message={COPY.emptyCatalogMessage}
             actionLabel={COPY.emptyCatalogRetry}
-            onAction={() => void refreshCatalog(services.catalogSync).then((outcome) =>
-            {
-              if (outcome.kind === 'failed_no_cache')
-              {
-                showToast(COPY.catalogFetchFailed, 'error');
-              }
-            })}
+            onAction={() => retryCatalogSync(services.catalogSync)}
           />
         </View>
       )}
