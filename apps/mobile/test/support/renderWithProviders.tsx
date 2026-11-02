@@ -62,6 +62,7 @@ export async function createTestServices(fetchImplementation: typeof fetch = asy
     settings: () => ({ geofenceTriggersEnabled: true, autoplayEnabled: false }),
     playback,
     osGeofencer: { setRegions: async () => undefined, clear: async () => undefined },
+    isAppActive: () => true,
   });
   const connectivity = new ConnectivityMonitor(events, clock);
   const media = new DownloadedMediaResolver(db, { size: () => null });
