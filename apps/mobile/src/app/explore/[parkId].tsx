@@ -5,7 +5,7 @@ import { ParkDetailScreen } from '@/ui/features/explore/ParkDetailScreen';
 
 export default function ParkDetailRoute()
 {
-  const { parkId } = useLocalSearchParams<{ parkId: string }>();
+  const { parkId, site } = useLocalSearchParams<{ parkId: string; site?: string }>();
   const packBytes = useCatalogStore((state) => state.parksById.get(parkId)?.packBytes ?? 0);
-  return <ParkDetailScreen parkId={parkId} parkActions={<PackActionButton parkId={parkId} estimatedBytes={packBytes} />} />;
+  return <ParkDetailScreen parkId={parkId} focusSiteId={site} parkActions={<PackActionButton parkId={parkId} estimatedBytes={packBytes} />} />;
 }
