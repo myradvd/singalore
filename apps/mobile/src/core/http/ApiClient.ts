@@ -2,6 +2,7 @@ import { ApiError, COORDINATE_BEARING_PATHS } from '@singalore/shared';
 import type { z } from 'zod';
 import type { AppEventBus, NetworkRequestRecord } from '../appEvents';
 import type { Clock } from '../clock';
+import type { DiagnosticsRecorder } from '../diagnostics';
 import { localizeLoopbackUrl, localizeLoopbackUrls, loopbackReplacementHost } from './loopbackUrls';
 
 export type ApiErrorKind = 'network' | 'timeout' | 'http' | 'invalid_response' | 'privacy_violation';
@@ -30,6 +31,7 @@ export interface ApiClientOptions
   fetchImplementation: typeof fetch;
   clock: Clock;
   events: AppEventBus;
+  diagnostics?: DiagnosticsRecorder;
   defaultTimeoutMs?: number;
 }
 
@@ -123,6 +125,7 @@ export class ApiClient
       {
         const apiError = ApiError.safeParse(await response.json().catch(() => null));
         this.record({ id, method, path, status: response.status, started, outcome: 'http_error' });
+        void this.recordFailure('api_http_error', method, path, response.status);
         throw new ApiRequestError(
           'http',
           apiError.success ? apiError.data.error.message : `Request failed with status ${response.status}`,
@@ -141,6 +144,7 @@ export class ApiClient
       }
       const kind = timedOut ? 'timeout' : 'network';
       this.record({ id, method, path, status: null, started, outcome: timedOut ? 'timeout' : 'network_error' });
+      void this.recordFailure(timedOut ? 'api_timeout' : 'api_network_error', method, path, null);
       throw new ApiRequestError(kind, timedOut ? 'The request timed out' : 'The network request failed');
     }
     finally
@@ -158,16 +162,29 @@ export class ApiClient
     }
     catch
     {
-      this.options.events.emit('diagnostics/recorded', { level: 'error', code: 'api_invalid_json' });
+      void this.recordFailure('api_invalid_json', method, path, response.status);
       throw new ApiRequestError('invalid_response', `Invalid JSON from ${method} ${path}`, response.status);
     }
     const parsed = schema.safeParse(localizeLoopbackUrls(json, loopbackReplacementHost(this.options.baseUrl())));
     if (!parsed.success)
     {
-      this.options.events.emit('diagnostics/recorded', { level: 'error', code: 'api_schema_mismatch' });
+      void this.recordFailure('api_schema_mismatch', method, path, response.status);
       throw new ApiRequestError('invalid_response', `Unexpected response shape from ${method} ${path}`, response.status);
     }
     return parsed.data;
+  }
+
+  // Writes one diagnostics row for a failed request, with the query string removed so it cannot carry coordinates (NFR 3.2).
+  private async recordFailure(code: string, method: 'GET' | 'POST', path: string, status: number | null): Promise<void>
+  {
+    try
+    {
+      await this.options.diagnostics?.record('error', code, `${method} ${path.replace(/[?#].*$/s, '')} status=${status ?? 'none'}`);
+    }
+    catch
+    {
+      // A failing log must never change the outcome of the request.
+    }
   }
 
   private record(input: { id: number; method: 'GET' | 'POST'; path: string; status: number | null; started: number; outcome: NetworkRequestRecord['outcome'] }): void
