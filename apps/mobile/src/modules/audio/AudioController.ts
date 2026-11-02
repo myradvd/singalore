@@ -121,6 +121,7 @@ export class AudioController
     const podcast = pickPodcast(this.dependencies.catalog.podcastsForLandmark(landmarkId), this.dependencies.preferences());
     if (podcast === null)
     {
+      this.discardPrepared();
       return;
     }
     const prepared: PreparedAudio = { landmarkId, podcastId: podcast.id, loaded: null };

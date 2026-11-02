@@ -339,6 +339,14 @@ describe('prepared audio stays apart from the current track (UC 1.3.2.1, NFR 2.3
     expect(controller.getState().lastError).toBeNull();
   });
 
+  it('prepare for a site without a podcast releases the earlier prepared episode', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.prepare(LANDMARK_SHELTER);
+    expect(engine.status().state).toBe('idle');
+  });
+
   it('prepare twice for one site before the first finishes loads once', async () =>
   {
     const { controller, engine } = await setup();
