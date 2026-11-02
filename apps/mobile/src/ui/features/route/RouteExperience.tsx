@@ -121,7 +121,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       return;
     }
     const remaining = routeStops.filter((stop) => !flow.visitedLandmarkIds.includes(stop.landmarkId));
-    void services.routes.plan(userPosition, remaining, false).then(() => services.routes.setNavigating(true));
+    services.routes.returnToPath();
+    if (remaining.length > 0)
+    {
+      void services.routes.plan(userPosition, remaining, false);
+    }
   };
 
   const nextStopId = nextUnvisitedStop(flow);
@@ -183,6 +187,11 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
           nextStopDistanceM={nextStop === undefined || userPosition === null ? null : distanceBetween(userPosition, nextStop.position)}
           visitedCount={flow.visitedLandmarkIds.length}
           stopCount={flow.itinerary.length}
+          status={route.status}
+          failureMessage={route.failureMessage}
+          hasFallback={route.fallback !== null}
+          onRetry={recalculate}
+          onUseFallback={() => void services.routes.useFallback()}
           onPause={() => dispatchFlow({ type: 'pauseNavigation' })}
           onExit={() => dispatchFlow({ type: 'requestExitNavigation' })}
           onEditRoute={() => dispatchFlow({ type: 'openRouteEditor' })}
@@ -213,7 +222,7 @@ export function RouteExperience({ userPosition }: { userPosition: GeoPoint | nul
       />
       <AppModal
         testID="off-route-modal"
-        visible={route.offRoute && flow.screen === 'navigation'}
+        visible={route.offRoute && flow.screen === 'navigation' && route.status === 'ready'}
         title="You are off the route"
         message="Return to the gold path, or recalculate a new route from here through your remaining stops."
         onRequestClose={() => services.routes.returnToPath()}
