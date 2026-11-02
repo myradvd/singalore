@@ -167,7 +167,7 @@ export class AudioController
       await this.dependencies.diagnostics.record('warn', 'audio_no_podcast', `landmark ${landmarkId}`);
       return false;
     }
-    if (this.state.track?.podcastId === podcast.id && this.state.status.state !== 'idle' && this.state.status.state !== 'error')
+    if (this.state.track?.podcastId === podcast.id && this.state.status.state !== 'idle' && this.state.status.state !== 'error' && this.state.status.state !== 'ended')
     {
       this.dependencies.engine.play();
       return true;

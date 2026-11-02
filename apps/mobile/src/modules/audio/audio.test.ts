@@ -448,6 +448,32 @@ describe('prepared audio stays apart from the current track (UC 1.3.2.1, NFR 2.3
   });
 });
 
+describe('playing a landmark whose episode has ended (UC 1.3.2.1)', () =>
+{
+  it('loads the episode again from the start when asked directly', async () =>
+  {
+    const { controller, engine, started } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    expect(await controller.playLandmark(LANDMARK_CHIJMES)).toBe(true);
+    expect(engine.loads).toHaveLength(2);
+    expect(engine.loads[1]).toMatchObject({ startAtSeconds: 0, autoPlay: true });
+    expect(engine.status().state).toBe('playing');
+    expect(started).toEqual([LANDMARK_CHIJMES, LANDMARK_CHIJMES]);
+  });
+
+  it('loads the episode again when autoplay requests it', async () =>
+  {
+    const { controller, engine, events } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    events.emit('audio/playLandmarkRequested', { landmarkId: LANDMARK_CHIJMES, reason: 'autoplay' });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(engine.loads).toHaveLength(2);
+    expect(controller.getState().status.state).toBe('playing');
+  });
+});
+
 describe('currentLandmarkId reports only live audio (UC 1.3.2.1)', () =>
 {
   it('returns the landmark id while playing', async () =>
