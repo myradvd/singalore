@@ -321,6 +321,7 @@ export function HomeScreen(props: HomeScreenProps)
         <MapControls
           onLayersPress={() => setLayerPickerOpen(true)}
           onRecenterPress={recenter}
+          onPodcastPreferencesPress={() => router.push('/preferences/audio')}
           showCompass={mapRotated}
           onCompassPress={() => mapRef.current?.resetNorth()}
         />
