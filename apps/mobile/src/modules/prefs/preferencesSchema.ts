@@ -15,6 +15,7 @@ export const PreferenceShapes = {
   avoidSteepInclines: z.boolean().default(false),
   preferCoveredRoutes: z.boolean().default(false),
   recommendationCategories: z.array(z.enum(LANDMARK_CATEGORIES)).default([...LANDMARK_CATEGORIES]),
+  recentSiteIds: z.array(z.string()).default([]),
   nearbyRadiusMeters: z.number().int().min(100).max(5000).default(500),
   notifyRouteUpdates: z.boolean().default(true),
   notifyNewEpisodes: z.boolean().default(false),
