@@ -16,6 +16,7 @@ export const DOWNLOAD_MESSAGES = {
 } as const;
 
 export const STORAGE_MARGIN_BYTES = 20 * 1024 * 1024;
+const LIVE_PROGRESS_PUBLISH_INTERVAL_MS = 500;
 
 export function insufficientStorageMessage(neededBytes: number): string
 {
@@ -59,6 +60,8 @@ export class DownloadManager
   private active: string | null = null;
   private pauseRequested = false;
   private progressBytes = new Map<string, number>();
+  private publishedRecords: DownloadRecord[] = [];
+  private lastLivePublishAt = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly dependencies: DownloadManagerDependencies)
   {
@@ -73,11 +76,6 @@ export class DownloadManager
   async records(): Promise<DownloadRecord[]>
   {
     return this.dependencies.repository.all();
-  }
-
-  liveProgress(parkId: string): number
-  {
-    return this.progressBytes.get(parkId) ?? 0;
   }
 
   /**
@@ -245,10 +243,7 @@ export class DownloadManager
       const result = await transport.download(file.url, file.local_path, resumeData, (written) =>
       {
         this.progressBytes.set(file.park_id, doneBytesBefore + written);
-        for (const listener of this.listeners)
-        {
-          void this.dependencies.repository.all().then(listener);
-        }
+        this.publishLiveProgress(file.park_id);
       });
       if (result.kind === 'interrupted')
       {
@@ -302,9 +297,29 @@ export class DownloadManager
   {
     if (this.listeners.size === 0)
     {
+      this.publishedRecords = [];
       return;
     }
     const records = await this.dependencies.repository.all();
+    this.publishedRecords = records;
+    for (const listener of this.listeners)
+    {
+      listener(records);
+    }
+  }
+
+  // Sends the last published records with live bytes overlaid, throttled and with no SQL.
+  private publishLiveProgress(parkId: string): void
+  {
+    const now = this.dependencies.clock.now();
+    const liveRecord = this.publishedRecords.find((record) => record.parkId === parkId && record.state === 'downloading');
+    if (liveRecord === undefined || now - this.lastLivePublishAt < LIVE_PROGRESS_PUBLISH_INTERVAL_MS)
+    {
+      return;
+    }
+    this.lastLivePublishAt = now;
+    const doneBytes = Math.min(liveRecord.totalBytes, this.progressBytes.get(parkId) ?? liveRecord.doneBytes);
+    const records = this.publishedRecords.map((record) => (record === liveRecord ? { ...record, doneBytes } : record));
     for (const listener of this.listeners)
     {
       listener(records);

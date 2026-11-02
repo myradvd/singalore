@@ -4,7 +4,7 @@ import { migrate } from '@/core/db/migrations';
 import { createMemoryDb } from '@test/support/betterSqliteAdapter';
 import { DownloadedMediaResolver } from './DownloadedMediaResolver';
 import { DOWNLOAD_MESSAGES, DownloadManager, STORAGE_MARGIN_BYTES } from './DownloadManager';
-import { DownloadsRepository } from './DownloadsRepository';
+import { DownloadsRepository, type DownloadRecord } from './DownloadsRepository';
 import type { FileTransport, TransferResult } from './FileTransport';
 import { isOfflineReady, nextPackState } from './packStateMachine';
 
@@ -35,6 +35,8 @@ class FakeTransport implements FileTransport
   files = new Map<string, { size: number; md5: string | null }>();
   free = 1_000_000_000;
   script: ((url: string, resumeData: string | null) => TransferResult | 'corrupt')[] = [];
+  progressScript: ((tick: (bytes: number) => void) => void)[] = [];
+  expectedFiles = pack().files;
   calls: { url: string; resumeData: string | null }[] = [];
   deletedDirectories: string[] = [];
 
@@ -46,9 +48,10 @@ class FakeTransport implements FileTransport
   async download(url: string, localPath: string, resumeData: string | null, onProgress: (bytes: number) => void): Promise<TransferResult>
   {
     this.calls.push({ url, resumeData });
+    this.progressScript.shift()?.(onProgress);
     const step = this.script.shift();
     const outcome = step === undefined ? { kind: 'done' as const } : step(url, resumeData);
-    const expected = pack().files.find((file) => file.url === url);
+    const expected = this.expectedFiles.find((file) => file.url === url);
     if (outcome === 'corrupt')
     {
       this.files.set(localPath, { size: expected?.bytes ?? 0, md5: 'f'.repeat(32) });
@@ -103,6 +106,7 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
   const images = new Map<string, string | null>();
   let currentPack = pack();
   const network = { online: options.online ?? true, wifi: options.wifi ?? true };
+  const clock = new ManualClock(0);
   const manager = new DownloadManager({
     repository,
     transport,
@@ -119,11 +123,11 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
       notifications.push(body);
       return true;
     } },
-    clock: new ManualClock(0),
+    clock,
     diagnostics: { record: async () => undefined },
   });
   const resolver = new DownloadedMediaResolver(db, { size: (path) => transport.files.get(path)?.size ?? null });
-  return { manager, repository, transport, notifications, images, resolver, network, setPack: (next: PackResponse) =>
+  return { manager, repository, transport, notifications, images, resolver, network, clock, setPack: (next: PackResponse) =>
   {
     currentPack = next;
   } };
@@ -142,6 +146,180 @@ describe('packStateMachine', () =>
     expect(nextPackState('not_downloaded', 'complete')).toBeNull();
     expect(isOfflineReady('update_available')).toBe(true);
     expect(isOfflineReady('paused')).toBe(false);
+  });
+});
+
+describe('DownloadManager live progress (UC 1.4.1, SRS line 748)', () =>
+{
+  const MEGABYTE = 1024 * 1024;
+
+  // Collects every doneBytes the listener receives for the park, with its state.
+  function recordPublishes(manager: DownloadManager)
+  {
+    const published: { state: string; doneBytes: number }[] = [];
+    manager.subscribe((records) =>
+    {
+      const record = records.find((candidate) => candidate.parkId === parkId);
+      if (record !== undefined)
+      {
+        published.push({ state: record.state, doneBytes: record.doneBytes });
+      }
+    });
+    return published;
+  }
+
+  it.each([
+    ['below throttle', 499, 1],
+    ['on throttle', 500, 2],
+    ['above throttle', 501, 2],
+  ])('%s: ticks %d ms apart give %d publishes', async (_name, gapMilliseconds, expectedPublishes) =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    let publishesFromTicks = -1;
+    transport.progressScript = [(tick) =>
+    {
+      const before = published.length;
+      tick(100);
+      clock.advance(gapMilliseconds);
+      tick(200);
+      publishesFromTicks = published.length - before;
+    }];
+    await manager.download(parkId);
+    expect(publishesFromTicks).toBe(expectedPublishes);
+  });
+
+  it('100 ticks run no repository reads and deliver increasing doneBytes', async () =>
+  {
+    const { manager, repository, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    const repositoryReads = jest.spyOn(repository, 'all');
+    let readsDuringTicks = -1;
+    let bytesFromTicks: number[] = [];
+    transport.progressScript = [(tick) =>
+    {
+      const readsBefore = repositoryReads.mock.calls.length;
+      const publishesBefore = published.length;
+      for (let written = 1; written <= 100; written += 1)
+      {
+        tick(written);
+        clock.advance(500);
+      }
+      readsDuringTicks = repositoryReads.mock.calls.length - readsBefore;
+      bytesFromTicks = published.slice(publishesBefore).map((publish) => publish.doneBytes);
+    }];
+    await manager.download(parkId);
+    expect(readsDuringTicks).toBe(0);
+    expect(bytesFromTicks).toEqual(Array.from({ length: 100 }, (_unused, index) => index + 1));
+  });
+
+  it('resume: done 5 MB and written 1 MB publishes 6 MB', async () =>
+  {
+    const { manager, transport, clock, setPack } = await setup();
+    const files = pack().files.map((file) => ({ ...file, bytes: (file.kind === 'audio' ? 5 : 2) * MEGABYTE }));
+    setPack({ ...pack(), totalBytes: 7 * MEGABYTE, files });
+    transport.expectedFiles = files;
+    transport.script = [() => ({ kind: 'done' }), () => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];
+    await manager.download(parkId);
+    clock.advance(500);
+    const published = recordPublishes(manager);
+    let publishedDuringTick: { state: string; doneBytes: number } | undefined;
+    transport.progressScript = [(tick) =>
+    {
+      tick(MEGABYTE);
+      publishedDuringTick = published.at(-1);
+    }];
+    await manager.download(parkId);
+    expect(publishedDuringTick).toEqual({ state: 'downloading', doneBytes: 6 * MEGABYTE });
+  });
+
+  it('retry: a failed attempt resets written and never goes above total', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    const fromTicks: number[] = [];
+    transport.script = [() => ({ kind: 'failed', reason: 'reset' })];
+    transport.progressScript = [(tick) =>
+    {
+      tick(900);
+      fromTicks.push(published.at(-1)?.doneBytes ?? -1);
+      clock.advance(500);
+    }, (tick) =>
+    {
+      tick(100);
+      fromTicks.push(published.at(-1)?.doneBytes ?? -1);
+      clock.advance(500);
+    }];
+    expect(await manager.download(parkId)).toEqual({ kind: 'downloaded' });
+    expect(fromTicks).toEqual([900, 100]);
+    expect(Math.max(...published.map((publish) => publish.doneBytes))).toBe(1500);
+  });
+
+  it('written above the pack total publishes the total', async () =>
+  {
+    const { manager, transport } = await setup();
+    const published = recordPublishes(manager);
+    let doneBytesFromTick = -1;
+    transport.progressScript = [(tick) =>
+    {
+      tick(1501);
+      doneBytesFromTick = published.at(-1)?.doneBytes ?? -1;
+    }];
+    await manager.download(parkId);
+    expect(doneBytesFromTick).toBe(1500);
+  });
+
+  it('pause: state becomes paused and saved doneBytes is unchanged, and a late tick publishes nothing', async () =>
+  {
+    const { manager, repository, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    let lateTick: (bytes: number) => void = () => undefined;
+    transport.script = [() => ({ kind: 'interrupted', resumeData: '{"url":"x"}' })];
+    transport.progressScript = [(tick) =>
+    {
+      tick(300);
+      lateTick = tick;
+      void manager.pause(parkId);
+    }];
+    expect(await manager.download(parkId)).toEqual({ kind: 'paused', message: 'Download paused.' });
+    expect(await repository.get(parkId)).toMatchObject({ state: 'paused', doneBytes: 0 });
+    expect(published.at(-1)).toEqual({ state: 'paused', doneBytes: 0 });
+    const publishesBefore = published.length;
+    clock.advance(500);
+    lateTick(400);
+    expect(published.length).toBe(publishesBefore);
+    expect((await repository.get(parkId))?.doneBytes).toBe(0);
+  });
+
+  it('a last tick swallowed by the throttle does not lose the bytes', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const published = recordPublishes(manager);
+    transport.progressScript = [(tick) =>
+    {
+      tick(1);
+      clock.advance(1);
+    }];
+    await manager.download(parkId);
+    expect(published).toContainEqual({ state: 'downloading', doneBytes: 1000 });
+    expect(published.at(-1)).toEqual({ state: 'downloaded', doneBytes: 1500 });
+  });
+
+  it('a listener that joins mid file with no cached records gets no empty list', async () =>
+  {
+    const { manager, transport, clock } = await setup();
+    const received: DownloadRecord[][] = [];
+    let receivedFromTick = -1;
+    transport.progressScript = [(tick) =>
+    {
+      manager.subscribe((records) => received.push(records));
+      clock.advance(500);
+      tick(100);
+      receivedFromTick = received.length;
+    }];
+    await manager.download(parkId);
+    expect(receivedFromTick).toBe(0);
+    expect(received.length).toBeGreaterThan(0);
   });
 });
 
