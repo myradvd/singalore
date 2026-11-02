@@ -106,9 +106,10 @@ export function SearchOverlay({ index, parksById, purpose, itineraryIds, onSelec
             );
           }
           const inRoute = itineraryIds.includes(item.landmark.id) || picked.includes(item.landmark.id);
+          const pickingForRoute = purpose === 'addToRoute';
           return (
             <View style={styles.result}>
-              <Pressable testID={`search-landmark-${item.landmark.slug}`} accessibilityRole="button" accessibilityLabel={`${item.landmark.name}, ${categoryLabel(item.landmark.category)}`} onPress={() => onSelectLandmark(item.landmark.id)} style={styles.resultPress}>
+              <Pressable testID={`search-landmark-${item.landmark.slug}`} accessibilityRole="button" accessibilityLabel={`${item.landmark.name}, ${categoryLabel(item.landmark.category)}`} accessibilityState={pickingForRoute ? { selected: inRoute } : undefined} disabled={pickingForRoute && itineraryIds.includes(item.landmark.id)} onPress={() => (pickingForRoute ? togglePicked(item.landmark.id) : onSelectLandmark(item.landmark.id))} style={styles.resultPress}>
                 <Icon name="map-marker" size={24} color={colors.primary} />
                 <View style={styles.resultText}>
                   <Text style={[typography.eyebrow, { color: colors.primary }]}>{categoryLabel(item.landmark.category).toUpperCase()}</Text>
