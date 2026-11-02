@@ -2,7 +2,7 @@ import { createAppEventBus } from '@/core/appEvents';
 import { ManualClock } from '@/core/clock';
 import { migrate } from '@/core/db/migrations';
 import { createMemoryDb } from '@test/support/betterSqliteAdapter';
-import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_SHELTER, PODCAST_CHIJMES_GB, PODCAST_CHIJMES_US } from '@test/support/catalogFixture';
+import { catalogFixture, LANDMARK_CHIJMES, LANDMARK_RAFFLES, LANDMARK_SHELTER, PODCAST_CHIJMES_GB, PODCAST_CHIJMES_US } from '@test/support/catalogFixture';
 import { AudioController, SESSION_SAVE_INTERVAL_MS } from './AudioController';
 import { AudioSessionRepository } from './AudioSessionRepository';
 import { FakeAudioEngine } from './FakeAudioEngine';
@@ -244,5 +244,300 @@ describe('audio session persistence (NFR 2.3)', () =>
     await controller.restoreSession();
     expect(controller.getState().resumeOffer).toBeNull();
     expect(await sessions.load()).toBeNull();
+  });
+});
+
+describe('prepared audio stays apart from the current track (UC 1.3.2.1, NFR 2.3)', () =>
+{
+  it('prepare leaves track null, controller status idle and no saved session', async () =>
+  {
+    const { controller, engine, sessions } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(engine.loads[0]).toMatchObject({ autoPlay: false });
+    expect(controller.getState().track).toBeNull();
+    expect(controller.getState().status.state).toBe('idle');
+    expect(await sessions.load()).toBeNull();
+    expect(controller.isPlaying()).toBe(false);
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('discardPrepared stops the engine and leaves no track or session', async () =>
+  {
+    const { controller, engine, sessions } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    controller.discardPrepared();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(engine.status().state).toBe('idle');
+    expect(controller.getState().track).toBeNull();
+    expect(await sessions.load()).toBeNull();
+  });
+
+  it('discardPrepared with nothing prepared leaves a playing track alone (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    controller.discardPrepared();
+    expect(engine.status().state).toBe('playing');
+  });
+
+  it('prepare keeps a paused episode (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_RAFFLES);
+    controller.togglePlay();
+    await controller.prepare(LANDMARK_CHIJMES);
+    expect(controller.getState().track?.landmarkId).toBe(LANDMARK_RAFFLES);
+    expect(engine.loads).toHaveLength(1);
+  });
+
+  it('prepare keeps an ended episode (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_RAFFLES);
+    engine.finish();
+    await controller.prepare(LANDMARK_CHIJMES);
+    expect(controller.getState().track?.landmarkId).toBe(LANDMARK_RAFFLES);
+    expect(engine.loads).toHaveLength(1);
+  });
+
+  it('prepare keeps the resume offer', async () =>
+  {
+    const { controller, sessions } = await setup();
+    await sessions.save({ sessionId: 's', podcastId: PODCAST_CHIJMES_GB, landmarkId: LANDMARK_CHIJMES, positionMs: 1000, playbackState: 'paused', rate: 1, source: 'stream', updatedAt: 'x' });
+    await controller.restoreSession();
+    await controller.prepare(LANDMARK_RAFFLES);
+    expect(controller.getState().resumeOffer).not.toBeNull();
+  });
+
+  it('prepare offline without a download sets no error until Listen (exception flow)', async () =>
+  {
+    const { controller, engine } = await setup({ online: false });
+    await controller.prepare(LANDMARK_CHIJMES);
+    expect(controller.getState().lastError).toBeNull();
+    expect(engine.loads).toHaveLength(0);
+    expect(await controller.playLandmark(LANDMARK_CHIJMES)).toBe(false);
+    expect(controller.getState().lastError).toBe(OFFLINE_AUDIO_UNAVAILABLE);
+  });
+
+  it('prepare going offline for a new site releases the earlier prepared episode', async () =>
+  {
+    const options = { online: true };
+    const { controller, engine } = await setup(options);
+    await controller.prepare(LANDMARK_CHIJMES);
+    options.online = false;
+    await controller.prepare(LANDMARK_RAFFLES);
+    expect(engine.status().state).toBe('idle');
+    expect(controller.getState().lastError).toBeNull();
+  });
+
+  it('prepare for a site without a podcast loads nothing and sets no error (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_SHELTER);
+    expect(engine.loads).toHaveLength(0);
+    expect(controller.getState().lastError).toBeNull();
+  });
+
+  it('prepare for a site without a podcast releases the earlier prepared episode', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.prepare(LANDMARK_SHELTER);
+    expect(engine.status().state).toBe('idle');
+  });
+
+  it('prepare twice for one site before the first finishes loads once', async () =>
+  {
+    const { controller, engine } = await setup();
+    await Promise.all([controller.prepare(LANDMARK_CHIJMES), controller.prepare(LANDMARK_CHIJMES)]);
+    await controller.prepare(LANDMARK_CHIJMES);
+    expect(engine.loads).toHaveLength(1);
+  });
+
+  it('prepare for a new site replaces the prepared episode, and Listen uses the new one', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.prepare(LANDMARK_RAFFLES);
+    await controller.playLandmark(LANDMARK_RAFFLES);
+    expect(engine.loads).toHaveLength(2);
+    expect(controller.getState().track?.landmarkId).toBe(LANDMARK_RAFFLES);
+    expect(engine.status().state).toBe('playing');
+  });
+
+  it('Listen on the prepared site promotes it: one load, one started event, a saved session', async () =>
+  {
+    const { controller, engine, started, sessions } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(engine.loads).toHaveLength(1);
+    expect(started).toEqual([LANDMARK_CHIJMES]);
+    expect(controller.getState().track?.podcastId).toBe(PODCAST_CHIJMES_GB);
+    expect(controller.getState().status.state).toBe('playing');
+    expect(engine.status().rate).toBe(1.25);
+    expect(await sessions.load()).toMatchObject({ podcastId: PODCAST_CHIJMES_GB, playbackState: 'playing' });
+  });
+
+  it('playing a different site while one is prepared loads that site', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.playLandmark(LANDMARK_RAFFLES);
+    expect(engine.loads).toHaveLength(2);
+    expect(engine.loads[1]).toMatchObject({ autoPlay: true });
+    expect(controller.getState().track?.landmarkId).toBe(LANDMARK_RAFFLES);
+  });
+
+  it('a failed prepared load stays silent, and Listen loads again (exception flow)', async () =>
+  {
+    const { controller, engine } = await setup();
+    engine.failNextLoad = true;
+    await controller.prepare(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(controller.getState().lastError).toBeNull();
+    expect(controller.getState().status.state).toBe('idle');
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    expect(engine.loads).toHaveLength(2);
+    expect(engine.status().state).toBe('playing');
+  });
+
+  it('playing before prepare reaches the engine still ends with the episode playing', async () =>
+  {
+    const { controller, engine } = await setup();
+    const preparing = controller.prepare(LANDMARK_CHIJMES);
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    await preparing;
+    expect(engine.loads.at(-1)).toMatchObject({ autoPlay: true });
+    expect(engine.status().state).toBe('playing');
+    expect(controller.getState().status.state).toBe('playing');
+  });
+
+  it('discard before prepare reaches the engine loads nothing', async () =>
+  {
+    const { controller, engine } = await setup();
+    const preparing = controller.prepare(LANDMARK_CHIJMES);
+    controller.discardPrepared();
+    await preparing;
+    expect(engine.loads).toHaveLength(0);
+  });
+
+  it('discard while the engine is still loading leaves the engine idle once the load ends', async () =>
+  {
+    const { controller, engine } = await setup();
+    const realLoad = engine.load.bind(engine);
+    let openGate: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) =>
+    {
+      openGate = resolve;
+    });
+    jest.spyOn(engine, 'load').mockImplementationOnce(async (...args) =>
+    {
+      await gate;
+      await realLoad(...args);
+    });
+    const preparing = controller.prepare(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    controller.discardPrepared();
+    openGate();
+    await preparing;
+    expect(engine.status().state).toBe('idle');
+  });
+
+  it('playing another episode while one is prepared survives a later discard', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.prepare(LANDMARK_CHIJMES);
+    await controller.playPodcast(PODCAST_CHIJMES_US);
+    controller.discardPrepared();
+    expect(engine.status().state).toBe('playing');
+    expect(controller.getState().track?.podcastId).toBe(PODCAST_CHIJMES_US);
+  });
+});
+
+describe('playing a landmark whose episode has ended (UC 1.3.2.1)', () =>
+{
+  it('loads the episode again from the start when asked directly', async () =>
+  {
+    const { controller, engine, started } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    expect(await controller.playLandmark(LANDMARK_CHIJMES)).toBe(true);
+    expect(engine.loads).toHaveLength(2);
+    expect(engine.loads[1]).toMatchObject({ startAtSeconds: 0, autoPlay: true });
+    expect(engine.status().state).toBe('playing');
+    expect(started).toEqual([LANDMARK_CHIJMES, LANDMARK_CHIJMES]);
+  });
+
+  it('loads the episode again when autoplay requests it', async () =>
+  {
+    const { controller, engine, events } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    events.emit('audio/playLandmarkRequested', { landmarkId: LANDMARK_CHIJMES, reason: 'autoplay' });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(engine.loads).toHaveLength(2);
+    expect(controller.getState().status.state).toBe('playing');
+  });
+});
+
+describe('currentLandmarkId reports only live audio (UC 1.3.2.1)', () =>
+{
+  it('returns the landmark id while playing', async () =>
+  {
+    const { controller } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns the landmark id while buffering', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.buffer();
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns the landmark id while paused', async () =>
+  {
+    const { controller } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    controller.togglePlay();
+    expect(controller.currentLandmarkId()).toBe(LANDMARK_CHIJMES);
+  });
+
+  it('returns null when the engine is idle with a track still set (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.stop();
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null when the episode has ended (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    engine.finish();
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null after a playback error (valid EC, no action)', async () =>
+  {
+    const { controller, engine } = await setup();
+    engine.failNextLoad = true;
+    await controller.playLandmark(LANDMARK_CHIJMES);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(controller.getState().track).not.toBeNull();
+    expect(controller.currentLandmarkId()).toBeNull();
+  });
+
+  it('returns null with no track', async () =>
+  {
+    const { controller } = await setup();
+    expect(controller.currentLandmarkId()).toBeNull();
   });
 });

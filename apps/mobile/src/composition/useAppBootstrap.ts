@@ -20,6 +20,7 @@ import { showToast } from '@/ui/toastStore';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
 import { createAppServices, type AppServices } from './container';
 import { createFlowEffectHandler } from './flowEffects';
+import { wirePromptAudio } from './promptAudioWiring';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 {
@@ -101,13 +102,7 @@ export function useAppBootstrap(): BootstrapState
         }
       });
       services.audio.start();
-      services.geofence.subscribe((geofence) =>
-      {
-        if (geofence.prompt !== null)
-        {
-          void services.audio.prepare(geofence.prompt.landmarkId);
-        }
-      });
+      wirePromptAudio(services.geofence, services.audio);
       registerLiveBackgroundRuntime({
         acceptBackgroundFixes: (fixes) =>
         {

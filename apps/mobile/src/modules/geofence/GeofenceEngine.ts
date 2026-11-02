@@ -147,8 +147,8 @@ export class GeofenceEngine
     {
       return;
     }
-    this.update({ prompt: null });
     this.dependencies.events.emit('audio/playLandmarkRequested', { landmarkId: prompt.landmarkId, reason: 'prompt_accepted' });
+    this.update({ prompt: null });
   }
   /** Walker dismissed the prompt: that landmark will not prompt again for 10 minutes unless they leave and re-enter. */
   dismissPrompt(): void
