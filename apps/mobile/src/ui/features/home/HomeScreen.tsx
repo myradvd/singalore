@@ -476,7 +476,6 @@ export function HomeScreen(props: HomeScreenProps)
             { key: 'preferences', label: 'Tour Preferences', icon: 'cog-outline', onPress: () => openFromSidebar('/preferences') },
             { key: 'help', label: 'Help Centre', icon: 'help-circle-outline', onPress: () => openFromSidebar('/help') },
           ]}
-          footer={[]}
         />
       )}
 
