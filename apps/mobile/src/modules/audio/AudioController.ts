@@ -108,7 +108,8 @@ export class AudioController
 
   currentLandmarkId(): string | null
   {
-    return this.state.track?.landmarkId ?? null;
+    const state = this.state.status.state;
+    return state === 'idle' || state === 'ended' || state === 'error' ? null : this.state.track?.landmarkId ?? null;
   }
 
   async prepare(landmarkId: string): Promise<void>
