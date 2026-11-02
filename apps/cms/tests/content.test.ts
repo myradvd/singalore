@@ -41,6 +41,107 @@ describe('landmark form', () =>
   });
 });
 
+// Returns the first form issue for a landmark with the given fields changed, or null when valid.
+function landmarkIssue(overrides: Partial<typeof validLandmark>): string | null
+{
+  const result = LandmarkForm.safeParse({ ...validLandmark, ...overrides });
+  return result.success ? null : firstIssue(result.error);
+}
+
+describe('landmark form boundary values (N-1)', () =>
+{
+  it.each([
+    ['14', 'Radius must be at least 15 m.'],
+    ['15', null],
+    ['16', null],
+    ['99', null],
+    ['100', null],
+    ['101', 'Radius must be at most 100 m.'],
+    ['30.5', 'Radius must be a whole number.'],
+  ])('radius %s gives %s', (geofenceRadiusM, expected) =>
+  {
+    expect(landmarkIssue({ geofenceRadiusM })).toBe(expected);
+  });
+
+  it('radius abc (invalid EC) fails', () =>
+  {
+    expect(LandmarkForm.safeParse({ ...validLandmark, geofenceRadiusM: 'abc' }).success).toBe(false);
+  });
+
+  it.each([
+    ['999', 'Built year must be between 1000 and 2100.'],
+    ['1000', null],
+    ['1001', null],
+    ['2099', null],
+    ['2100', null],
+    ['2101', 'Built year must be between 1000 and 2100.'],
+    ['abcd', 'Built year must be between 1000 and 2100.'],
+  ])('built year %s gives %s', (builtYear, expected) =>
+  {
+    expect(landmarkIssue({ builtYear })).toBe(expected);
+  });
+
+  it('empty built year (valid EC) parses to null', () =>
+  {
+    expect(LandmarkForm.parse({ ...validLandmark, builtYear: '' }).builtYear).toBeNull();
+  });
+
+  it.each([
+    [0, 'Name is required.'],
+    [1, null],
+    [2, null],
+    [119, null],
+    [120, null],
+    [121, 'Name is too long.'],
+  ])('name of %i characters gives %s', (length, expected) =>
+  {
+    expect(landmarkIssue({ name: 'a'.repeat(length) })).toBe(expected);
+  });
+
+  it.each([
+    [279, null],
+    [280, null],
+    [281, 'Short description must be at most 280 characters.'],
+  ])('short description of %i characters gives %s', (length, expected) =>
+  {
+    expect(landmarkIssue({ shortDescription: 'a'.repeat(length) })).toBe(expected);
+  });
+
+  it.each([
+    [19999, null],
+    [20000, null],
+    [20001, 'Description is too long.'],
+  ])('description of %i characters gives %s', (length, expected) =>
+  {
+    expect(landmarkIssue({ description: 'a'.repeat(length) })).toBe(expected);
+  });
+
+  it.each([
+    [79, true],
+    [80, true],
+    [81, false],
+  ])('slug of %i characters passing is %s', (length, expected) =>
+  {
+    expect(LandmarkForm.safeParse({ ...validLandmark, slug: 'a'.repeat(length) }).success).toBe(expected);
+  });
+});
+
+describe('podcast form boundary values (N-1)', () =>
+{
+  it.each([
+    [0, 'Title is required.'],
+    [1, null],
+    [2, null],
+    [199, null],
+    [200, null],
+    [201, 'Title is too long.'],
+  ])('title of %i characters gives %s', (length, expected) =>
+  {
+    const result = PodcastForm.safeParse({ landmarkId: PARK_ID, title: 'a'.repeat(length), voice: '', accent: '', transcript: '' });
+    expect(result.success ? null : firstIssue(result.error)).toBe(expected);
+  });
+});
+
 describe('podcast form', () =>
 {
   it('trims and nulls optional text', () =>
