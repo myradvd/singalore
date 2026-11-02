@@ -19,6 +19,14 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
+// Lists the chip labels shown for one preference, in screen order.
+function chipLabels(preferenceKey: string)
+{
+  const prefix = `pref-${preferenceKey}-`;
+  return screen.getAllByTestId(new RegExp(`^${prefix}`))
+    .map((chip) => (chip.props.testID as string).slice(prefix.length));
+}
+
 function section(id: string)
 {
   const match = PREFERENCE_SECTIONS.find((candidate) => candidate.id === id);
@@ -118,6 +126,14 @@ describe('Tour Preferences (A3)', () =>
     const services = await createTestServices();
     await renderWithServices(services, <PreferencesSectionScreen section={section('route')} />);
     expect(screen.getAllByText(NOT_AVAILABLE_ROUTING).length).toBe(2);
+  });
+
+  it('lists Any plus the sorted voices and accents the catalog offers (design 6.3)', async () =>
+  {
+    const services = await createTestServices();
+    await renderWithServices(services, <PreferencesSectionScreen section={section('audio')} />);
+    expect(chipLabels('preferredVoice')).toEqual(['Any', 'Female', 'Male']);
+    expect(chipLabels('preferredAccent')).toEqual(['Any', 'American', 'British']);
   });
 
   it('guards unsaved changes on back', async () =>
