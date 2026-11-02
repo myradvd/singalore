@@ -7,7 +7,8 @@ import { catalogFixture, PARK_CIVIC } from '@test/support/catalogFixture';
 import { createTestServices, renderWithServices } from '@test/support/renderWithProviders';
 import { HomeScreen } from '../home/HomeScreen';
 import { DownloadsScreen } from './DownloadsScreen';
-import { packStatusLabel } from './PackActionButton';
+import { formatMegabytes } from '../explore/formatBytes';
+import { downloadProgressFraction, PackActionButton, packStatusLabel } from './PackActionButton';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
@@ -25,6 +26,93 @@ describe('packStatusLabel', () =>
     expect(packStatusLabel({ ...base, state: 'downloaded' }, 0)).toBe('Available offline  ·  2.0 MB');
     expect(packStatusLabel({ ...base, state: 'failed', errorCode: 'insufficient_storage' }, 0)).toBe('Not enough storage');
     expect(packStatusLabel({ ...base, state: 'update_available' }, 0)).toBe('Update available');
+  });
+});
+
+describe('formatMegabytes (UC 1.4.1 step 6)', () =>
+{
+  it.each([
+    ['zero', 0, '0.0 MB'],
+    ['below 1 MB in bytes', 1023, '0.0 MB'],
+    ['just below the first rounding step', 52428, '0.0 MB'],
+    ['on the first rounding step', 52429, '0.1 MB'],
+    ['just below 1 MB', 1048575, '1.0 MB'],
+    ['on 1 MB', 1048576, '1.0 MB'],
+    ['just above 1 MB', 1048577, '1.0 MB'],
+    ['10 MB', 10485760, '10.0 MB'],
+  ])('%s: %d bytes reads %s', (_name, bytes, expected) =>
+  {
+    expect(formatMegabytes(bytes)).toBe(expected);
+  });
+});
+
+describe('download progress label (UC 1.4.1 step 6)', () =>
+{
+  const base = { parkId: 'p', packEtag: null, errorCode: null, completedAt: null };
+
+  it('zero: 0 of 10 MB reads the exact SRS label', () =>
+  {
+    expect(packStatusLabel({ ...base, state: 'downloading', doneBytes: 0, totalBytes: 10485760 }, 0)).toBe('Downloading 0.0 MB of 10.0 MB');
+  });
+
+  it.each([0, 1, 1023, 1024, 500000, 1048575, 1048576, 5000000000])('%d bytes done keeps the label in MB', (doneBytes) =>
+  {
+    expect(packStatusLabel({ ...base, state: 'downloading', doneBytes, totalBytes: 5000000000 }, 0)).toMatch(/^Downloading \d+\.\d MB of \d+\.\d MB$/);
+  });
+
+  it('paused below 1 MB also reads in MB', () =>
+  {
+    expect(packStatusLabel({ ...base, state: 'paused', doneBytes: 1023, totalBytes: 512 }, 0)).toBe('Paused at 0.0 MB of 0.0 MB');
+  });
+});
+
+describe('downloadProgressFraction (UC 1.4.1 step 6)', () =>
+{
+  it.each([
+    ['zero done', 0, 1000, 0],
+    ['half done', 500, 1000, 0.5],
+    ['just below total', 999, 1000, 0.999],
+    ['on total', 1000, 1000, 1],
+    ['just above total is capped', 1001, 1000, 1],
+    ['total zero (invalid EC) has no NaN', 0, 0, 0],
+  ])('%s: %d of %d gives %d', (_name, doneBytes, totalBytes, expected) =>
+  {
+    expect(downloadProgressFraction(doneBytes, totalBytes)).toBe(expected);
+  });
+});
+
+describe('download progress bar (UC 1.4.1 step 6)', () =>
+{
+  const parkId = 'park-a';
+
+  // Renders the pack button for a record in the given state.
+  async function renderPack(state: 'downloading' | 'paused', doneBytes: number, totalBytes: number)
+  {
+    useDownloadsStore.setState({ records: { [parkId]: { parkId, state, packEtag: null, totalBytes, doneBytes, errorCode: null, completedAt: null } } });
+    await renderWithServices(await createTestServices(), <PackActionButton parkId={parkId} estimatedBytes={0} />);
+  }
+
+  afterEach(() =>
+  {
+    useDownloadsStore.setState({ records: {} });
+  });
+
+  it.each([
+    ['just below total is under 100%', 999, 1000, '99.9%', 99],
+    ['on total is 100%', 1000, 1000, '100%', 100],
+    ['over total is capped at 100%', 1001, 1000, '100%', 100],
+    ['total zero (invalid EC) is 0%, no NaN', 0, 0, '0%', 0],
+  ])('%s', async (_name, doneBytes, totalBytes, width, percent) =>
+  {
+    await renderPack('downloading', doneBytes, totalBytes);
+    expect(screen.getByTestId('pack-progress-fill').props.style).toEqual(expect.arrayContaining([{ width }]));
+    expect(screen.getByRole('progressbar', { name: 'Downloading' }).props.accessibilityValue).toEqual({ min: 0, max: 100, now: percent });
+  });
+
+  it('shows no bar when paused', async () =>
+  {
+    await renderPack('paused', 500, 1000);
+    expect(screen.queryByTestId('pack-progress-fill')).toBeNull();
   });
 });
 

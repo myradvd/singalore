@@ -1,11 +1,11 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useAppServices } from '@/composition/AppServicesContext';
 import type { DownloadRecord } from '@/modules/offline/DownloadsRepository';
 import { useDownloadsStore } from '@/modules/offline/downloadsStore';
 import { PrimaryButton, SecondaryButton } from '../../primitives/Buttons';
-import { colors, spacing, typography } from '../../theme/tokens';
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import { showToast } from '../../toastStore';
-import { formatBytes } from '../explore/formatBytes';
+import { formatBytes, formatMegabytes } from '../explore/formatBytes';
 
 export function packStatusLabel(record: DownloadRecord | undefined, estimatedBytes: number): string
 {
@@ -15,9 +15,9 @@ export function packStatusLabel(record: DownloadRecord | undefined, estimatedByt
     case 'not_downloaded':
       return `Not downloaded  ·  about ${formatBytes(estimatedBytes)}`;
     case 'downloading':
-      return `Downloading ${formatBytes(record.doneBytes)} of ${formatBytes(record.totalBytes)}`;
+      return `Downloading ${formatMegabytes(record.doneBytes)} of ${formatMegabytes(record.totalBytes)}`;
     case 'paused':
-      return `Paused at ${formatBytes(record.doneBytes)} of ${formatBytes(record.totalBytes)}`;
+      return `Paused at ${formatMegabytes(record.doneBytes)} of ${formatMegabytes(record.totalBytes)}`;
     case 'downloaded':
       return `Available offline  ·  ${formatBytes(record.totalBytes)}`;
     case 'update_available':
@@ -25,6 +25,12 @@ export function packStatusLabel(record: DownloadRecord | undefined, estimatedByt
     case 'failed':
       return record.errorCode === 'insufficient_storage' ? 'Not enough storage' : 'Download failed';
   }
+}
+
+// Returns how much of the download is done as 0 to 1, safe for a zero total.
+export function downloadProgressFraction(doneBytes: number, totalBytes: number): number
+{
+  return totalBytes > 0 ? Math.min(1, doneBytes / totalBytes) : 0;
 }
 
 export function PackActionButton({ parkId, estimatedBytes }: { parkId: string; estimatedBytes: number })
@@ -48,10 +54,15 @@ export function PackActionButton({ parkId, estimatedBytes }: { parkId: string; e
     }
   };
   const state = record?.state ?? 'not_downloaded';
+  const progress = record === undefined ? 0 : downloadProgressFraction(record.doneBytes, record.totalBytes);
   return (
     <View testID={`pack-${parkId}`} style={styles.container}>
       <Text style={[typography.caption, { color: colors.textMuted }]}>{packStatusLabel(record, estimatedBytes)}</Text>
-      {state === 'downloading' && <ActivityIndicator color={colors.primary} accessibilityLabel="Downloading" />}
+      {state === 'downloading' && (
+        <View style={styles.track} accessible accessibilityRole="progressbar" accessibilityLabel="Downloading" accessibilityValue={{ min: 0, max: 100, now: Math.floor(progress * 100) }}>
+          <View testID="pack-progress-fill" style={[styles.progress, { width: `${progress * 100}%` }]} />
+        </View>
+      )}
       <View style={styles.actions}>
         {(state === 'not_downloaded' || state === 'failed') && <PrimaryButton testID="pack-download" label="Download for offline use" icon="download" onPress={() => void start()} />}
         {state === 'update_available' && <PrimaryButton testID="pack-update" label="Download update" icon="download" onPress={() => void start()} />}
@@ -67,5 +78,7 @@ export function PackActionButton({ parkId, estimatedBytes }: { parkId: string; e
 
 const styles = StyleSheet.create({
   container: { gap: spacing.sm },
+  track: { height: 3, borderRadius: radii.lg, overflow: 'hidden', backgroundColor: colors.border },
+  progress: { height: 3, backgroundColor: colors.accent },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });
