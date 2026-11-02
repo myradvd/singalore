@@ -1,6 +1,6 @@
 import type { GeofenceTarget, LocationFix } from '@/core/location';
 import { DISMISS_SUPPRESSION_MS } from './promptPolicy';
-import { arrivalNotificationText, evaluateBackgroundArrival } from './backgroundArrival';
+import { arrivalNotificationText, evaluateBackgroundArrival, shouldNotifyArrival } from './backgroundArrival';
 
 const target: GeofenceTarget = { landmarkId: 'a', name: 'Thian Hock Keng', latitude: 1.2806, longitude: 103.8475, radiusMeters: 30, hasPodcast: true };
 const silent: GeofenceTarget = { ...target, landmarkId: 'b', hasPodcast: false };
@@ -33,5 +33,50 @@ describe('evaluateBackgroundArrival', () =>
   it('builds the notification copy', () =>
   {
     expect(arrivalNotificationText('CHIJMES')).toEqual({ title: 'You have reached CHIJMES', body: 'A podcast about this site is available. Tap to listen.' });
+  });
+});
+
+describe('shouldNotifyArrival (UC 1.3.2.3)', () =>
+{
+  const prompt = { landmarkId: 'a', triggeredAt: 1000, forced: false };
+
+  it('first: new prompt, background, returns true', () =>
+  {
+    expect(shouldNotifyArrival(prompt, null, false)).toBe(true);
+  });
+
+  it('repeat: same landmark and triggeredAt, background, returns false', () =>
+  {
+    expect(shouldNotifyArrival({ ...prompt }, prompt, false)).toBe(false);
+  });
+
+  it('new prompt: later triggeredAt, background, returns true', () =>
+  {
+    expect(shouldNotifyArrival({ ...prompt, triggeredAt: 1001 }, prompt, false)).toBe(true);
+  });
+
+  it('new prompt: other landmark at the same triggeredAt, background, returns true', () =>
+  {
+    expect(shouldNotifyArrival({ ...prompt, landmarkId: 'b' }, prompt, false)).toBe(true);
+  });
+
+  it('foreground (valid EC, no action): active, returns false', () =>
+  {
+    expect(shouldNotifyArrival(prompt, null, true)).toBe(false);
+  });
+
+  it('forced (valid EC, no action): forced true, returns false', () =>
+  {
+    expect(shouldNotifyArrival({ ...prompt, forced: true }, null, false)).toBe(false);
+  });
+
+  it('opened from a notification (valid EC, no action): returns false', () =>
+  {
+    expect(shouldNotifyArrival({ ...prompt, openedFromNotification: true }, null, false)).toBe(false);
+  });
+
+  it('none: prompt null, returns false', () =>
+  {
+    expect(shouldNotifyArrival(null, null, false)).toBe(false);
   });
 });

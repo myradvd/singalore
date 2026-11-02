@@ -23,6 +23,7 @@ export interface ActivePrompt
   landmarkId: string;
   triggeredAt: number;
   forced: boolean;
+  openedFromNotification?: true;
 }
 
 export interface GeofenceState
@@ -119,7 +120,11 @@ export class GeofenceEngine
 
   presentPrompt(landmarkId: string): void
   {
-    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false } });
+    if (this.state.prompt?.landmarkId === landmarkId)
+    {
+      return;
+    }
+    this.update({ prompt: { landmarkId, triggeredAt: this.dependencies.clock.now(), forced: false, openedFromNotification: true } });
   }
 
   targetName(landmarkId: string): string

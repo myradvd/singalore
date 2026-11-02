@@ -301,6 +301,24 @@ describe('GeofenceEngine', () =>
     expect(second.engine.getState().nextUpLandmarkId).toBeNull();
   });
 
+  it('presentPrompt with the same landmark pending keeps the pending prompt', () =>
+  {
+    const { engine, events, clock } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    const pending = engine.getState().prompt;
+    clock.advance(4000);
+    engine.presentPrompt('chijmes');
+    expect(engine.getState().prompt).toBe(pending);
+  });
+
+  it('presentPrompt with another landmark pending replaces it and marks it as opened from a notification', () =>
+  {
+    const { engine, events } = createEngine();
+    events.emit('location/fix', fixAt(5, 1000));
+    engine.presentPrompt('raffles');
+    expect(engine.getState().prompt).toMatchObject({ landmarkId: 'raffles', forced: false, openedFromNotification: true });
+  });
+
   it('never prompts for landmarks without a podcast (UC 1.3.2.2)', () =>
   {
     const { engine, events } = createEngine();

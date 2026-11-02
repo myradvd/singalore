@@ -17,6 +17,7 @@ import { getPreferences, loadPreferences } from '@/modules/prefs/preferencesStor
 import { COPY } from '@/ui/copy';
 import { useMapUiStore } from '@/ui/mapCommandStore';
 import { showToast } from '@/ui/toastStore';
+import { wireArrivalNotifications } from './arrivalNotifyWiring';
 import { registerLiveBackgroundRuntime } from './backgroundTasks';
 import { createAppServices, type AppServices } from './container';
 import { createFlowEffectHandler } from './flowEffects';
@@ -178,14 +179,7 @@ export function useAppBootstrap(): BootstrapState
         void services.location.stop();
       }
     });
-    const promptSubscription = services.geofence.subscribe((geofence) =>
-    {
-      if (geofence.prompt !== null && !geofence.prompt.forced && AppState.currentState !== 'active')
-      {
-        const name = services.geofence.targetName(geofence.prompt.landmarkId);
-        void services.notifier.notify('arrivals', `You have reached ${name}`, 'A podcast about this site is available. Tap to listen.', { landmarkId: geofence.prompt.landmarkId });
-      }
-    });
+    const promptSubscription = wireArrivalNotifications({ geofence: services.geofence, notifier: services.notifier, isAppActive: () => AppState.currentState === 'active' });
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) =>
     {
       const landmarkId = response.notification.request.content.data?.landmarkId;
