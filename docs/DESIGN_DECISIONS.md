@@ -89,7 +89,6 @@ packages/shared    zod schemas, DTO types, geo and ordering utilities, constants
 supabase/          migrations, seed
 docs/              SRS.md, DESIGN_DECISIONS.md, PLAN.md, PROGRESS.md, DECISION_LOG.md, design/
 scripts/           seed, demo audio, load test
-CLAUDE.md          conventions and commands, created first
 ```
 
 ## 4. Stack
@@ -117,7 +116,8 @@ CLAUDE.md          conventions and commands, created first
 | Crash reports | `@sentry/react-native`, active only when a DSN is set, no PII | NFR 6.1 |
 | Tests | `jest-expo` (mobile), Vitest (shared, cms), Playwright (CMS smoke) | |
 | CI | GitHub Actions running the same steps as `npm run verify` | |
-| Hosting | Local first with `supabase start`. Then hosted Supabase, Vercel for the CMS, EAS for mobile builds | Lets Claude Code run everything without cloud accounts |
+| Hosting | Local first with `supabase start`. Then hosted Supabase, Vercel for the CMS, EAS for mobile builds |
+
 
 Verified on 12 October 2026:
 
@@ -152,12 +152,6 @@ Rules, enforced by lint (`eslint-plugin-boundaries` or `import/no-restricted-pat
 - A composition root (`src/app/container.ts`) wires real implementations. Tests wire fakes.
 - Every module that touches a device API exposes an interface plus a real and a fake implementation.
 
-Code conventions (remove this block from `CLAUDE.md` if you prefer defaults):
-
-- Minimal comments. Only add one where the code cannot say why.
-- Allman braces enforced with ESLint `@stylistic/brace-style` set to `allman`. Do not add Prettier, because it rewrites braces.
-- Verbose, explicit names over clever compact code.
-- No em dashes in UI copy, docs, commit messages, or comments.
 
 ## 6. Behaviour decisions
 
