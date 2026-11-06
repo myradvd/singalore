@@ -16,7 +16,7 @@ Source precedence when files disagree:
 | Screen flow and navigation | `design/dialog-map-latest.puml`, then `design/dialog-map-cache-states.puml`, then `design/dialog-map-final.png` |
 | Look, layout, copy | `design/ui-*.png` |
 | Data shape | SRS Data Dictionary, then `design/class-diagram-*.png`, then section 7 of this document where it extends them |
-| Technology | This document. The AI-written stack in the original team document assumed five people and is partly replaced here |
+| Technology | This document. The team's written stack in the original team document assumed five people and is partly replaced here |
 
 The wordmark in the mockups reads SINGALORE. Treat it as the working app name and keep it in one constant (`APP_NAME`).
 The mockup images are low resolution. Open all of them before planning and note details this document does not mention.
