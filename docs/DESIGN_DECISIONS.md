@@ -426,7 +426,7 @@ Run milestones in order. Each ends with a green `npm run verify`, an updated `do
 
 | Milestone | Content | Gate |
 | --- | --- | --- |
-| M0 Foundations and spikes | Repo, tooling, CI, `CLAUDE.md`, shared schemas, Supabase schema and seed, CMS shell and `/api/v1` skeleton, mobile dev build that shows a MapLibre map with the live dot, requests background location, plays a hosted audio file in the background, and registers a geofence task. `eas.json` profiles exist from the start | Spike results recorded in `docs/SPIKES.md`. If a spike fails, stop and report alternatives (react-native-maps, react-native-track-player) instead of improvising |
+| M0 Foundations and spikes | Repo, tooling, CI, , shared schemas, Supabase schema and seed, CMS shell and `/api/v1` skeleton, mobile dev build that shows a MapLibre map with the live dot, requests background location, plays a hosted audio file in the background, and registers a geofence task. `eas.json` profiles exist from the start | Spike results recorded in `docs/SPIKES.md`. If a spike fails, stop and report alternatives (react-native-maps, react-native-track-player) instead of improvising |
 | M1 Catalog and map shell | Sync, SQLite, pins, boundaries, summary card, recenter, layers, home shell, flow reducer v1, search and explore basics | Tests plus app launches with seeded data |
 | M2 Location and geofence | Location engine, evaluator, prompt, autoplay logic, OS window, debug mode core (spoof, overlay, force trigger) | Evaluator test suite, spoof drives a prompt in the app |
 | M3 Audio | Engine, mini and full player, lock screen, persistence, transcript, out of range notice | Audio tests, restore works |
@@ -445,20 +445,20 @@ Run milestones in order. Each ends with a green `npm run verify`, an updated `do
 3. No offline basemap. A tile provider that permits offline packs, or self hosted PMTiles, would fix it.
 4. Native module churn between Expo SDKs. Pin versions after the M0 spike and do not upgrade mid build.
 5. Narration audio is synthetic. Real episodes must be recorded and uploaded through the CMS.
-6. Claude Code cannot test on real phones. Anything needing a device is in the manual checklist, not claimed as verified.
+6. Anything needing a device is in the manual checklist, not claimed as verified.
 7. Forty plus use cases in one pass tends to produce shallow implementations. The milestone gates and tests are the guard. Do not skip them to save time.
 8. Wikipedia and Wikidata text is licensed with attribution. Store and display it.
 
 ## 15. Assumptions made (change these in the plan if wrong)
 
-- Pratham is the sole developer, with Claude Code doing the implementation.
+- Team 4 develops the app
 - Launch region is Singapore.
 - Local development uses Docker for `supabase start`. If Docker is missing, ask for a hosted Supabase project URL and keys during planning.
 - Code style is minimal comments and Allman braces.
 - Sentry is optional and off until a DSN is provided.
 - Apple and Google developer accounts are not needed for development builds on simulators and emulators.
-- Claude Code runs locally on the owner's Mac. The owner tests on an Android phone and uses the iOS simulator only.
-- The owner will host the backend (Supabase and Vercel, or a temporary tunnel) before any outdoor test.
+- Team 4 tests on an Android simulator
+- Team 4 will host the backend (Supabase and Vercel, or a temporary tunnel) before any outdoor test.
 
 ## 16. Delivery to a phone
 
