@@ -1,7 +1,7 @@
 # Singalore Design Decisions
 
 Prepared 12 October 2026 for the SC2006 Group 4 project "Self-Guided Heritage & History Walk Explorer".
-Written for Claude Code in plan mode. A human (Pratham) reviews the plan before any code is written.
+Pratham reviews the plan before any code is written.
 
 ## 0. How to use this document
 
