@@ -69,6 +69,16 @@ export class PackDetailsRepository
     });
   }
 
+  // Drops the park's downloaded descriptions and transcripts so screens fall back to catalog text.
+  async deleteForPark(parkId: string): Promise<void>
+  {
+    await this.db.transaction(async (transaction) =>
+    {
+      await transaction.run('delete from podcast_detail where podcast_id in (select p.id from podcasts p join landmarks l on l.id = p.landmark_id where l.park_id = ?)', [parkId]);
+      await transaction.run('delete from landmark_detail where landmark_id in (select id from landmarks where park_id = ?)', [parkId]);
+    });
+  }
+
   async setLandmarkImageLocalPath(landmarkId: string, localPath: string | null): Promise<void>
   {
     await this.db.run('update landmark_detail set image_local_path = ? where landmark_id = ?', [localPath, landmarkId]);

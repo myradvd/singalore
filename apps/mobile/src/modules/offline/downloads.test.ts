@@ -107,6 +107,7 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
   const transport = new FakeTransport();
   const notifications: string[] = [];
   const images = new Map<string, string | null>();
+  const clearedParks: string[] = [];
   let currentPack = pack();
   const network = { online: options.online ?? true, wifi: options.wifi ?? true };
   const clock = new ManualClock(0);
@@ -119,6 +120,10 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
     {
       images.set(id, path);
     },
+    clearDetails: async (id) =>
+    {
+      clearedParks.push(id);
+    },
     wifiOnly: () => options.wifiOnly ?? true,
     parkName: () => 'Civic District',
     notifier: { permission: async () => 'granted', requestPermission: async () => 'granted', notify: async (_category, _title, body) =>
@@ -130,7 +135,7 @@ async function setup(options: { online?: boolean; wifi?: boolean; wifiOnly?: boo
     diagnostics: { record: async () => undefined },
   });
   const resolver = new DownloadedMediaResolver(db, { size: (path) => transport.files.get(path)?.size ?? null });
-  return { manager, repository, transport, notifications, images, resolver, network, clock, setPack: (next: PackResponse) =>
+  return { manager, repository, transport, notifications, images, clearedParks, resolver, network, clock, setPack: (next: PackResponse) =>
   {
     currentPack = next;
   } };
@@ -512,7 +517,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
 
   it('flags an update when the pack changes, skips unchanged files on re-download, and deletes', async () =>
   {
-    const { manager, repository, transport, images, setPack } = await setup();
+    const { manager, repository, transport, images, clearedParks, setPack } = await setup();
     await manager.download(parkId);
     await manager.checkForUpdates(async () => '"p1"');
     expect((await repository.get(parkId))?.state).toBe('downloaded');
@@ -525,6 +530,7 @@ describe('DownloadManager (UC 1.4.1)', () =>
     await manager.remove(parkId);
     expect(await repository.get(parkId)).toBeNull();
     expect(images.get(landmarkId)).toBeNull();
+    expect(clearedParks).toEqual([parkId]);
     expect(transport.deletedDirectories).toEqual([parkId]);
   });
 

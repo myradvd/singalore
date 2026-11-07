@@ -36,6 +36,7 @@ export interface DownloadManagerDependencies
   connectivity: Pick<ConnectivityMonitor, 'isOnline' | 'isOnWifi'>;
   fetchPack: (parkId: string) => Promise<PackResponse>;
   setLandmarkImage: (landmarkId: string, localPath: string | null) => Promise<void>;
+  clearDetails: (parkId: string) => Promise<void>;
   wifiOnly: () => boolean;
   parkName: (parkId: string) => string;
   notifier: LocalNotifier;
@@ -133,6 +134,7 @@ export class DownloadManager
     {
       await this.dependencies.setLandmarkImage(file.landmark_id ?? '', null);
     }
+    await this.dependencies.clearDetails(parkId);
     this.dependencies.transport.deleteDirectory(parkId);
     await this.dependencies.repository.delete(parkId);
     this.progressBytes.delete(parkId);

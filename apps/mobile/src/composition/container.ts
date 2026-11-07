@@ -174,6 +174,7 @@ export async function createAppServices(): Promise<AppServices>
     connectivity,
     fetchPack: (parkId) => packDetails.fetchPack(parkId),
     setLandmarkImage: (landmarkId, localPath) => packDetails.setLandmarkImageLocalPath(landmarkId, localPath),
+    clearDetails: (parkId) => packDetails.deleteForPark(parkId),
     wifiOnly: () => getPreferences().downloadOverWifiOnly,
     parkName: (parkId) => useCatalogStore.getState().parksById.get(parkId)?.name ?? 'Your heritage park',
     notifier,

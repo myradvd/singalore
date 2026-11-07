@@ -33,4 +33,25 @@ describe('buildPack', () =>
     expect(first.etag).toBe(second.etag);
     expect(first.totalBytes).toBe(0);
   });
+
+  it('keeps each description through the shared schema, including an empty one', () =>
+  {
+    const pack = buildPack(parkId, [
+      { id: landmarkA, description: 'Chinese Heritage Centre full text', image_path: null, image_bytes: null },
+      { id: landmarkB, description: '', image_path: null, image_bytes: null },
+    ], [], base, new Date(0));
+    const parsed = PackResponse.parse(JSON.parse(JSON.stringify(pack)));
+    expect(parsed.landmarks).toEqual([
+      { landmarkId: landmarkA, description: 'Chinese Heritage Centre full text', imageUrl: null },
+      { landmarkId: landmarkB, description: '', imageUrl: null },
+    ]);
+  });
+
+  it('changes the etag when only a description changes, so downloaded packs are flagged for update', () =>
+  {
+    const row = { id: landmarkA, description: 'Before', image_path: null, image_bytes: null };
+    const before = buildPack(parkId, [row], [], base, new Date(0));
+    const after = buildPack(parkId, [{ ...row, description: 'After' }], [], base, new Date(0));
+    expect(after.etag).not.toBe(before.etag);
+  });
 });

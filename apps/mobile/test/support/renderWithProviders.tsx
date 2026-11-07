@@ -107,6 +107,7 @@ export async function createTestServices(fetchImplementation: typeof fetch = asy
     connectivity,
     fetchPack: (parkId) => packDetails.fetchPack(parkId),
     setLandmarkImage: (landmarkId, localPath) => packDetails.setLandmarkImageLocalPath(landmarkId, localPath),
+    clearDetails: (parkId) => packDetails.deleteForPark(parkId),
     wifiOnly: () => false,
     parkName: () => 'Park',
     notifier,
