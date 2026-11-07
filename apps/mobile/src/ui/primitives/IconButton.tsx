@@ -52,7 +52,7 @@ export function IconButton({ icon, accessibilityLabel, onPress, variant = 'glass
 
 const styles = StyleSheet.create({
   base: { alignItems: 'center', justifyContent: 'center' },
-  glass: { backgroundColor: colors.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
+  glass: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
   accent: { backgroundColor: colors.accent, ...shadows.floating },
   accentPressed: { backgroundColor: colors.accentPressed },
   primary: { backgroundColor: colors.primary, ...shadows.floating },

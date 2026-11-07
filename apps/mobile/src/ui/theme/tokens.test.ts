@@ -38,3 +38,14 @@ describe('touch targets (NFR 4.3)', () =>
     expect(touchTargets.playerPrimary).toBeGreaterThan(touchTargets.player);
   });
 });
+
+describe('surface opacity', () =>
+{
+  const INTENTIONALLY_TRANSLUCENT = ['scrim', 'mapAttribution', 'mapUserHalo', 'mapBoundaryFill'];
+
+  it('every color token is opaque except overlays and map tints', () =>
+  {
+    const translucent = Object.entries(colors).filter(([, value]) => !/^#[0-9A-F]{6}$/i.test(value)).map(([name]) => name);
+    expect(translucent.sort()).toEqual([...INTENTIONALLY_TRANSLUCENT].sort());
+  });
+});
