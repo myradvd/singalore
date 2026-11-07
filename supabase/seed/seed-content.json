@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-31T12:29:39.697Z",
+  "fetchedAt": "2026-11-07T13:35:47.293Z",
   "parks": [
     {
       "slug": "tiong-bahru",
@@ -7,23 +7,23 @@
       "district": "Bukit Merah",
       "description": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore. Tiong Bahru was constructed in the 1920s by the Singapore Improvement Trust, the predecessor to the Housing Development Board (HDB) and an entity of the British colonial authority providing mass public housing in Singapore and is the oldest housing estate in Singapore.",
       "shortDescription": "Tiong Bahru is a housing estate and subzone region located within Bukit Merah planning area, in the Central Region of Singapore.",
-      "centerLat": 1.2861633291666668,
-      "centerLng": 103.83096187824943,
+      "centerLat": 1.2847638833333335,
+      "centerLng": 103.83092592316552,
       "boundary": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              103.824144,
-              1.28737
+              103.82886,
+              1.2861
             ],
             [
-              103.824216,
-              1.2871
+              103.828933,
+              1.28583
             ],
             [
-              103.824414,
-              1.286902
+              103.830369,
+              1.283145
             ],
             [
               103.830567,
@@ -38,48 +38,44 @@
               1.282948
             ],
             [
-              103.835346,
-              1.285583
+              103.832811,
+              1.284309
             ],
             [
-              103.835543,
-              1.285781
+              103.833008,
+              1.284507
             ],
             [
-              103.835616,
-              1.286051
+              103.833081,
+              1.284776
             ],
             [
-              103.835543,
-              1.286321
+              103.833008,
+              1.285046
             ],
             [
-              103.833701,
-              1.289538
+              103.832811,
+              1.285244
             ],
             [
-              103.833504,
-              1.289735
+              103.82967,
+              1.286567
             ],
             [
-              103.833234,
-              1.289807
+              103.8294,
+              1.28664
             ],
             [
-              103.824684,
-              1.287909
+              103.82913,
+              1.286567
             ],
             [
-              103.824414,
-              1.287837
+              103.828933,
+              1.28637
             ],
             [
-              103.824216,
-              1.28764
-            ],
-            [
-              103.824144,
-              1.28737
+              103.82886,
+              1.2861
             ]
           ]
         ]
@@ -162,50 +158,19 @@
           "wikidataId": "Q118213332",
           "osmType": null,
           "osmId": null,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru Air Raid Shelter\" (https://en.wikipedia.org/wiki/Tiong_Bahru_Air_Raid_Shelter), CC BY-SA 4.0. Facts from Wikidata Q118213332 (https://www.wikidata.org/wiki/Q118213332), CC0.",
+          "image": {
+            "fileName": "Tiong Bahru Air Raid Shelter - 2023-0506.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Tiong_Bahru_Air_Raid_Shelter_-_2023-0506.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Tiong_Bahru_Air_Raid_Shelter_-_2023-0506.jpg/960px-Tiong_Bahru_Air_Raid_Shelter_-_2023-0506.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Tiong_Bahru_Air_Raid_Shelter_-_2023-0506.jpg",
+            "artist": "Fuzheado",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Tiong Bahru Air Raid Shelter\" (https://en.wikipedia.org/wiki/Tiong_Bahru_Air_Raid_Shelter), CC BY-SA 4.0. Facts from Wikidata Q118213332 (https://www.wikidata.org/wiki/Q118213332), CC0. Image \"Tiong Bahru Air Raid Shelter - 2023-0506.jpg\" by Fuzheado, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Tiong_Bahru_Air_Raid_Shelter_-_2023-0506.jpg).",
           "sortOrder": 2,
-          "imageFile": null
-        },
-        {
-          "slug": "giok-hong-tian-temple",
-          "name": "Giok Hong Tian Temple",
-          "aliases": [],
-          "category": "religious",
-          "lat": 1.2892677249999998,
-          "lng": 103.83323390000001,
-          "geofenceRadiusM": 30,
-          "shortDescription": "",
-          "description": "",
-          "builtYear": null,
-          "architecturalStyle": null,
-          "wikidataId": null,
-          "osmType": "way",
-          "osmId": 260459557,
-          "image": null,
-          "attribution": "Location from OpenStreetMap way 260459557, (c) OpenStreetMap contributors, ODbL.",
-          "sortOrder": 3,
-          "imageFile": null
-        },
-        {
-          "slug": "grave-of-tan-tock-seng",
-          "name": "Grave of Tan Tock Seng",
-          "aliases": [],
-          "category": "other",
-          "lat": 1.2860508,
-          "lng": 103.835076,
-          "geofenceRadiusM": 30,
-          "shortDescription": "",
-          "description": "",
-          "builtYear": null,
-          "architecturalStyle": null,
-          "wikidataId": null,
-          "osmType": "node",
-          "osmId": 12389540382,
-          "image": null,
-          "attribution": "Location from OpenStreetMap node 12389540382, (c) OpenStreetMap contributors, ODbL.",
-          "sortOrder": 4,
-          "imageFile": null
+          "imageFile": "tiong-bahru-air-raid-shelter.jpg"
         }
       ]
     },
@@ -813,10 +778,19 @@
           "wikidataId": "Q2609750",
           "osmType": "way",
           "osmId": 125836766,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Ying Fo Fui Kun\" (https://en.wikipedia.org/wiki/Ying_Fo_Fui_Kun), CC BY-SA 4.0. Facts from Wikidata Q2609750 (https://www.wikidata.org/wiki/Q2609750), CC0. Location from OpenStreetMap way 125836766, (c) OpenStreetMap contributors, ODbL.",
+          "image": {
+            "fileName": "Ying Fo Fui Kun, Telok Ayer Street, October 2025.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Ying_Fo_Fui_Kun%2C_Telok_Ayer_Street%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Ying_Fo_Fui_Kun%2C_Telok_Ayer_Street%2C_October_2025.jpg/960px-Ying_Fo_Fui_Kun%2C_Telok_Ayer_Street%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Ying_Fo_Fui_Kun,_Telok_Ayer_Street,_October_2025.jpg",
+            "artist": "GoAheadFan95",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Ying Fo Fui Kun\" (https://en.wikipedia.org/wiki/Ying_Fo_Fui_Kun), CC BY-SA 4.0. Facts from Wikidata Q2609750 (https://www.wikidata.org/wiki/Q2609750), CC0. Location from OpenStreetMap way 125836766, (c) OpenStreetMap contributors, ODbL. Image \"Ying Fo Fui Kun, Telok Ayer Street, October 2025.jpg\" by GoAheadFan95, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Ying_Fo_Fui_Kun,_Telok_Ayer_Street,_October_2025.jpg).",
           "sortOrder": 5,
-          "imageFile": null
+          "imageFile": "ying-fo-fui-kun.jpg"
         },
         {
           "slug": "jinrikisha-station",
@@ -833,10 +807,19 @@
           "wikidataId": "Q6202739",
           "osmType": null,
           "osmId": null,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Jinrikisha Station\" (https://en.wikipedia.org/wiki/Jinrikisha_Station), CC BY-SA 4.0. Facts from Wikidata Q6202739 (https://www.wikidata.org/wiki/Q6202739), CC0.",
+          "image": {
+            "fileName": "Jinrikisha station (13719896354).jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Jinrikisha_station_%2813719896354%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Jinrikisha_station_%2813719896354%29.jpg/960px-Jinrikisha_station_%2813719896354%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Jinrikisha_station_(13719896354).jpg",
+            "artist": "Nicolas Lannuzel from Singapore, Singapore",
+            "license": "CC BY-SA 2.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Jinrikisha Station\" (https://en.wikipedia.org/wiki/Jinrikisha_Station), CC BY-SA 4.0. Facts from Wikidata Q6202739 (https://www.wikidata.org/wiki/Q6202739), CC0. Image \"Jinrikisha station (13719896354).jpg\" by Nicolas Lannuzel from Singapore, Singapore, CC BY-SA 2.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Jinrikisha_station_(13719896354).jpg).",
           "sortOrder": 6,
-          "imageFile": null
+          "imageFile": "jinrikisha-station.jpg"
         },
         {
           "slug": "tanjong-pagar-railway-station",
@@ -1002,10 +985,19 @@
           "wikidataId": "Q131416839",
           "osmType": "way",
           "osmId": 49968763,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Chinese Heritage Centre\" (https://en.wikipedia.org/wiki/Chinese_Heritage_Centre), CC BY-SA 4.0. Facts from Wikidata Q131416839 (https://www.wikidata.org/wiki/Q131416839), CC0. Location from OpenStreetMap way 49968763, (c) OpenStreetMap contributors, ODbL.",
+          "image": {
+            "fileName": "Chinese Heritage Centre, October 2025.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Chinese_Heritage_Centre%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Chinese_Heritage_Centre%2C_October_2025.jpg/960px-Chinese_Heritage_Centre%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Chinese_Heritage_Centre,_October_2025.jpg",
+            "artist": "GoAheadFan95",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Chinese Heritage Centre\" (https://en.wikipedia.org/wiki/Chinese_Heritage_Centre), CC BY-SA 4.0. Facts from Wikidata Q131416839 (https://www.wikidata.org/wiki/Q131416839), CC0. Location from OpenStreetMap way 49968763, (c) OpenStreetMap contributors, ODbL. Image \"Chinese Heritage Centre, October 2025.jpg\" by GoAheadFan95, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Chinese_Heritage_Centre,_October_2025.jpg).",
           "sortOrder": 1,
-          "imageFile": null
+          "imageFile": "chinese-heritage-centre.jpg"
         },
         {
           "slug": "nanyang-university-memorial",
@@ -1024,10 +1016,19 @@
           "wikidataId": "Q107803902",
           "osmType": "node",
           "osmId": 8573320299,
-          "image": null,
-          "attribution": "Text adapted from Wikipedia article \"Nanyang University Memorial\" (https://en.wikipedia.org/wiki/Nanyang_University_Memorial), CC BY-SA 4.0. Facts from Wikidata Q107803902 (https://www.wikidata.org/wiki/Q107803902), CC0. Location from OpenStreetMap node 8573320299, (c) OpenStreetMap contributors, ODbL.",
+          "image": {
+            "fileName": "Former Nanyang University Memorial, Yunnan Garden, October 2025.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/53/Former_Nanyang_University_Memorial%2C_Yunnan_Garden%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Former_Nanyang_University_Memorial%2C_Yunnan_Garden%2C_October_2025.jpg/960px-Former_Nanyang_University_Memorial%2C_Yunnan_Garden%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Former_Nanyang_University_Memorial,_Yunnan_Garden,_October_2025.jpg",
+            "artist": "GoAheadFan95",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text adapted from Wikipedia article \"Nanyang University Memorial\" (https://en.wikipedia.org/wiki/Nanyang_University_Memorial), CC BY-SA 4.0. Facts from Wikidata Q107803902 (https://www.wikidata.org/wiki/Q107803902), CC0. Location from OpenStreetMap node 8573320299, (c) OpenStreetMap contributors, ODbL. Image \"Former Nanyang University Memorial, Yunnan Garden, October 2025.jpg\" by GoAheadFan95, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Former_Nanyang_University_Memorial,_Yunnan_Garden,_October_2025.jpg).",
           "sortOrder": 2,
-          "imageFile": null
+          "imageFile": "nanyang-university-memorial.jpg"
         },
         {
           "slug": "nantah-arch",
@@ -1037,17 +1038,26 @@
           "lat": 1.3425098,
           "lng": 103.68506,
           "geofenceRadiusM": 25,
-          "shortDescription": "",
-          "description": "",
+          "shortDescription": "This gateway with its sweeping Chinese roof is a replica of the original Nanyang University arch, which still stands across the Pan-Island Expressway at Jurong West Street 93.",
+          "description": "This gateway with its sweeping Chinese roof is a replica of the original Nanyang University arch, which still stands across the Pan-Island Expressway at Jurong West Street 93. It was unveiled on 17 May 1995 in front of the former Nanyang University Library and Administration Building, because the original had ended up cut off from the campus. The original arch, the library building and a memorial in Yunnan Garden were gazetted together as a single national monument in 1998.",
           "builtYear": null,
           "architecturalStyle": null,
           "wikidataId": null,
           "osmType": "node",
           "osmId": 8573367917,
-          "image": null,
-          "attribution": "Location from OpenStreetMap node 8573367917, (c) OpenStreetMap contributors, ODbL.",
+          "image": {
+            "fileName": "Former Nanyang University Arch, Yunnan Garden, October 2025.jpg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/Former_Nanyang_University_Arch%2C_Yunnan_Garden%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Former_Nanyang_University_Arch%2C_Yunnan_Garden%2C_October_2025.jpg/960px-Former_Nanyang_University_Arch%2C_Yunnan_Garden%2C_October_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Former_Nanyang_University_Arch,_Yunnan_Garden,_October_2025.jpg",
+            "artist": "GoAheadFan95",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text condensed from the Singalore narration script, which draws on Roots (National Heritage Board), Nanyang Technological University, Wikipedia and other public sources. Location from OpenStreetMap node 8573367917, (c) OpenStreetMap contributors, ODbL. Image \"Former Nanyang University Arch, Yunnan Garden, October 2025.jpg\" by GoAheadFan95, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Former_Nanyang_University_Arch,_Yunnan_Garden,_October_2025.jpg).",
           "sortOrder": 3,
-          "imageFile": null
+          "imageFile": "nantah-arch.jpg"
         },
         {
           "slug": "yunnan-garden",
@@ -1057,17 +1067,26 @@
           "lat": 1.34430467051282,
           "lng": 103.68502476666669,
           "geofenceRadiusM": 60,
-          "shortDescription": "",
-          "description": "",
+          "shortDescription": "Yunnan Garden was once the heart of Nanyang University and today sits within the campus of Nanyang Technological University.",
+          "description": "Yunnan Garden was once the heart of Nanyang University and today sits within the campus of Nanyang Technological University. Its lawns, bamboo, streams and pavilions, together with the Nanyang University Memorial, form a heritage precinct of about nine hectares. The rejuvenated garden opened on 13 February 2020, with more than a thousand new trees and a waterfall joining it to Nanyang Lake.",
           "builtYear": null,
           "architecturalStyle": null,
           "wikidataId": null,
           "osmType": "way",
           "osmId": 49967616,
-          "image": null,
-          "attribution": "Location from OpenStreetMap way 49967616, (c) OpenStreetMap contributors, ODbL.",
+          "image": {
+            "fileName": "Yunnan Garden Pavilion.jpeg",
+            "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Yunnan_Garden_Pavilion.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Yunnan_Garden_Pavilion.jpeg/960px-Yunnan_Garden_Pavilion.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Yunnan_Garden_Pavilion.jpeg",
+            "artist": "Jeslynn",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "mime": "image/jpeg"
+          },
+          "attribution": "Text condensed from the Singalore narration script, which draws on Roots (National Heritage Board), Nanyang Technological University, Wikipedia and other public sources. Location from OpenStreetMap way 49967616, (c) OpenStreetMap contributors, ODbL. Image \"Yunnan Garden Pavilion.jpeg\" by Jeslynn, CC BY-SA 4.0, via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Yunnan_Garden_Pavilion.jpeg).",
           "sortOrder": 4,
-          "imageFile": null
+          "imageFile": "yunnan-garden.jpg"
         }
       ]
     }
