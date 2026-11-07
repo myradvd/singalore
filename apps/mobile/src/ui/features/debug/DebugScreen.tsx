@@ -54,7 +54,7 @@ export function DebugScreen()
     <View testID="debug-screen" style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <IconButton icon="arrow-left" accessibilityLabel="Back" onPress={() => router.back()} variant="plain" />
-        <Text style={[typography.title, { color: colors.text }]} accessibilityRole="header">Developer tools</Text>
+        <Text style={[typography.title, { flex: 1, color: colors.text }]} accessibilityRole="header">Developer tools</Text>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
         <Toggle testID="debug-spoof" label="Simulate location" description="Long press the map to move. Spoofed fixes go through the same geofence engine as GPS." value={debug.spoofActive} onValueChange={(value) => void setSpoof(value)} />

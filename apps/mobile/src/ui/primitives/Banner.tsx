@@ -17,7 +17,7 @@ export function Banner({ icon, message, tone = 'warning', actions = [], testID }
     <View testID={testID} style={[styles.banner, { borderLeftColor: accent, backgroundColor: surface }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
       <Icon name={icon} size={20} color={accent} />
       <Text style={[typography.caption, styles.message]}>{message}</Text>
-      {actions.map((action) => <TextButton key={action.label} label={action.label} onPress={action.onPress} />)}
+      {actions.length > 0 && <View testID={testID === undefined ? undefined : `${testID}-actions`} style={styles.actions}>{actions.map((action) => <TextButton key={action.label} label={action.label} onPress={action.onPress} />)}</View>}
     </View>
   );
 }
@@ -25,6 +25,7 @@ export function Banner({ icon, message, tone = 'warning', actions = [], testID }
 const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.sm,
     borderRadius: radii.md,
@@ -35,5 +36,6 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xs,
     ...shadows.card,
   },
-  message: { flex: 1, color: colors.text, paddingVertical: spacing.md },
+  message: { flexGrow: 1, flexShrink: 1, minWidth: 140, color: colors.text, paddingVertical: spacing.md },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: 'auto' },
 });

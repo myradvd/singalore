@@ -5,8 +5,8 @@ export function StatTile({ value, label, testID }: { value: string; label: strin
 {
   return (
     <View testID={testID} style={styles.tile} accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text style={[typography.title, { color: colors.text }]}>{value}</Text>
-      <Text style={[typography.eyebrow, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>
+      <Text style={[typography.title, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={[typography.eyebrow, { color: colors.textMuted, textAlign: 'center' }]}>{label.toUpperCase()}</Text>
     </View>
   );
 }

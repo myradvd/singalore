@@ -84,19 +84,20 @@ export function TextButton({ label, onPress, disabled = false, style, testID }: 
       hitSlop={8}
       style={({ pressed }) => [styles.text, pressed && styles.pressed, style]}
     >
-      <Text style={[typography.label, { color: disabled ? colors.textDisabled : colors.primary }]} maxFontSizeMultiplier={1.6}>{label}</Text>
+      <Text style={[styles.textLabel, { color: disabled ? colors.textDisabled : colors.primary }]} maxFontSizeMultiplier={1.6}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: { minHeight: touchTargets.minimum, borderRadius: radii.pill, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  base: { minHeight: touchTargets.minimum, maxWidth: '100%', borderRadius: radii.pill, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   primary: { backgroundColor: colors.accent, ...shadows.card },
   primaryPressed: { backgroundColor: colors.accentPressed },
   secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   inactive: { opacity: 0.5 },
   pressed: { backgroundColor: colors.surfaceSunken },
-  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: typography.label,
-  text: { minHeight: touchTargets.minimum, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radii.sm },
+  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1, maxWidth: '100%' },
+  label: { ...typography.label, flexShrink: 1, textAlign: 'center' },
+  textLabel: { ...typography.label, flexShrink: 1 },
+  text: { minHeight: touchTargets.minimum, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radii.sm },
 });

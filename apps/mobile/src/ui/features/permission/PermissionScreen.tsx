@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppServices } from '@/composition/AppServicesContext';
 import { refreshLocationPermission } from '@/composition/useAppBootstrap';
@@ -29,7 +29,7 @@ export function PermissionScreen()
   };
 
   return (
-    <View testID="permission-screen" style={[styles.screen, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
+    <ScrollView testID="permission-screen" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
       <Icon name="map-marker-radius" size={56} color={colors.primary} />
       <Text style={[typography.display, styles.title]} accessibilityRole="header">{servicesOff ? 'Location services are off' : 'Show where you are'}</Text>
       <Text style={[typography.body, styles.body]}>
@@ -44,7 +44,7 @@ export function PermissionScreen()
         <SecondaryButton testID="permission-later" label="Not now" onPress={() => router.back()} />
       </View>
       {Platform.OS === 'android' && !servicesOff && <Text style={[typography.caption, styles.note]}>You can browse the map and Explore without location.</Text>}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -66,7 +66,7 @@ export function BackgroundRationaleScreen()
   };
 
   return (
-    <View testID="background-rationale" style={[styles.screen, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
+    <ScrollView testID="background-rationale" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
       <Icon name="walk" size={56} color={colors.primary} />
       <Text style={[typography.display, styles.title]} accessibilityRole="header">Hear about sites with your phone in your pocket</Text>
       <Text style={[typography.body, styles.body]}>
@@ -79,12 +79,13 @@ export function BackgroundRationaleScreen()
         <PrimaryButton testID="background-allow" label={Platform.OS === 'android' ? 'Open settings' : 'Continue'} onPress={() => void allow()} />
         <SecondaryButton testID="background-later" label="Only while using the app" onPress={() => router.back()} />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl, alignItems: 'center', gap: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { flexGrow: 1, paddingHorizontal: spacing.xl, alignItems: 'center', gap: spacing.lg },
   title: { color: colors.text, textAlign: 'center' },
   body: { color: colors.textMuted, textAlign: 'center' },
   note: { color: colors.textMuted, textAlign: 'center' },
