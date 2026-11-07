@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppServices } from '@/composition/container';
 import { IDLE_STATUS } from '@/modules/audio/AudioEngine';
 import { bindAudioStore, useAudioStore } from '@/modules/audio/audioStore';
@@ -106,5 +107,45 @@ describe('mini player on every screen (D42)', () =>
     await fireEvent.press(screen.getByTestId('mini-close'));
     expect(services.audio.getState().track).toBeNull();
     expect(screen.queryByTestId('mini-player')).toBeNull();
+  });
+
+  const DEVICE_INSETS = { top: 24, bottom: 34, left: 0, right: 0 };
+
+  // Prints the bottom inset a screen inside the frame sees.
+  function InsetProbe()
+  {
+    return <Text testID="inset-probe">{`bottom ${useSafeAreaInsets().bottom}`}</Text>;
+  }
+
+  it('no audio: the host renders nothing, so no empty band sits under the screen', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices();
+    bindAudioStore(services.audio);
+    await renderWithServices(services, <WithMiniPlayer><Text>screen body</Text></WithMiniPlayer>);
+    expect(screen.queryByTestId('mini-player-host')).toBeNull();
+  });
+
+  it('the bottom inset is padded once: by the screen without audio, by the mini player with audio', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices();
+    bindAudioStore(services.audio);
+    await renderWithServices(services, <SafeAreaInsetsContext.Provider value={DEVICE_INSETS}><WithMiniPlayer><InsetProbe /></WithMiniPlayer></SafeAreaInsetsContext.Provider>);
+    expect(screen.getByTestId('inset-probe').props.children).toBe('bottom 34');
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    expect(screen.getByTestId('mini-player-host')).toBeTruthy();
+    expect(screen.getByTestId('inset-probe').props.children).toBe('bottom 0');
+  });
+
+  it('on the full player the screen keeps its own bottom inset', async () =>
+  {
+    mockPathname = '/player';
+    applyCatalogSnapshot(catalogFixture());
+    const services = await createTestServices();
+    bindAudioStore(services.audio);
+    await renderWithServices(services, <SafeAreaInsetsContext.Provider value={DEVICE_INSETS}><WithMiniPlayer><InsetProbe /></WithMiniPlayer></SafeAreaInsetsContext.Provider>);
+    await act(async () => void await services.audio.playLandmark(LANDMARK_CHIJMES));
+    expect(screen.getByTestId('inset-probe').props.children).toBe('bottom 34');
   });
 });

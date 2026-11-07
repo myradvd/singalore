@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppServices } from '@/composition/AppServicesContext';
 import type { AudioControllerState } from '@/modules/audio/AudioController';
 import { useAudioStore } from '@/modules/audio/audioStore';
@@ -59,23 +59,31 @@ export function MiniPlayerHost()
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const audio = useAudioStore();
-  if (pathname === FULL_PLAYER_PATH)
+  if (pathname === FULL_PLAYER_PATH || audio.track === null)
   {
     return null;
   }
   return (
-    <View style={[styles.host, { paddingBottom: insets.bottom + spacing.sm }]}>
+    <View testID="mini-player-host" style={[styles.host, { paddingBottom: insets.bottom + spacing.sm }]}>
       <MiniPlayer audio={audio} onTogglePlay={() => services.audio.togglePlay()} onOpen={() => router.push(FULL_PLAYER_PATH)} onClose={() => void services.audio.stopAndClear()} />
     </View>
   );
 }
 
 // Stacks the mini player under the screens so it never covers their bottom controls.
+// While it shows, it owns the bottom inset, so screens above it see a bottom inset of 0.
 export function WithMiniPlayer({ children }: { children: ReactNode })
 {
+  const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const hasTrack = useAudioStore((state) => state.track !== null);
+  const playerShown = hasTrack && pathname !== FULL_PLAYER_PATH;
+  const screenInsets = useMemo(() => (playerShown ? { ...insets, bottom: 0 } : insets), [playerShown, insets]);
   return (
     <View style={styles.frame}>
-      <View style={styles.screens}>{children}</View>
+      <SafeAreaInsetsContext.Provider value={screenInsets}>
+        <View style={styles.screens}>{children}</View>
+      </SafeAreaInsetsContext.Provider>
       <MiniPlayerHost />
     </View>
   );
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
   frame: { flex: 1 },
   screens: { flex: 1 },
   host: { paddingHorizontal: spacing.md, paddingTop: spacing.xs, backgroundColor: colors.background },
-  container: { backgroundColor: colors.glass, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
+  container: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
   track: { height: 3, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, overflow: 'hidden' },
   progress: { height: 3, backgroundColor: colors.accent },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
