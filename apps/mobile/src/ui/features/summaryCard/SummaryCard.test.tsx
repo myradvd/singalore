@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import type { CatalogLandmark } from '@singalore/shared';
 import type { AppServices } from '@/composition/container';
 import { applyCatalogSnapshot } from '@/modules/catalog/catalogStore';
@@ -246,5 +246,37 @@ describe('SummaryCard (UC 1.2.2)', () =>
     expect(screen.getByText('Show less')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('close-summary'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SummaryCard header layout (narrow title regression)', () =>
+{
+  const landmark = fixtureLandmark(LANDMARK_CHIJMES);
+  const headerActions = (
+    <>
+      <View testID="extra-one" style={{ width: 48, height: 48 }} />
+      <View testID="extra-two" style={{ width: 48, height: 48 }} />
+    </>
+  );
+
+  it('stacks header icons in one column so extra icons take no width from the title', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName="Nanyang Technological University" podcastSeconds={420} description={null} onClose={jest.fn()} headerActions={headerActions} />);
+    const column = screen.getByTestId('summary-header-actions');
+    expect(StyleSheet.flatten(column.props.style).flexDirection).toBe('column');
+    expect(within(column).getByTestId('close-summary')).toBeTruthy();
+    expect(within(column).getByTestId('extra-two')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('summary-title-block').props.style)).toMatchObject({ flex: 1, minWidth: 0 });
+  });
+
+  it('puts all card content in a shrinkable scroll view so a height cap never makes the actions unreachable', async () =>
+  {
+    await render(<SummaryCard landmark={landmark} parkName={null} podcastSeconds={null} description={null} onClose={jest.fn()} actions={<View testID="card-actions" />} />);
+    const body = screen.getByTestId('summary-body');
+    expect(StyleSheet.flatten(body.props.style).flexShrink).toBe(1);
+    expect(within(body).getByTestId('close-summary')).toBeTruthy();
+    expect(within(body).getByTestId('summary-description')).toBeTruthy();
+    expect(within(body).getByTestId('card-actions')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('summary-card').props.style).flexShrink).toBe(1);
   });
 });

@@ -2,8 +2,6 @@ export const colors = {
   background: '#F6F1E7',
   surface: '#FFFCF6',
   surfaceSunken: '#EDE5D6',
-  glass: 'rgba(255, 252, 246, 0.97)',
-  chrome: 'rgba(246, 241, 231, 0.96)',
   border: '#DCD2C0',
   controlTrack: '#CFC5B3',
   text: '#1C2430',

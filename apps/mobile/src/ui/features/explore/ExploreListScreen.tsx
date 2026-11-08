@@ -41,7 +41,7 @@ export function ExploreListScreen()
     <View testID="explore-screen" style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <IconButton testID="explore-back" icon="arrow-left" accessibilityLabel="Back" onPress={() => router.back()} variant="plain" />
-        <Text style={[typography.title, { color: colors.text }]} accessibilityRole="header">Explore heritage parks</Text>
+        <Text style={[typography.title, { flex: 1, color: colors.text }]} accessibilityRole="header">Explore heritage parks</Text>
       </View>
       <View style={styles.searchWrap}>
         <Icon name="magnify" size={20} color={colors.textMuted} />

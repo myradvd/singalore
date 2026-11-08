@@ -120,14 +120,14 @@ Fill in the four lines. No spaces around `=`, no quotes:
 npm run seed:hosted
 ```
 
-- Uploads 4 parks, 26 landmarks, photos and podcasts, and creates your CMS login. It also deletes landmarks that were retired from the seed (DECISION_LOG D30). Podcast audio is not in git (DECISION_LOG D32): episodes already in storage are skipped, and missing ones come from `supabase/seed/audio/` on your computer or the public copy in `scripts/seed-spec.ts`.
+- Uploads 4 parks, 24 landmarks, photos and podcasts, and creates your CMS login. It also deletes landmarks that were retired from the seed (DECISION_LOG D30, D44). Podcast audio is not in git (DECISION_LOG D32): episodes already in storage are skipped, and missing ones come from `supabase/seed/audio/` on your computer or the public copy in `scripts/seed-spec.ts`.
 
 **Expect:**
 
 ```
 Seeding https://<project-ref>.supabase.co from apps/cms/.env.hosted
-Removed 1 retired landmarks
-Seeded Tiong Bahru: 5 landmarks
+Removed 0 retired landmarks
+Seeded Tiong Bahru: 3 landmarks
 Seeded Civic District: 8 landmarks
 Seeded Telok Ayer and Tanjong Pagar: 8 landmarks
 Seeded Nanyang Technological University: 5 landmarks

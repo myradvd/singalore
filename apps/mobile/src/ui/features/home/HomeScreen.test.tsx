@@ -1,11 +1,12 @@
-import { act, fireEvent, screen } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
+import { act, fireEvent, screen, within } from '@testing-library/react-native';
+import { BackHandler, StyleSheet } from 'react-native';
 import type { AppServices } from '@/composition/container';
 import { IDLE_STATUS } from '@/modules/audio/AudioEngine';
 import { bindAudioStore, useAudioStore } from '@/modules/audio/audioStore';
 import { PLAYBACK_ERROR_MESSAGES } from '@/modules/audio/playbackErrors';
 import { applyCatalogSnapshot, refreshCatalog, useCatalogStore } from '@/modules/catalog/catalogStore';
 import { EMPTY_CATALOG } from '@/modules/catalog/types';
+import { useDebugStore } from '@/modules/debug/debugStore';
 import { INITIAL_FLOW_STATE } from '@/modules/flow/flowReducer';
 import { dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
 import type { FlowEvent, FlowState } from '@/modules/flow/flowTypes';
@@ -17,6 +18,7 @@ import { createTestServices, renderWithServices } from '@test/support/renderWith
 import { cameraCalls, latestMapPropsRef } from '@test/mocks/maplibre';
 import { COPY } from '../../copy';
 import { useMapUiStore, type MapFocusRequest } from '../../mapCommandStore';
+import { spacing } from '../../theme/tokens';
 import { useToastStore } from '../../toastStore';
 import { WithMiniPlayer } from '../player/MiniPlayer';
 import { SEARCH_DEBOUNCE_MS } from '../search/SearchOverlay';
@@ -564,6 +566,30 @@ describe('HomeScreen', () =>
     expect(cameraCalls.at(-1)).toMatchObject({ method: 'zoomTo', args: [14.5, { duration: 250 }] });
     await fireEvent.press(screen.getByTestId('zoom-out'));
     expect(cameraCalls.at(-1)).toMatchObject({ method: 'zoomTo', args: [13.5, { duration: 250 }] });
+  });
+
+  it('caps the card host below the measured header and notices so a tall card cannot cover the banner', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    const layout = (y: number, height: number) => ({ nativeEvent: { layout: { x: 0, y, width: 360, height } } });
+    await fireEvent(screen.getByTestId('home-screen'), 'layout', layout(0, 900));
+    await fireEvent(screen.getByTestId('home-top-bar'), 'layout', layout(0, 140));
+    expect(StyleSheet.flatten(screen.getByTestId('notices').props.style).top).toBe(140 + spacing.sm);
+    await fireEvent(screen.getByTestId('notices'), 'layout', layout(148, 60));
+    const cardHost = StyleSheet.flatten(screen.getByTestId('card-host').props.style);
+    expect(cardHost.maxHeight).toBe(900 - (cardHost.bottom as number) - 208 - spacing.sm);
+  });
+
+  it('keeps the developer bell in the card icon column after close and bookmark', async () =>
+  {
+    applyCatalogSnapshot(catalogFixture());
+    useDebugStore.setState({ enabled: true });
+    await renderWithServices(await createTestServices(), <HomeScreen userLocation={null} />);
+    await act(async () => dispatchFlow({ type: 'selectLandmark', landmarkId: LANDMARK_CHIJMES }));
+    const column = within(screen.getByTestId('summary-header-actions'));
+    expect(column.getAllByRole('button').map((button) => button.props.testID)).toEqual(['close-summary', 'summary-bookmark', 'debug-force-prompt']);
+    useDebugStore.setState({ enabled: false });
   });
 
   it('opens the sidebar and search overlays and expands the map', async () =>

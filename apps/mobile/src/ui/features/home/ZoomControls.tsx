@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   group: {
     width: touchTargets.minimum,
     borderRadius: touchTargets.minimum / 2,
-    backgroundColor: colors.glass,
+    backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     ...shadows.floating,

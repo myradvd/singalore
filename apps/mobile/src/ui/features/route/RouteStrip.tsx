@@ -23,6 +23,6 @@ export function RouteStrip({ title, stopNames, inProgress, onOpen }: { title: st
 }
 
 const styles = StyleSheet.create({
-  strip: { backgroundColor: colors.glass, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, gap: spacing.xs, ...shadows.floating },
+  strip: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, gap: spacing.xs, ...shadows.floating },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

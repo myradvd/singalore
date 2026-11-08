@@ -142,6 +142,6 @@ const styles = StyleSheet.create({
   landmark: { flexDirection: 'row', gap: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   landmarkImage: { width: 80, height: 80, borderRadius: radii.md },
   landmarkText: { flex: 1, gap: spacing.xs },
-  rowActions: { flexDirection: 'row', gap: spacing.md },
+  rowActions: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.md },
   attribution: { color: colors.textMuted, marginTop: spacing.sm },
 });

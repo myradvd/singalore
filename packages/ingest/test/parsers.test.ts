@@ -101,12 +101,12 @@ describe('placeFromOsmApiResponse', () =>
       elements: [
         { type: 'node', id: 10, lat: 1.0, lon: 103.0 },
         { type: 'node', id: 11, lat: 1.2, lon: 103.2 },
-        { type: 'way', id: 99, tags: { name: 'Giok Hong Tian Temple', building: 'temple' } },
+        { type: 'way', id: 99, tags: { name: 'Ying Fo Fui Kun', building: 'yes' } },
       ],
     }, 'way', 99);
     expect(place?.latitude).toBeCloseTo(1.1);
     expect(place?.longitude).toBeCloseTo(103.1);
-    expect(place?.name).toBe('Giok Hong Tian Temple');
+    expect(place?.name).toBe('Ying Fo Fui Kun');
   });
 
   it('returns null when the element or its name is missing', () =>

@@ -1,4 +1,4 @@
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadows, spacing, typography } from '../theme/tokens';
 import { PrimaryButton, SecondaryButton } from './Buttons';
 
@@ -16,13 +16,15 @@ export function AppModal({ visible, title, message, actions, onRequestClose, tes
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onRequestClose} statusBarTranslucent>
       <View style={styles.scrim}>
         <View testID={testID} style={styles.dialog} accessibilityViewIsModal>
-          <Text style={[typography.title, styles.title]} accessibilityRole="header">{title}</Text>
-          <Text style={[typography.body, styles.message]}>{message}</Text>
-          <View style={styles.actions}>
-            {actions.map((action) => (action.kind === 'primary'
-              ? <PrimaryButton key={action.label} label={action.label} onPress={action.onPress} {...(action.testID === undefined ? {} : { testID: action.testID })} />
-              : <SecondaryButton key={action.label} label={action.label} onPress={action.onPress} tone={action.kind === 'danger' ? 'danger' : 'default'} {...(action.testID === undefined ? {} : { testID: action.testID })} />))}
-          </View>
+          <ScrollView contentContainerStyle={styles.content} bounces={false}>
+            <Text style={[typography.title, styles.title]} accessibilityRole="header">{title}</Text>
+            <Text style={[typography.body, styles.message]}>{message}</Text>
+            <View style={styles.actions}>
+              {actions.map((action) => (action.kind === 'primary'
+                ? <PrimaryButton key={action.label} label={action.label} onPress={action.onPress} {...(action.testID === undefined ? {} : { testID: action.testID })} />
+                : <SecondaryButton key={action.label} label={action.label} onPress={action.onPress} tone={action.kind === 'danger' ? 'danger' : 'default'} {...(action.testID === undefined ? {} : { testID: action.testID })} />))}
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -31,7 +33,8 @@ export function AppModal({ visible, title, message, actions, onRequestClose, tes
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.xl },
-  dialog: { backgroundColor: colors.surface, borderRadius: radii.xl, padding: spacing.xl, paddingTop: spacing.xxl, gap: spacing.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
+  dialog: { maxHeight: '100%', backgroundColor: colors.surface, borderRadius: radii.xl, padding: spacing.xl, paddingTop: spacing.xxl, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.floating },
+  content: { gap: spacing.md },
   title: { color: colors.text, textAlign: 'center' },
   message: { color: colors.textMuted, textAlign: 'center' },
   actions: { gap: spacing.sm, marginTop: spacing.sm },

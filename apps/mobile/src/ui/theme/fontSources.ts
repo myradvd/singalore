@@ -3,6 +3,7 @@ import { DMSans_500Medium } from '@expo-google-fonts/dm-sans/500Medium';
 import { DMSans_600SemiBold } from '@expo-google-fonts/dm-sans/600SemiBold';
 import { Newsreader_400Regular } from '@expo-google-fonts/newsreader/400Regular';
 import { Newsreader_600SemiBold } from '@expo-google-fonts/newsreader/600SemiBold';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fontFamilies } from './tokens';
 
 export const FONT_SOURCES = {
@@ -11,4 +12,5 @@ export const FONT_SOURCES = {
   [fontFamilies.sansRegular]: DMSans_400Regular,
   [fontFamilies.sansMedium]: DMSans_500Medium,
   [fontFamilies.sansSemiBold]: DMSans_600SemiBold,
+  ...MaterialCommunityIcons.font,
 };

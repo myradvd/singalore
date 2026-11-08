@@ -9,7 +9,7 @@ export function Card({ children, style, testID }: { children: ReactNode; style?:
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.glass,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

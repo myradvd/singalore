@@ -79,6 +79,8 @@ export function HomeScreen(props: HomeScreenProps)
   const [screenHeight, setScreenHeight] = useState<number | null>(null);
   const [controlsSpan, setControlsSpan] = useState<{ top: number; height: number } | null>(null);
   const [cardHostTop, setCardHostTop] = useState<number | null>(null);
+  const [topBarHeight, setTopBarHeight] = useState<number | null>(null);
+  const [noticesBottom, setNoticesBottom] = useState<number | null>(null);
   const catalog = useCatalogStore();
   const flow = useFlowStore((store) => store.state);
   const layers = useMapUiStore((store) => store.layers);
@@ -214,7 +216,7 @@ export function HomeScreen(props: HomeScreenProps)
     void write.catch((error: unknown) => services.diagnostics.record('warn', 'recent_sites_write_failed', error instanceof Error ? error.message : 'unknown'));
   };
   const topOverlay = flow.overlays[flow.overlays.length - 1];
-  const headerHeight = insets.top + 112;
+  const headerHeight = topBarHeight ?? insets.top + 112;
   const showEmptyCatalog = catalog.status === 'unavailable' && catalog.snapshot.landmarks.length === 0;
   const showCatalogLoading = catalog.status === 'loading' && catalog.snapshot.landmarks.length === 0;
   const zoomTop = controlsSpan === null ? null : controlsSpan.top + controlsSpan.height + spacing.sm;
@@ -226,6 +228,9 @@ export function HomeScreen(props: HomeScreenProps)
     const { y, height } = event.nativeEvent.layout;
     setControlsSpan((previous) => (previous?.top === y && previous.height === height ? previous : { top: y, height }));
   };
+
+  const cardHostBottom = insets.bottom + (homeChrome ? 104 : 180);
+  const cardHostMaxHeight = screenHeight === null || noticesBottom === null ? undefined : Math.max(0, screenHeight - cardHostBottom - noticesBottom - spacing.sm);
 
   return (
     <View testID="home-screen" style={styles.screen} onLayout={(event) => setScreenHeight(event.nativeEvent.layout.height)}>
@@ -249,7 +254,7 @@ export function HomeScreen(props: HomeScreenProps)
       />
 
       {homeChrome && (
-        <View style={[styles.top, { paddingTop: insets.top }]} pointerEvents="box-none">
+        <View testID="home-top-bar" style={[styles.top, { paddingTop: insets.top }]} pointerEvents="box-none" onLayout={(event) => setTopBarHeight(event.nativeEvent.layout.height)}>
           <HomeHeader
             onMenuPress={() => dispatchFlow({ type: 'openSidebar' })}
             onWordmarkPress={onWordmarkPress}
@@ -276,7 +281,12 @@ export function HomeScreen(props: HomeScreenProps)
         </View>
       )}
 
-      <View style={[styles.notices, { top: (expanded ? insets.top : headerHeight) + spacing.sm }]} pointerEvents="box-none">
+      <View
+        testID="notices"
+        style={[styles.notices, { top: (expanded ? insets.top : headerHeight) + spacing.sm }]}
+        pointerEvents="box-none"
+        onLayout={(event) => setNoticesBottom(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
+      >
         {showCatalogLoading && (
           <View testID="catalog-loading-notice" pointerEvents="none">
             <Banner icon="map-search-outline" tone="info" message={COPY.catalogLoading} />
@@ -343,13 +353,14 @@ export function HomeScreen(props: HomeScreenProps)
       {(homeChrome || flow.screen === 'navigation') && (
         <View
           testID="card-host"
-          style={[styles.cardHost, { bottom: insets.bottom + (homeChrome ? 104 : 180) }]}
+          style={[styles.cardHost, { bottom: cardHostBottom, maxHeight: cardHostMaxHeight }]}
           pointerEvents="box-none"
           onLayout={(event) => setCardHostTop(event.nativeEvent.layout.y)}
         >
           {homeChrome && <RouteStripHost onOpen={() => dispatchFlow({ type: 'openRouteEditor' })} />}
           {selected !== undefined && homeChrome && (
             <Animated.View
+              style={styles.cardShrink}
               entering={reducedMotion ? FadeIn.duration(200) : FadeInDown.duration(220).easing(EASE_OUT)}
               exiting={reducedMotion ? FadeOut.duration(150) : FadeOutDown.duration(160).easing(EASE_OUT)}
             >
@@ -363,7 +374,6 @@ export function HomeScreen(props: HomeScreenProps)
                 onClose={() => dispatchFlow({ type: 'selectLandmark', landmarkId: null })}
                 headerActions={(
                   <>
-                    {debug.enabled && <IconButton testID="debug-force-prompt" icon="bell-ring-outline" accessibilityLabel="Force podcast prompt" onPress={() => services.geofence.forcePrompt(selected.id)} variant="plain" />}
                     <IconButton
                       testID="summary-bookmark"
                       icon={savedLandmarkIds.includes(selected.id) ? 'bookmark' : 'bookmark-outline'}
@@ -372,6 +382,7 @@ export function HomeScreen(props: HomeScreenProps)
                       onPress={() => void toggleBookmark(selected.id)}
                       variant="plain"
                     />
+                    {debug.enabled && <IconButton testID="debug-force-prompt" icon="bell-ring-outline" accessibilityLabel="Force podcast prompt" onPress={() => services.geofence.forcePrompt(selected.id)} variant="plain" />}
                   </>
                 )}
                 actions={(
@@ -477,13 +488,14 @@ export function HomeScreen(props: HomeScreenProps)
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  top: { position: 'absolute', top: 0, left: 0, right: 0, gap: spacing.sm, paddingBottom: spacing.md, backgroundColor: colors.chrome, borderBottomLeftRadius: radii.lg, borderBottomRightRadius: radii.lg, ...shadows.card },
+  top: { position: 'absolute', top: 0, left: 0, right: 0, gap: spacing.sm, paddingBottom: spacing.md, backgroundColor: colors.background, borderBottomLeftRadius: radii.lg, borderBottomRightRadius: radii.lg, ...shadows.card },
   controls: { position: 'absolute', right: spacing.lg },
   zoom: { position: 'absolute', right: spacing.lg },
   debugButton: { marginTop: spacing.sm },
   notices: { position: 'absolute', left: spacing.lg, right: 72, gap: spacing.sm },
   cardHost: { position: 'absolute', left: spacing.lg, right: spacing.lg, gap: spacing.sm },
+  cardShrink: { flexShrink: 1 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   compress: { position: 'absolute', alignSelf: 'center' },
-  emptyCatalog: { ...fill, justifyContent: 'center', backgroundColor: colors.chrome },
+  emptyCatalog: { ...fill, justifyContent: 'center', backgroundColor: colors.background },
 });

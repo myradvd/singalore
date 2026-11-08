@@ -17,7 +17,7 @@ export function Chip({ label, selected = false, onPress, icon, testID }: { label
       style={[styles.chip, selected && styles.selected]}
     >
       {icon !== undefined && <Icon name={icon} size={16} color={selected ? colors.onAccent : colors.primary} />}
-      <Text style={[typography.captionStrong, { color: selected ? colors.onAccent : colors.text }]} maxFontSizeMultiplier={1.6}>{label}</Text>
+      <Text style={[styles.label, { color: selected ? colors.onAccent : colors.text }]} maxFontSizeMultiplier={1.6}>{label}</Text>
     </Pressable>
   );
 }
@@ -27,6 +27,7 @@ const styles = StyleSheet.create({
     minHeight: touchTargets.minimum - 2 * VERTICAL_HIT_SLOP,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
+    maxWidth: '100%',
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -35,5 +36,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  label: { ...typography.captionStrong, flexShrink: 1 },
   selected: { backgroundColor: colors.accent, borderColor: colors.accent },
 });
