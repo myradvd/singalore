@@ -1,14 +1,15 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer, type AudioStatus } from 'expo-audio';
 import { IDLE_STATUS, type AudioEngine, type EngineStatus, type TrackMetadata } from './AudioEngine';
 
-export function mapExpoStatus(status: AudioStatus, rate: number, wantsPlay: boolean): EngineStatus
+export function mapExpoStatus(status: AudioStatus, rate: number, wantsPlay: boolean, finished = false): EngineStatus
 {
   let state: EngineStatus['state'];
+  const durationSeconds = Number.isFinite(status.duration) ? status.duration : 0;
   if (status.error !== null && status.error !== undefined)
   {
     state = 'error';
   }
-  else if (status.didJustFinish)
+  else if (status.didJustFinish || (finished && !status.playing))
   {
     state = 'ended';
   }
@@ -26,8 +27,8 @@ export function mapExpoStatus(status: AudioStatus, rate: number, wantsPlay: bool
   }
   return {
     state,
-    positionSeconds: status.currentTime,
-    durationSeconds: Number.isFinite(status.duration) ? status.duration : 0,
+    positionSeconds: state === 'ended' && durationSeconds > 0 ? durationSeconds : status.currentTime,
+    durationSeconds,
     rate,
     errorMessage: status.error ?? null,
   };
@@ -44,6 +45,8 @@ export class ExpoAudioEngine implements AudioEngine
   private modeConfigured = false;
   private lockScreenMetadata: TrackMetadata | null = null;
   private latestLoadRequest = 0;
+  // didJustFinish arrives on one update only, so the engine remembers the finish until the walker plays or seeks again.
+  private finished = false;
 
   async load(uri: string, metadata: TrackMetadata, startAtSeconds: number, autoPlay: boolean): Promise<void>
   {
@@ -63,7 +66,7 @@ export class ExpoAudioEngine implements AudioEngine
     const player = createAudioPlayer({ uri }, { updateInterval: 500 });
     this.player = player;
     this.wantsPlay = autoPlay;
-    this.subscription = player.addListener('playbackStatusUpdate', (status) => this.emit(mapExpoStatus(status, this.rate, this.wantsPlay)));
+    this.subscription = player.addListener('playbackStatusUpdate', (status) => this.handlePlayerStatus(status));
     player.setPlaybackRate(this.rate);
     this.lockScreenMetadata = metadata;
     if (autoPlay)
@@ -82,6 +85,7 @@ export class ExpoAudioEngine implements AudioEngine
 
   play(): void
   {
+    this.finished = false;
     this.wantsPlay = true;
     this.activateLockScreen();
     this.player?.play();
@@ -95,6 +99,11 @@ export class ExpoAudioEngine implements AudioEngine
 
   async seekTo(seconds: number): Promise<void>
   {
+    const duration = this.current.durationSeconds;
+    if (duration <= 0 || seconds < duration)
+    {
+      this.finished = false;
+    }
     await this.player?.seekTo(Math.max(0, seconds));
   }
 
@@ -127,6 +136,7 @@ export class ExpoAudioEngine implements AudioEngine
       player.release();
     }
     this.wantsPlay = false;
+    this.finished = false;
     this.lockScreenMetadata = null;
     this.emit({ ...IDLE_STATUS, rate: this.rate });
   }
@@ -151,6 +161,16 @@ export class ExpoAudioEngine implements AudioEngine
       this.lockScreenMetadata = null;
       this.player?.setActiveForLockScreen(true, { title: metadata.title, artist: metadata.artist, ...(metadata.artworkUrl === null ? {} : { artworkUrl: metadata.artworkUrl }) }, { showSeekBackward: true, showSeekForward: true });
     }
+  }
+
+  // Maps a native status update, keeping the track ended after didJustFinish until playback restarts.
+  private handlePlayerStatus(status: AudioStatus): void
+  {
+    if (status.didJustFinish)
+    {
+      this.finished = true;
+    }
+    this.emit(mapExpoStatus(status, this.rate, this.wantsPlay, this.finished));
   }
 
   private emit(status: EngineStatus): void
