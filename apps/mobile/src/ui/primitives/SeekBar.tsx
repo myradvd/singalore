@@ -1,5 +1,5 @@
 import { formatClock } from '@singalore/shared';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { colors, radii, shadows, spacing, typography } from '../theme/tokens';
 
@@ -27,9 +27,11 @@ export function SeekBar({ positionSeconds, durationSeconds, onSeek, stepSeconds 
   const [dragFraction, setDragFraction] = useState<number | null>(null);
   const progress = dragFraction ?? (durationSeconds > 0 ? Math.min(1, positionSeconds / durationSeconds) : 0);
   const shownSeconds = dragFraction === null ? positionSeconds : dragFraction * durationSeconds;
+  // Holds the released position on screen until the player reports a new one, so the thumb never flicks back.
+  useEffect(() => setDragFraction(null), [positionSeconds]);
   const commit = (fraction: number) =>
   {
-    setDragFraction(null);
+    setDragFraction(fraction);
     onSeek(fraction * durationSeconds);
   };
 
@@ -55,10 +57,11 @@ export function SeekBar({ positionSeconds, durationSeconds, onSeek, stepSeconds 
           onSeek(Math.max(0, Math.min(durationSeconds, positionSeconds + delta)));
         }}
       >
-        <View style={styles.track}>
+        {/* pointerEvents none keeps every touch on the touch area, so locationX is measured from the bar, not the thumb. */}
+        <View style={styles.track} pointerEvents="none">
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
         </View>
-        <View style={[styles.thumb, { left: `${progress * 100}%` }]} />
+        <View style={[styles.thumb, { left: `${progress * 100}%` }]} pointerEvents="none" />
       </View>
       <View style={styles.times}>
         <Text style={[typography.caption, { color: colors.textMuted }]}>{formatClock(shownSeconds)}</Text>
