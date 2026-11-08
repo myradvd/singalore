@@ -1,5 +1,5 @@
 import { formatClock } from '@singalore/shared';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { colors, radii, shadows, spacing, typography } from '../theme/tokens';
 
@@ -24,14 +24,16 @@ export function seekFraction(locationX: number, width: number): number
 export function SeekBar({ positionSeconds, durationSeconds, onSeek, stepSeconds = 10, testID }: SeekBarProps)
 {
   const [width, setWidth] = useState(0);
-  const [dragFraction, setDragFraction] = useState<number | null>(null);
+  const [liveFraction, setDragFraction] = useState<number | null>(null);
+  const [released, setReleased] = useState<{ fraction: number; atPosition: number } | null>(null);
+  // Holds the released position on screen until the player reports a new one, so the thumb never flicks back.
+  const dragFraction = liveFraction ?? (released !== null && released.atPosition === positionSeconds ? released.fraction : null);
   const progress = dragFraction ?? (durationSeconds > 0 ? Math.min(1, positionSeconds / durationSeconds) : 0);
   const shownSeconds = dragFraction === null ? positionSeconds : dragFraction * durationSeconds;
-  // Holds the released position on screen until the player reports a new one, so the thumb never flicks back.
-  useEffect(() => setDragFraction(null), [positionSeconds]);
   const commit = (fraction: number) =>
   {
-    setDragFraction(fraction);
+    setDragFraction(null);
+    setReleased({ fraction, atPosition: positionSeconds });
     onSeek(fraction * durationSeconds);
   };
 
