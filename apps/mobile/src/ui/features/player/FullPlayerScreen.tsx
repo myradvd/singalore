@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppServices } from '@/composition/AppServicesContext';
 import { useAudioStore } from '@/modules/audio/audioStore';
+import { useFlowStore } from '@/modules/flow/flowStore';
 import { updatePreferences } from '@/modules/prefs/preferencesStore';
 import { SecondaryButton } from '../../primitives/Buttons';
 import { IconButton } from '../../primitives/IconButton';
@@ -18,12 +19,13 @@ export function FullPlayerScreen()
   const services = useAppServices();
   const audio = useAudioStore();
   const { track, status } = audio;
+  const onTour = useFlowStore((store) => store.state.base === 'inProgress');
 
   if (track === null)
   {
     return (
       <View style={[styles.screen, { paddingTop: insets.top, justifyContent: 'center' }]}>
-        <EmptyState icon="headphones-off" title="Nothing playing" message="Choose a landmark on the map or walk into a heritage site to hear its podcast." actionLabel="Back to map" onAction={() => router.back()} />
+        <EmptyState icon="headphones-off" title={onTour ? 'Head to your next stop' : 'Nothing playing'} message={onTour ? 'The next podcast starts when you arrive.' : 'Choose a landmark on the map or walk into a heritage site to hear its podcast.'} actionLabel="Back to map" onAction={() => router.back()} />
       </View>
     );
   }
