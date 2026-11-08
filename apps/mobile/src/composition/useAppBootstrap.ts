@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import { bindAudioStore } from '@/modules/audio/audioStore';
 import { bindDownloadsStore } from '@/modules/offline/downloadsStore';
 import { bindRouteStore } from '@/modules/routing/routeStore';
-import { initializeCatalog, refreshCatalog } from '@/modules/catalog/catalogStore';
+import { initializeCatalog, refreshCatalog, useCatalogStore } from '@/modules/catalog/catalogStore';
 import type { CatalogSyncOutcome } from '@/modules/catalog/CatalogSync';
 import { bindNetworkLog } from '@/modules/debug/debugStore';
 import { configureFlowRuntime, dispatchFlow, useFlowStore } from '@/modules/flow/flowStore';
@@ -23,6 +23,7 @@ import { createAppServices, type AppServices } from './container';
 import { startServicesRecheck } from './servicesRecheck';
 import { createFlowEffectHandler } from './flowEffects';
 import { wirePromptAudio } from './promptAudioWiring';
+import { wireTourAudioHandoff } from './tourAudioHandoff';
 
 function reportSyncOutcome(outcome: CatalogSyncOutcome): void
 {
@@ -66,6 +67,19 @@ export function useAppBootstrap(): BootstrapState
       bindNetworkLog(services.events);
       bindLocationStore(services.location);
       bindGeofenceStore(services.geofence);
+      // Registered before geofence.start so it sees a queued next-up episode before the engine clears it.
+      wireTourAudioHandoff({
+        events: services.events,
+        flow: () => useFlowStore.getState().state,
+        dispatch: dispatchFlow,
+        queuedLandmarkId: () => services.geofence.getState().nextUpLandmarkId,
+        landmarkName: (landmarkId) => useCatalogStore.getState().landmarksById.get(landmarkId)?.name ?? 'your next stop',
+        stopAudio: () => void services.audio.stopAndClear(),
+        toast: (message) => showToast(message),
+        notify: (title, body) => void services.notifier.notify('route_updates', title, body),
+        isAppActive: () => AppState.currentState === 'active',
+        now: () => services.clock.now(),
+      });
       services.geofence.start();
       services.connectivity.start();
       NetInfo.addEventListener((network) => services.connectivity.setNetwork(network.isConnected, network.type === 'wifi'));

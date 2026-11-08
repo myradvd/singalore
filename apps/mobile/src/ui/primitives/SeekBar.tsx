@@ -24,12 +24,16 @@ export function seekFraction(locationX: number, width: number): number
 export function SeekBar({ positionSeconds, durationSeconds, onSeek, stepSeconds = 10, testID }: SeekBarProps)
 {
   const [width, setWidth] = useState(0);
-  const [dragFraction, setDragFraction] = useState<number | null>(null);
+  const [liveFraction, setDragFraction] = useState<number | null>(null);
+  const [released, setReleased] = useState<{ fraction: number; atPosition: number } | null>(null);
+  // Holds the released position on screen until the player reports a new one, so the thumb never flicks back.
+  const dragFraction = liveFraction ?? (released !== null && released.atPosition === positionSeconds ? released.fraction : null);
   const progress = dragFraction ?? (durationSeconds > 0 ? Math.min(1, positionSeconds / durationSeconds) : 0);
   const shownSeconds = dragFraction === null ? positionSeconds : dragFraction * durationSeconds;
   const commit = (fraction: number) =>
   {
     setDragFraction(null);
+    setReleased({ fraction, atPosition: positionSeconds });
     onSeek(fraction * durationSeconds);
   };
 
@@ -55,10 +59,11 @@ export function SeekBar({ positionSeconds, durationSeconds, onSeek, stepSeconds 
           onSeek(Math.max(0, Math.min(durationSeconds, positionSeconds + delta)));
         }}
       >
-        <View style={styles.track}>
+        {/* pointerEvents none keeps every touch on the touch area, so locationX is measured from the bar, not the thumb. */}
+        <View style={styles.track} pointerEvents="none">
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
         </View>
-        <View style={[styles.thumb, { left: `${progress * 100}%` }]} />
+        <View style={[styles.thumb, { left: `${progress * 100}%` }]} pointerEvents="none" />
       </View>
       <View style={styles.times}>
         <Text style={[typography.caption, { color: colors.textMuted }]}>{formatClock(shownSeconds)}</Text>

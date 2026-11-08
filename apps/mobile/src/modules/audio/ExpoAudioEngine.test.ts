@@ -212,3 +212,31 @@ describe('ExpoAudioEngine stop and replace release the native player', () =>
     expect(player.play).not.toHaveBeenCalled();
   });
 });
+
+// Builds a native status update with the fields the engine reads.
+function nativeStatus(overrides: Record<string, unknown>)
+{
+  return { isLoaded: true, isBuffering: false, playing: false, didJustFinish: false, currentTime: 0, duration: 120, error: null, ...overrides };
+}
+
+describe('ExpoAudioEngine end of track', () =>
+{
+  beforeEach(() =>
+  {
+    mockCreateAudioPlayer.mockReset();
+  });
+
+  it('stays ended at the full duration after the one didJustFinish update, until the walker seeks back', async () =>
+  {
+    const player = nextPlayer();
+    const engine = new ExpoAudioEngine();
+    await engine.load('file:///a.m4a', FIRST, 0, true);
+    const listener = (player.addListener.mock.calls[0] as unknown as [string, (status: unknown) => void])[1];
+    listener(nativeStatus({ didJustFinish: true, currentTime: 120 }));
+    listener(nativeStatus({ currentTime: 0 }));
+    expect(engine.status()).toMatchObject({ state: 'ended', positionSeconds: 120 });
+    await engine.seekTo(30);
+    listener(nativeStatus({ currentTime: 30 }));
+    expect(engine.status()).toMatchObject({ state: 'paused', positionSeconds: 30 });
+  });
+});
