@@ -10,9 +10,9 @@ Things that are not built, or cannot work as the SRS wishes. Each one is either 
 - **Long cached routes.** A cached draft or tour of 12 or more stops restores whole and gets the generic route error.
 - **Autoplay needs alerts.** With Autoplay on and alerts or notification permission off, a background arrival gives no audio and no notification.
 - **No offline basemap.** Offline, the map shows cached tiles if any, otherwise a plain background with pins, boundaries, route and user dot.
-- **The public routing server has no SLA.** See DEPLOY.md for self hosting OSRM.
+- **The public routing server has no SLA.** Self hosting OSRM with the foot profile, behind the same `RoutingProvider`, is described in `docs/DESIGN_DECISIONS.md` section 14, item 2.
 - **Podcast uploads on Vercel are limited to about 4.5 MB** by the platform's request body limit. The CMS accepts up to 50 MB when self hosted or run locally.
-- **Local Android builds need JDK 21.** Android Studio's bundled JDK 25 fails the React Native CMake steps (see ANDROID_INSTALL.md).
+- **Local Android builds need JDK 21.** Android Studio's bundled JDK 25 fails the React Native CMake steps. Set `JAVA_HOME` to a JDK 21 install before running `scripts/build-android-local.sh`, or build in the cloud with `npm run app:build:dev` (`CONTRIBUTING.md` section 5).
 
 ## Seed podcasts
 
