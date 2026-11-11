@@ -67,6 +67,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "check": "node ../../scripts/check-mobile.mjs",
     "build:dev-app": "eas build --platform android --profile development",
     "build:demo-app": "eas build --platform android --profile preview",

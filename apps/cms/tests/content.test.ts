@@ -126,6 +126,25 @@ describe('landmark form boundary values (N-1)', () =>
   });
 });
 
+// Equivalence classes for the geofence radius, one representative per class (docs/TESTING.md section 1).
+describe('landmark form geofence radius equivalence classes', () =>
+{
+  it.each([
+    ['EC1 below 15 m (invalid)', '5', 'Radius must be at least 15 m.'],
+    ['EC2 15 to 100 m (valid)', '50', null],
+    ['EC3 above 100 m (invalid)', '150', 'Radius must be at most 100 m.'],
+    ['EC4 not a whole number (invalid)', '42.7', 'Radius must be a whole number.'],
+  ])('%s: radius %s gives %s', (_name, geofenceRadiusM, expected) =>
+  {
+    expect(landmarkIssue({ geofenceRadiusM })).toBe(expected);
+  });
+
+  it('EC5 not a number (invalid): radius ten fails', () =>
+  {
+    expect(LandmarkForm.safeParse({ ...validLandmark, geofenceRadiusM: 'ten' }).success).toBe(false);
+  });
+});
+
 describe('podcast form boundary values (N-1)', () =>
 {
   it.each([
