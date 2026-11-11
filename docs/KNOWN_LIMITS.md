@@ -29,7 +29,6 @@ Things that are not built, or cannot work as the SRS wishes. Each one is either 
 ## Deferred by the owner (lean scope, 12 Oct 2026)
 
 - OSM and Wikidata import UI in the CMS (the ingest code exists in `packages/ingest` and is used by the seed script).
-- Playwright smoke test for the CMS.
 - Load test script for NFR 5.1.
 - Sentry crash reporting (NFR 6.1). The local diagnostics log (NFR 6.2) is built.
 - Tour history polish.
