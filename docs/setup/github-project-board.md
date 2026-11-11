@@ -1,6 +1,6 @@
 # GitHub Project Board, Milestones and Releases
 
-How the team tracks sprints on GitHub (Scrum, SC2006 lecture 9) and versions each demo build (maintenance, lecture 21). Do this once in each repository: `myradvd/singalore` and `softwarelab3/2006-TDDB-U4`. Everything is done in the browser on github.com, except the tag in section 3.
+How the team tracks sprints on GitHub (Scrum, SC2006 lecture 9) and versions each demo build (maintenance, lecture 21). Do this once in each repository: `myradvd/singalore` and `softwarelab3/2006-TDDB-U4`. Everything is done in the browser on github.com, except the tag in section 3. Section 4 sets up the maintenance type labels.
 
 ## 1. Milestones
 
@@ -58,3 +58,19 @@ git push origin v0.2.0
 3. Make it a release: on github.com click **Releases** (right side of the repository page), then **Draft a new release**. Under **Choose a tag** pick `v0.2.0`, use `Singalore 0.2.0` as the title, paste that version's section of `CHANGELOG.md` as the description, and click **Publish release**.
 
 The first demo build was released before tags were used. To tag it, run `git tag -a v0.1.0 -m "Demo build 0.1.0" 30094be` and then `git push origin v0.1.0`. The extra `30094be` is the commit to tag, the merge of PR #23 in `myradvd/singalore`. In `softwarelab3/2006-TDDB-U4` the history is different, so tag only from `v0.2.0` on there.
+
+## 4. Maintenance type labels
+
+Every change is one of the three maintenance types (SC2006 lecture 21). A label on each issue and pull request makes the type visible and lets the team filter by it.
+
+1. On github.com open the repository, click **Issues**, then **Labels**, then **New label**.
+2. Create these three:
+
+| Label name | Description | Colour |
+| --- | --- | --- |
+| `corrective` | Fixes a fault | `#D73A4A` |
+| `adaptive` | Adapts to a changed environment: a platform, package or service change | `#0075CA` |
+| `perfective` | Adds or improves functionality, or refactors | `#A2EEEF` |
+
+3. On every issue and pull request, click **Labels** on the right and pick one. The pull request template asks which one under **Maintenance type**.
+4. To see all the fixes, for example, click **Issues** or **Pull requests**, then **Labels**, then `corrective`.

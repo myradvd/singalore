@@ -18,7 +18,16 @@ export interface ButtonProps
 
 const PRESS_RETENTION = { top: 16, bottom: 16, left: 16, right: 16 };
 
-export function PrimaryButton({ label, onPress, icon, disabled = false, accessibilityHint, style, testID, pressScale = false }: ButtonProps)
+interface PillVariant
+{
+  surface: StyleProp<ViewStyle>;
+  pressedSurface: StyleProp<ViewStyle>;
+  disabledSurface?: StyleProp<ViewStyle>;
+  contentColor: string;
+}
+
+// Renders the pill shaped pressable shared by the primary and secondary buttons, in the given colours.
+function PillButton({ label, onPress, icon, disabled = false, accessibilityHint, style, testID, pressScale = false, variant }: ButtonProps & { variant: PillVariant })
 {
   const press = usePressScale(pressScale);
   const button = (
@@ -33,42 +42,26 @@ export function PrimaryButton({ label, onPress, icon, disabled = false, accessib
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       pressRetentionOffset={PRESS_RETENTION}
-      style={({ pressed }) => [styles.base, styles.primary, pressed && styles.primaryPressed, disabled && styles.inactive, style]}
+      style={({ pressed }) => [styles.base, variant.surface, pressed && variant.pressedSurface, disabled && variant.disabledSurface, style]}
     >
       <View style={styles.content}>
-        {icon !== undefined && <Icon name={icon} size={20} color={colors.onAccent} />}
-        <Text style={[styles.label, { color: colors.onAccent }]} maxFontSizeMultiplier={1.6}>{label}</Text>
+        {icon !== undefined && <Icon name={icon} size={20} color={variant.contentColor} />}
+        <Text style={[styles.label, { color: variant.contentColor }]} maxFontSizeMultiplier={1.6}>{label}</Text>
       </View>
     </Pressable>
   );
   return pressScale ? <Animated.View style={press.animatedStyle}>{button}</Animated.View> : button;
 }
 
-export function SecondaryButton({ label, onPress, icon, disabled = false, accessibilityHint, style, testID, tone = 'default', pressScale = false }: ButtonProps & { tone?: 'default' | 'danger' })
+export function PrimaryButton(props: ButtonProps)
 {
-  const press = usePressScale(pressScale);
-  const textColor = disabled ? colors.textDisabled : tone === 'danger' ? colors.danger : colors.text;
-  const button = (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      pressRetentionOffset={PRESS_RETENTION}
-      style={({ pressed }) => [styles.base, styles.secondary, pressed && styles.pressed, style]}
-    >
-      <View style={styles.content}>
-        {icon !== undefined && <Icon name={icon} size={20} color={textColor} />}
-        <Text style={[styles.label, { color: textColor }]} maxFontSizeMultiplier={1.6}>{label}</Text>
-      </View>
-    </Pressable>
-  );
-  return pressScale ? <Animated.View style={press.animatedStyle}>{button}</Animated.View> : button;
+  return <PillButton {...props} variant={{ surface: styles.primary, pressedSurface: styles.primaryPressed, disabledSurface: styles.inactive, contentColor: colors.onAccent }} />;
+}
+
+export function SecondaryButton({ tone = 'default', ...props }: ButtonProps & { tone?: 'default' | 'danger' })
+{
+  const contentColor = props.disabled === true ? colors.textDisabled : tone === 'danger' ? colors.danger : colors.text;
+  return <PillButton {...props} variant={{ surface: styles.secondary, pressedSurface: styles.pressed, contentColor }} />;
 }
 
 export function TextButton({ label, onPress, disabled = false, style, testID }: ButtonProps)

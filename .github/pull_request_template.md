@@ -12,6 +12,14 @@ Closes #
 - [ ] App config, permissions or a native package (needs a new app build)
 - [ ] Documents or diagrams only
 
+## Maintenance type
+
+<!-- Tick one and add the matching label (docs/setup/github-project-board.md section 4). -->
+
+- [ ] `corrective`: fixes a fault
+- [ ] `adaptive`: adapts to a changed environment (a platform, package or service change)
+- [ ] `perfective`: adds or improves functionality, or refactors
+
 ## How I tested it
 
 <!-- What you ran or tried, for example: npm test, opened the screen in Singalore Dev, set a location near a landmark. -->
