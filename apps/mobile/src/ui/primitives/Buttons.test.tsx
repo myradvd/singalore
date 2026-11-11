@@ -50,6 +50,24 @@ describe('buttons stay inside their container (narrow width, large font)', () =>
   });
 });
 
+describe('primary and secondary button variants', () =>
+{
+  it.each([
+    ['primary', <PrimaryButton key="p" testID="b" label="Go" onPress={jest.fn()} />, colors.onAccent, colors.accent, undefined],
+    ['primary disabled', <PrimaryButton key="pd" testID="b" label="Go" disabled onPress={jest.fn()} />, colors.onAccent, colors.accent, 0.5],
+    ['secondary', <SecondaryButton key="s" testID="b" label="Go" onPress={jest.fn()} />, colors.text, colors.surface, undefined],
+    ['secondary danger', <SecondaryButton key="sd" testID="b" label="Go" tone="danger" onPress={jest.fn()} />, colors.danger, colors.surface, undefined],
+    ['secondary disabled', <SecondaryButton key="sx" testID="b" label="Go" disabled onPress={jest.fn()} />, colors.textDisabled, colors.surface, undefined],
+  ])('%s: label colour, background and disabled opacity', async (_kind, element, labelColor, background, opacity) =>
+  {
+    await render(element);
+    const pill = StyleSheet.flatten(screen.getByTestId('b').props.style);
+    expect(StyleSheet.flatten(screen.getByText('Go').props.style).color).toBe(labelColor);
+    expect(pill.backgroundColor).toBe(background);
+    expect(pill.opacity).toBe(opacity);
+  });
+});
+
 describe('Card surface', () =>
 {
   it('is opaque so map controls and pins cannot show through', async () =>
